@@ -1,0 +1,227 @@
+{
+  "title": "Video Processor",
+  "uid": "video-processor",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Active Workers",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 4 },
+              { "color": "red", "value": 8 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "expr": "active_workers",
+          "legendFormat": "workers",
+          "datasource": { "type": "prometheus" }
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" }
+    },
+    {
+      "id": 2,
+      "title": "Queue Size",
+      "type": "stat",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 50 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "expr": "queue_size",
+          "legendFormat": "jobs in queue",
+          "datasource": { "type": "prometheus" }
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" }
+    },
+    {
+      "id": 3,
+      "title": "Videos Processed (Total)",
+      "type": "stat",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" }
+      },
+      "targets": [
+        {
+          "expr": "sum(videos_processed_total) by (status)",
+          "legendFormat": "{{status}}",
+          "datasource": { "type": "prometheus" }
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "textMode": "auto", "colorMode": "value" }
+    },
+    {
+      "id": 4,
+      "title": "Success Rate",
+      "type": "gauge",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 80 },
+              { "color": "green", "value": 95 }
+            ]
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        }
+      },
+      "targets": [
+        {
+          "expr": "100 * sum(videos_processed_total{status=\"success\"}) / sum(videos_processed_total)",
+          "legendFormat": "success %",
+          "datasource": { "type": "prometheus" }
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 5,
+      "title": "Throughput (videos/min)",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 4 },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" }
+      },
+      "targets": [
+        {
+          "expr": "rate(videos_processed_total[1m]) * 60",
+          "legendFormat": "{{status}}",
+          "datasource": { "type": "prometheus" }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Duration per Step (p50 / p90 / p99)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 4, "w": 16, "h": 8 },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "s" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(video_processing_step_duration_seconds_bucket[5m])) by (le, step))",
+          "legendFormat": "p50 {{step}}",
+          "datasource": { "type": "prometheus" }
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(video_processing_step_duration_seconds_bucket[5m])) by (le, step))",
+          "legendFormat": "p90 {{step}}",
+          "datasource": { "type": "prometheus" }
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(video_processing_step_duration_seconds_bucket[5m])) by (le, step))",
+          "legendFormat": "p99 {{step}}",
+          "datasource": { "type": "prometheus" }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Total Job Duration (p50 / p90 / p99)",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 4, "w": 8, "h": 8 },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "s" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(video_processing_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50",
+          "datasource": { "type": "prometheus" }
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(video_processing_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p90",
+          "datasource": { "type": "prometheus" }
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(video_processing_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99",
+          "datasource": { "type": "prometheus" }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Processed Video Sizes",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 7 },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "bytes" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(video_size_bytes_bucket[5m])) by (le))",
+          "legendFormat": "p50",
+          "datasource": { "type": "prometheus" }
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(video_size_bytes_bucket[5m])) by (le))",
+          "legendFormat": "p90",
+          "datasource": { "type": "prometheus" }
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(video_size_bytes_bucket[5m])) by (le))",
+          "legendFormat": "p99",
+          "datasource": { "type": "prometheus" }
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Workers Ativos ao Longo do Tempo",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 7 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "unit": "short",
+          "custom": { "fillOpacity": 20 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "active_workers",
+          "legendFormat": "workers ativos",
+          "datasource": { "type": "prometheus" }
+        }
+      ]
+    }
+  ]
+}

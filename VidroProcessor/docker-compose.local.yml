@@ -1,0 +1,5 @@
+# Override para rodar o Processor localmente (fora do Docker).
+# worker colocado em profile "docker" para não ser buildado/iniciado por padrão.
+services:
+  worker:
+    profiles: [docker]

@@ -1,0 +1,35 @@
+name: CI
+
+# Commits land straight on master here (see CLAUDE.md), so CI has to run on push too —
+# a PR-only trigger would almost never fire.
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      # Most pipeline-step tests skip themselves without it.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      # Integration tests use testcontainers; Docker is available on the runner.
+      - name: Test
+        run: go test ./... -cover -timeout 15m
