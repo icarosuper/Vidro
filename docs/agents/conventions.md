@@ -156,3 +156,32 @@ Order (Biome auto-organizes):
 2. `#/shared/*`
 3. `#/features/*`, `#/components/*`
 4. Relative (`./`)
+## Checklist — endpoint novo
+
+1. **Confirme a rota** em [`../VidroApi/docs/agents/features-index.md`](../../../VidroApi/docs/agents/features-index.md):
+   path exato, arquivo fonte no backend e shape de request/response. Não adivinhe path — o backend
+   aninha recurso de canal sob o usuário (`/v1/users/{username}/channels/{handle}/...`).
+2. **`types.ts`** — `XxxRequest` / `XxxResponse`. Enum em **response** chega como `EnumValue`
+   (`{ id, value }`); em **request** mande só o `id` numérico.
+3. **`api.ts`** — uma função por endpoint, sempre via `apiClient`, sempre aceitando e repassando
+   `signal?: AbortSignal`. Nunca `fetch` direto (exceções: upload presigned e `server.ts`).
+4. **`hooks.ts`** — `useQuery`/`useMutation` consumindo só `api.ts`. Query key no formato
+   `['resource-type', id, ...sub]`. Mutation invalida as keys afetadas em `onSuccess` e usa
+   `onError: toastApiError`.
+5. **Código de erro novo** vindo do backend → registre em `API_ERROR_CODES` (`shared/types.ts`) e
+   mapeie a mensagem em `shared/lib/error-messages.ts`. Nunca compare `code` com string literal.
+6. **Rota SSR** que precisa desse dado → `server.ts` com `createServerFn`, e o `loader` faz
+   `prefetchQuery` com o `accessToken` do router context (ver [auth.md](auth.md)).
+7. `bun run test` e `biome check`.
+8. **Atualize [`features-index.md`](features-index.md)** — é o mapa que evita grep no próximo ciclo.
+
+## Checklist — feature module novo
+
+1. `src/features/<nome>/` com `api.ts`, `hooks.ts`, `types.ts`, `components/` (e `server.ts` só se
+   precisar de SSR ou cookie httpOnly).
+2. Componente compartilhado por mais de uma feature não mora aqui — vai para `src/components/`.
+3. Rota nova em `src/routes/` (file-based). Rota autenticada client-only usa o guard `beforeLoad`;
+   rota SSR autenticada usa `context.accessToken`. Escolha a estratégia e registre na tabela de
+   renderização em [architecture.md](architecture.md).
+4. O resto é o checklist de endpoint acima, por endpoint.
+5. Atualize `features-index.md` e a tabela de renderização em `architecture.md`.

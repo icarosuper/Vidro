@@ -1,6 +1,9 @@
 # Workflow
 
-Leia doc: entender projeto fase por fase, estratégia branches, ciclo pós-implementação.
+Leia doc: entender projeto fase por fase e o ciclo pós-implementação.
+
+Branching, convenção de commit e "nunca commite sem pedido explícito" estão no `../../../CLAUDE.md`
+da raiz do workspace — não se repetem aqui.
 
 ## Escopo de edição
 
@@ -22,34 +25,17 @@ Planos detalhados em `docs/plans/`:
 
 **Cada fase: entrega funcional.** Nada meio feito entre fases.
 
-## Branching
-
-- **Padrão: commit direto na `master`** — coisa pequena e bugfix não abre branch.
-- **Feature grande** (vários commits) — **pergunte ao usuário** antes: branch `feature/<topic>` ou direto na `master`.
-- **`master`** — sempre deployável.
-
 ## Working style — após cada passo
 
 1. **Rodar testes.** `bun run test` pós-feature. Corrigir falhas antes de prosseguir.
 2. **Atualizar docs.** Reflita mudanças em:
    - `docs/plans/` — marcar ✅
-   - `docs/claude/features-index.md` — ao add/remover endpoints, hooks, componentes
-   - `docs/claude/architecture.md` — ao mudar camadas, api-client, renderização
-   - `docs/claude/auth.md` — qualquer mudança de auth
-   - `docs/claude/conventions.md` — só se convenção mudar (raro)
+   - `docs/agents/features-index.md` — ao add/remover endpoints, hooks, componentes
+   - `docs/agents/architecture.md` — ao mudar camadas, api-client, renderização
+   - `docs/agents/auth.md` — qualquer mudança de auth
+   - `docs/agents/conventions.md` — só se convenção mudar (raro)
 3. **Sugerir commit message em português.** Usuário revisa e commita.
 4. **Mostrar próximos passos.** Lista breve p/ usuário escolher.
-
-## Git commits
-
-**NUNCA commite sem pedido explícito.** Fluxo:
-
-1. Implementar mudanças
-2. Rodar testes
-3. Mostrar mudanças + sugerir commit message (português)
-4. Esperar aprovação
-
-Usuário decide quando/como commitar.
 
 ## Comandos frequentes
 

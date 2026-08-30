@@ -110,7 +110,7 @@ Impl criação/edição/exclusão/gerenciamento vídeos em playlists. Playlists:
 - ✅ **5. Rota `/playlists/$playlistId`** — detalhe SSR
 - ✅ **6. Canal page** — add seção playlists em `/$username/$channel`
 - ✅ **7. Dashboard** — add gestão playlists pessoais
-- ✅ **8. Atualizar `docs/claude/features-index.md`**
+- ✅ **8. Atualizar `docs/agents/features-index.md`**
 - ✅ **9. Rodar testes**
 
 ---
