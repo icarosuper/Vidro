@@ -15,7 +15,7 @@ Domain ← Application ← Infrastructure ← Api
 - **Domain** — entities, enums, `DomainError`. No external deps.
 - **Application** — defines interfaces (`IMinioService`, `IJobQueueService`). No EF Core.
 - **Infrastructure** — EF Core `AppDbContext`, `MinioService`, `RedisJobQueueService`, `TokenService`, `DateTimeProvider`, settings. All external I/O here. Entity mappings: `IEntityTypeConfiguration<T>` (one file/entity in `Persistence/Configurations/`). `OnModelCreating` applies `DeleteBehavior.Cascade` globally for all FKs.
-- **Api** — `Program.cs` only. Registers DI, middleware, JWT, calls `FeatureName.MapEndpoint(app)` per slice, registers background services (`BackgroundServices/`).
+- **Api** — `Program.cs` only. Registers DI, middleware, JWT and the background services (`BackgroundServices/`), then calls `app.MapAllEndpoints()` — which discovers every slice by reflection. Slices are **never** registered by hand.
 
 ## Vertical Slice pattern
 
@@ -97,7 +97,7 @@ DIY JWT — no ASP.NET Core Identity. `TokenService` (Infrastructure): access to
 
 ## Integration with VideoProcessor (Go)
 
-VideoProcessor = separate service at `../VideoProcessor`. Integration points:
+VideoProcessor = separate service at `../VidroProcessor`. Integration points:
 
 1. **Upload** — API writes raw video to MinIO at `raw/{videoId}` via presigned PUT URL (client uploads directly, never through API).
 2. **Enqueue** — `IJobQueueService.PublishJobAsync(videoId, callbackUrl)` writes `job:{videoId}` key to Redis, pushes `videoId` to `video_queue`.
@@ -114,19 +114,9 @@ VideoProcessor = separate service at `../VideoProcessor`. Integration points:
 | `preview/{videoId}_preview.mp4` | VideoProcessor | Low-quality preview |
 | `hls/{videoId}/` | VideoProcessor | HLS segments + playlist |
 
-## Key configuration sections (`appsettings.json`)
+## Configuration
 
-- `ConnectionStrings:Postgres`, `ConnectionStrings:Redis`
-- `MinIO` — endpoint, credentials, bucket, `UploadUrlTtlHours`
-- `Jwt` — secret, token expiry
-- `VideoSettings:MaxTagsPerVideo` — validated in slices, not hardcoded
-- `RateLimit:AuthPermitLimit` / `RateLimit:AuthWindowSeconds` — per-IP budget on `SignIn`/`SignUp`
-  (policy `RateLimitSettings.AuthPolicy`, fixed window, 429 on rejection). Only those two
-  endpoints are limited; a global limiter would throttle normal browsing
-- `VideoSettings:ReconciliationIntervalMinutes` — interval for `VideoReconciliationService`
-- `VideoSettings:ProcessingTimeoutMinutes` — how long a video may stay in `Processing` before
-  reconciliation marks it `Failed`. Must stay above the Processor's job budget + orphan-requeue
-  threshold (18min + 19min at `PROCESSING_TIMEOUT_SCALE=1`); default 45
-- `TrendingSettings` — score weights + time decay for `GET /videos/trending`
-- `Webhook:Secret` — HMAC secret shared with VideoProcessor
-- `StorageCleanupSettings:IntervalMinutes`, `StorageCleanupSettings:BatchSize` — controls `StorageCleanupService`
+Every key, its default and why the default is that value: [config.md](config.md). The two that bind
+this service to the worker are `JobQueueSettings:QueueName` (must equal the worker's
+`PROCESSING_REQUEST_QUEUE`) and `VideoSettings:ProcessingTimeoutMinutes` (must stay above the
+worker's job budget + orphan-requeue threshold).

@@ -2,23 +2,20 @@
 
 File give guidance to Claude Code (claude.ai/code) when work with code in repo.
 
+Commit convention, branching, edit scope and the "bad code nearby" rule live **once**, in the
+workspace root `../CLAUDE.md` (loaded automatically alongside this file). Short version: conventional
+commits **in Portuguese**, subject line only; straight to `master` unless the user approves a branch;
+**never commit without an explicit request**.
+
 ## Language
 
 All code must be in English: class names, method names, variables, test names, log messages, comments, and XML docs. Only exception is commit messages, written in Portuguese.
-
-## Git commits
-
-**NEVER commit code without explicit user request.** Always:
-1. Implement changes
-2. Run tests, verify pass
-3. Show user changes, suggest commit message
-4. Wait for user approve or request commit
 
 ## Working style
 
 After each implementation step:
 1. **Run all tests** — `dotnet test` after finish feature. Fix failures before proceed.
-2. **Update relevant docs** — reflect schema, endpoint, or design changes in `docs/plans/` and `docs/claude/features-index.md`.
+2. **Update relevant docs** — reflect schema, endpoint, or design changes in `docs/plans/` and `docs/agents/features-index.md`. New setting in `appsettings.json` → `docs/agents/config.md`. New non-obvious pattern → new numbered entry in `docs/agents/design-decisions.md`.
 3. **Suggest commit message in Portuguese** — user review and commit manually. Never commit without ask.
 4. **Show next possible steps** — brief list so user choose what implement next.
 
@@ -60,23 +57,32 @@ Domain ← Application ← Infrastructure ← Api
 
 Each feature is self-contained file under `src/VidroApi.Api/Features/<Domain>/FeatureName.cs`.
 
-→ Read `docs/claude/architecture.md` when create new feature, endpoint, or add auth/VideoProcessor integration.
+→ Read `docs/agents/architecture.md` when create new feature, endpoint, or add auth/VideoProcessor integration.
 
 ## Conventions
 
-→ Read `docs/claude/conventions.md` before create or edit domain entities, write features, or add tests.
+→ Read `docs/agents/conventions.md` before create or edit domain entities, write features, or add tests. Carries the step-by-step checklists for **adding a feature slice** and **adding a setting** — follow them instead of copying a neighbouring file by eye.
 
 ## Design decisions
 
-→ Read `docs/claude/design-decisions.md` when implement deletion, counters, pagination, cascades, or MinIO cleanup.
+→ Read `docs/agents/design-decisions.md` when implement deletion, counters, pagination, cascades, or MinIO cleanup. Numbered entries with an index at the top — **read only the entry you were pointed at**, and cite it by anchor (`design-decisions.md #7`), never by line number.
+
+## Config reference
+
+→ Read `docs/agents/config.md` when touch `appsettings.json`, a `Settings` POCO, or an env var. Every key with its default, where it is read, and why the default is what it is.
 
 ## Features index
 
-→ Read `docs/claude/features-index.md` to locate existing feature file before search codebase. Update whenever feature added or removed.
+→ Read `docs/agents/features-index.md` to locate existing feature file before search codebase. Update whenever feature added or removed.
 
-## Branching and release strategy
+## Troubleshooting
 
-- **Commits go straight to `master`** by default (small changes, bugfixes). Only a large multi-commit feature gets a `feature/<topic>` branch — and only after asking the user. See "Onde commitar".
+→ A video stuck in `Processing`, or a job in the dead-letter queue, is diagnosed from the worker side:
+`../VidroProcessor/docs/agents/troubleshooting-stuck-video.md`. The runbook crosses both repos and
+starts at the API.
+
+## Release
+
 - **`master`** — always deployable. **No deploy pipeline exists yet**: `.github/workflows/ci.yml` only builds and tests on PRs to `master`. Deploys are manual.
 - **Releases** — intended strategy: git tag (`v1.0.0`, `v1.1.0`, etc.) on `master`, production deploy from tags. Not in use yet — the repo has no tags.
 - **Coordination with VidroProcessor** — when change affect shared contract (MinIO paths, Redis queue name, webhook format), both repos must be tagged and deployed together.
@@ -84,27 +90,3 @@ Each feature is self-contained file under `src/VidroApi.Api/Features/<Domain>/Fe
 ## Implementation plan
 
 See `docs/plans/2026-03-26-implementation-plan.md` for full task-by-task plan.
-
-## Padrão de mensagem de commit
-
-Conventional Commits, **em português**, só o assunto — sem corpo, sem escopo, sem rodapé (nada de `Co-authored-by`).
-
-Formato: `<tipo>: <verbo no infinitivo> <complemento>` — minúsculo depois do tipo, sem ponto final, até ~72 chars.
-
-Tipos usados no repo (frequência real): `feat` > `chore` > `fix` > `refactor` > `docs` / `test`.
-
-- `feat` — funcionalidade nova ou ampliada
-- `fix` — correção de bug/comportamento
-- `chore` — docs, README, migrations, scaffold, reorganização sem lógica
-- `refactor` — renomear/reestruturar sem mudar comportamento
-- `docs` / `test` — quando a mudança é só documentação ou só teste
-
-Exemplos do histórico: `feat: adicionar upload de avatar do canal`, `fix: corrigir botão de reações`, `chore: atualizar README`, `refactor: renomear projeto`.
-
-Título de PR (squash merge): `Feature/nome-da-branch (#N)`.
-
-### Onde commitar
-
-- **Padrão: direto na `master`.** Coisa pequena e bugfix não abre branch.
-- **Exceção: feature grande** (vários commits). Aí **pergunte ao usuário** se é para criar `feature/<topic>` ou mandar direto para `master` — nunca decida sozinho.
-- `master` sempre deployável; produção sai de tags `vX.Y.Z` (estratégia pretendida — ainda não há tag nenhuma no repo).

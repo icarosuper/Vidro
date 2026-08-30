@@ -96,3 +96,44 @@
 - Use `IClassFixture<ApiFactory>` to share container across tests in class. Generate unique usernames/emails per test (e.g. `Guid.NewGuid()`) to avoid inter-test conflicts.
 - Assert on both HTTP status code and response body (`code` field for errors, `data` for success).
 - **Test helper pattern for channel creation** — `CreateChannelAndGetIds()` returns `(string AccessToken, string Username, string ChannelHandle)`. Video creation helpers take `username` and `channelHandle`, not IDs.
+## Checklist — adding a feature slice
+
+1. Create `src/VidroApi.Api/Features/<Domain>/<FeatureName>.cs` — one `public static class`, members
+   in this order: `Request` (and `Command`, when input mixes body + claims) → `Response` →
+   `Validator` → `MapEndpoint` → `Handler`.
+2. **Do not register the endpoint anywhere.** `app.MapAllEndpoints()` scans the assembly by
+   reflection and calls every `public static MapEndpoint`. A wrong signature does not fail the
+   build — the route simply never exists, and the symptom is a 404 in a test.
+3. Route follows the identity rules: `{username}` and `{handle}`, never a `Guid`; channel-scoped
+   resources nest under the user.
+4. `Handle` reads as a sequence of named steps. `SaveChangesAsync` stays **in** `Handle`; a read that
+   decides a write goes **inside** the transaction.
+5. Errors come from `Domain/Errors/` — `CommonErrors`, `Errors.<Entity>.X()`, or a new
+   `FeatureErrors` entry. Return `Result.Success(response)` / the error; never throw for control flow.
+6. Enums in the response are `EnumValue`, and inside an EF projection they are built inline
+   (`EnumValue.From` does not translate to SQL).
+7. Entity or mapping changed → update the `IEntityTypeConfiguration`, add the composite index for
+   any new 2+ column filter ([design-decisions #4](design-decisions.md#4-composite-indexes-are-declared-for-every-common-query-pattern)),
+   and create the migration: `dotnet ef migrations add <PascalCaseDescriptionMigration> --project src/VidroApi.Infrastructure --startup-project src/VidroApi.Api --output-dir Persistence/Migrations`.
+8. Tests: integration test in `tests/VidroApi.IntegrationTests/<Domain>/<FeatureName>Tests.cs`
+   (always), plus a unit test in `tests/VidroApi.UnitTests/Domain/` if a domain entity changed.
+   Assert both the status code and the body.
+9. `dotnet test`.
+10. Update [`features-index.md`](features-index.md) with the file and the route. Add a numbered entry
+    to [`design-decisions.md`](design-decisions.md) if the slice does something non-obvious that a
+    future reader would try to "fix".
+
+## Checklist — adding a setting
+
+1. Add the property to a POCO in `src/VidroApi.Infrastructure/Settings/` (new file if it is a new
+   section), with the `[Required]`/`[Range]` annotations. **No default value in the POCO** — a code
+   default masks a missing key instead of failing at startup.
+2. Register the section in `src/VidroApi.Api/SettingsRegistration.cs`:
+   `.BindConfiguration("<Section>").ValidateDataAnnotations().ValidateOnStart()`.
+3. Put the default in `appsettings.json`. Secrets and local endpoints go in
+   `appsettings.Development.json` instead.
+4. If the value differs inside the stack, add the override to the root `docker-compose.yml` as
+   `Section__Key`.
+5. Add the row to [`config.md`](config.md) — with the default **and why the default is that value**.
+6. Inject it as `IOptions<TSettings>`; never read `IConfiguration` from a slice.
+7. `dotnet test`.
