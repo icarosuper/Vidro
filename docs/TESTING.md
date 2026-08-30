@@ -9,9 +9,10 @@
 | `internal/circuitbreaker` | ~100% | Unit |
 | `internal/webhook` | ~100% | Unit |
 | `internal/telemetry` | ~100% | Unit |
+| `queue` | 60.3% | Unit |
 | `test/integration` | — | Integration |
 
-**No tests**: `main`, `config`, `queue`, `minio`
+**No tests**: `main`, `config`, `minio`
 
 ---
 
@@ -88,6 +89,27 @@ go test -v ./test/integration/... -timeout 10m
 - `TestCircuitBreaker_RejectsCallsWhenOpen`
 - `TestCircuitBreaker_DoesNotOpenWithNonConsecutiveFailures`
 - `TestCircuitBreaker_ReturnsResultWhenClosed`
+
+### `queue/queue_test.go`
+
+Runs against [miniredis](https://github.com/alicebob/miniredis) — in-process, no Docker,
+so these never skip themselves. The tests live inside the package so they can point the
+`client`/`cfg` globals at the fake and call `recoverStuckJobs` directly instead of waiting
+on the one-minute ticker.
+
+- `TestSetJobFailed_IncrementsRetryCountAndPersists`
+- `TestSetJobFailed_WithoutExistingState`
+- `TestShouldRetry_Boundary` — initial attempt + `MaxJobRetries` retries
+- `TestPublishJob_QueuesAndRecordsPending`
+- `TestConsumeMessage_MovesJobToProcessing` — the in-flight guarantee
+- `TestAcknowledgeMessage_RemovesOneOccurrence`
+- `TestRequeueJob_BackToRequestQueueAsPending`
+- `TestMoveToDLQ_LandsInDeadQueueOnly`
+- `TestPublishSuccessMessage`
+- `TestRecoverStuckJobs_RequeuesOrphan`
+- `TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ`
+- `TestRecoverStuckJobs_LeavesHealthyAndUnknownJobsAlone` — fresh job, finished job,
+  job whose state expired
 
 ### `internal/webhook/webhook_test.go`
 - `TestNotify_Success`
@@ -167,9 +189,12 @@ FFmpeg is not available - skipping test
 ## What's Missing
 
 - `config.LoadConfig()` — incl. behavior without `.env`
-- `queue.ConsumeMessage()` and `PublishSuccessMessage()`
 - `minio.DownloadVideo()` and `UploadVideo()`
 - `main.processNextMessage()` — worker orchestration
+- `internal/processor/processor.go` — step orchestration, critical vs non-critical
+  classification, per-step timeouts (only `JobBudget` is covered, in `timeout_test.go`)
+- `queue`: `InitRedisClient` (`log.Fatal`), `StartRecovery`'s ticker loop, `HealthCheck`,
+  `GetQueueSize`, `SetJobProcessing`/`SetJobDone` — the remaining 39.7%
 - Transcoding + throughput benchmarks
 
 ---
@@ -182,5 +207,5 @@ don't skip themselves.
 
 ---
 
-**Last Updated**: 2026-08-29
-**Current Coverage**: 63.7% (processor-steps), ~100% (metrics, circuitbreaker, webhook, telemetry)
+**Last Updated**: 2026-08-30
+**Current Coverage**: 67.6% (processor-steps), 60.3% (queue), ~100% (metrics, circuitbreaker, webhook, telemetry)
