@@ -104,9 +104,29 @@ func recoverStuckJobs(stuckTimeout time.Duration) {
 			continue
 		}
 
+		state.RetryCount++
+
+		// A job that hangs the worker every time orphans every time. Without this
+		// check recovery would re-queue it forever and it would never reach the DLQ,
+		// unlike the failure path in the worker, which does honour the budget.
+		if !state.ShouldRetry() {
+			log.Error().Str("videoID", videoID).Int("retry_count", state.RetryCount).Msg("Orphan job exhausted retries, moving to dead letter queue")
+			state.Status = JobStatusFailed
+			state.Error = "orphaned repeatedly: retries exhausted during recovery"
+			if err := setJobState(videoID, *state); err != nil {
+				log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update state during recovery")
+				continue
+			}
+			if err := MoveToDLQ(videoID); err != nil {
+				log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to move orphan job to dead letter queue")
+				continue
+			}
+			client.LRem(context.Background(), processingQueueName(), 1, videoID)
+			continue
+		}
+
 		log.Warn().Str("videoID", videoID).Int("retry_count", state.RetryCount).Msg("Orphan job detected, re-queuing")
 
-		state.RetryCount++
 		state.Status = JobStatusPending
 		if err := setJobState(videoID, *state); err != nil {
 			log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update state during recovery")

@@ -222,7 +222,7 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 				if err != nil {
 					log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update job state to failed")
 				}
-				if state != nil && state.RetryCount <= queue.MaxJobRetries {
+				if state != nil && state.ShouldRetry() {
 					if err := queue.RequeueJob(videoID); err != nil {
 						log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to requeue job")
 					} else {

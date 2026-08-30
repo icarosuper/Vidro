@@ -122,6 +122,14 @@ func SetJobFailed(videoID string, jobErr error) (*JobState, error) {
 	return existing, nil
 }
 
+// ShouldRetry reports whether the job still has retry budget left.
+// RetryCount is incremented before this is consulted, so attempt N+1 of a job
+// that already failed N times is allowed while N <= MaxJobRetries: initial
+// attempt plus MaxJobRetries retries.
+func (s *JobState) ShouldRetry() bool {
+	return s.RetryCount <= MaxJobRetries
+}
+
 // RequeueJob puts the job back in the main queue for reprocessing.
 // AcknowledgeMessage must still be called to remove it from the processing queue.
 func RequeueJob(videoID string) error {
