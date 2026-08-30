@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/VidroApi.Api/VidroApi.Api.csproj" />
+    <Project Path="src/VidroApi.Application/VidroApi.Application.csproj" />
+    <Project Path="src/VidroApi.Domain/VidroApi.Domain.csproj" />
+    <Project Path="src/VidroApi.Infrastructure/VidroApi.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/VidroApi.IntegrationTests/VidroApi.IntegrationTests.csproj" />
+    <Project Path="tests/VidroApi.UnitTests/VidroApi.UnitTests.csproj" />
+  </Folder>
+</Solution>

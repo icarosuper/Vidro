@@ -1,0 +1,110 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
+using FluentAssertions;
+using VidroApi.IntegrationTests.Common;
+
+namespace VidroApi.IntegrationTests.Playlists;
+
+public class DeletePlaylistTests(ApiFactory factory) : IClassFixture<ApiFactory>
+{
+    private readonly HttpClient _client = factory.CreateClient();
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerOptions.Default)
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    [Fact]
+    public async Task DeletePlaylist_AsOwner_Returns204()
+    {
+        var token = await SignUpAndGetAccessToken();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var playlistId = await CreatePlaylist("My Playlist");
+
+        var response = await _client.DeleteAsync($"/v1/playlists/{playlistId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task DeletePlaylist_PlaylistNoLongerExistsAfterDeletion()
+    {
+        var token = await SignUpAndGetAccessToken();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var playlistId = await CreatePlaylist("My Playlist");
+
+        await _client.DeleteAsync($"/v1/playlists/{playlistId}");
+
+        _client.DefaultRequestHeaders.Authorization = null;
+        var getResponse = await _client.GetAsync($"/v1/playlists/{playlistId}");
+        getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task DeletePlaylist_WhenNotOwner_Returns403WithExpectedCode()
+    {
+        var ownerToken = await SignUpAndGetAccessToken();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerToken);
+        var playlistId = await CreatePlaylist("Owner Playlist");
+
+        var otherToken = await SignUpAndGetAccessToken();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", otherToken);
+
+        var response = await _client.DeleteAsync($"/v1/playlists/{playlistId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        body.GetProperty("code").GetString().Should().Be("playlist.not_owner");
+    }
+
+    [Fact]
+    public async Task DeletePlaylist_WithoutAuth_Returns401()
+    {
+        var response = await _client.DeleteAsync($"/v1/playlists/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task DeletePlaylist_NonExistent_Returns404()
+    {
+        var token = await SignUpAndGetAccessToken();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.DeleteAsync($"/v1/playlists/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    private async Task<string> SignUpAndGetAccessToken()
+    {
+        var email = $"user_{Guid.NewGuid():N}@example.com";
+        var password = "StrongPass1!";
+
+        await _client.PostAsJsonAsync("/v1/auth/signup", new
+        {
+            username = $"usr{Guid.NewGuid():N}"[..15],
+            email,
+            password
+        });
+
+        var signInResponse = await _client.PostAsJsonAsync("/v1/auth/signin", new { email, password });
+        var body = await signInResponse.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        return body.GetProperty("data").GetProperty("accessToken").GetString()!;
+    }
+
+    private async Task<Guid> CreatePlaylist(string name)
+    {
+        var response = await _client.PostAsJsonAsync("/v1/playlists", new
+        {
+            name,
+            visibility = 0,
+            scope = 0
+        });
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        return Guid.Parse(body.GetProperty("data").GetProperty("playlistId").GetString()!);
+    }
+}
