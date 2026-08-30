@@ -76,8 +76,9 @@ Most important rule in `internal/processor`:
 
 ## Shared contract with VidroApi
 
-Changes touching the shared contract (queue names, MinIO paths, webhook payload) need a coordinated
-tag + deploy with the API repo. See [design-decisions.md #11](design-decisions.md#11-single-bucket-path-based-namespacing)
+Changes touching the shared contract (queue names, MinIO paths, webhook payload) must change both
+sides **in the same commit** — API and worker live in one repo, so there is no window where the two
+disagree. See [design-decisions.md #11](design-decisions.md#11-single-bucket-path-based-namespacing)
 and [#10](design-decisions.md#10-webhook-contract-uses-camelcase-to-match-the-net-api).
 
 ## Checklist — adding a pipeline step

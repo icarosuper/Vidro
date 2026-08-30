@@ -12,7 +12,7 @@ commits **in Portuguese**, subject line only; straight to `master` unless the us
 - **Language**: all code, logs, errors, comments, docs in English. No Portuguese in source (commit messages are the one exception).
 - **Error wrapping**: `fmt.Errorf("context: %w", err)` — never `%v`.
 - **Required config**: required env vars use `notEmpty` (caarlos0/env); optional use `envDefault`. Mirror every new var in `.env-example` **and** in `docs/agents/config.md`.
-- **Shared contract with VidroApi**: queue names, MinIO paths, webhook payload. Changes need coordinated tag + deploy both repos.
+- **Shared contract with VidroApi**: queue names, MinIO paths, webhook payload. Change both sides **in the same commit** — they live in one repo.
 - **Only create files when necessary.** No `*.md`/README unless asked.
 
 ## Running locally

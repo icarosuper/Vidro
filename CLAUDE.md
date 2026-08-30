@@ -1,25 +1,27 @@
-# CLAUDE.md — workspace Vidro
+# CLAUDE.md — monorepo Vidro
 
-Regras que valem para os **três** repositórios. Cada repo tem seu próprio `CLAUDE.md` com o que é
+Regras que valem para os **três serviços**. Cada serviço tem seu próprio `CLAUDE.md` com o que é
 específico dele; o que está aqui não se repete lá.
 
-## Os três repos
+## Os três serviços
 
-| Repo | O que é | Docs para agente |
+| Serviço | O que é | Docs para agente |
 |---|---|---|
 | `VidroApi/` | API .NET (Clean + Vertical Slice), Postgres, MinIO, Redis | `VidroApi/docs/agents/` |
 | `VidroFront/` | TanStack Start + React, consome a API | `VidroFront/docs/agents/` |
 | `VidroProcessor/` | Worker Go: fila Redis → pipeline FFmpeg → MinIO → webhook | `VidroProcessor/docs/agents/` |
 
-Cada um é um **repositório git separado**. Esta pasta raiz não é um repo — ela só carrega o
-`docker-compose.yml` do stack inteiro, o `TODO.md` e este arquivo.
+Os três são **um repositório só** — este. A raiz carrega o `docker-compose.yml` do stack inteiro,
+o `TODO.md`, este arquivo e o `MONOREPO.md` (por que é monorepo, e o que isso custou).
 
-**Escopo de edição:** trabalhando dentro de um repo, você pode **ler** os outros dois para entender
-contratos, tipos e endpoints. **Não edite** fora do repo da tarefa. Faltou algo no outro lado —
-informe o usuário, não conserte por conta própria.
+**Escopo de edição:** o padrão continua sendo mexer em **um** serviço por tarefa — leia os outros
+dois à vontade para entender contratos, tipos e endpoints. A exceção é o contrato compartilhado:
+aí os dois lados mudam juntos, no mesmo commit, e isso é o comportamento certo, não invasão de
+escopo. Fora esse caso, faltou algo no outro serviço — informe o usuário antes de mexer.
 
-**Contrato compartilhado** (nomes de fila Redis, caminhos no MinIO, formato do webhook): mudança
-nele exige tag e deploy coordenados nos dois repos afetados. Ver
+**Contrato compartilhado** (nomes de fila Redis, caminhos no MinIO, formato do webhook): mude os
+dois lados **no mesmo commit**. É a razão principal de isto ser um monorepo — os dois P0 do
+`TODO.md` foram divergências de contrato que ninguém viu por meses. Ver
 `VidroProcessor/docs/agents/design-decisions.md`.
 
 ## Padrão de mensagem de commit
@@ -52,7 +54,8 @@ Título de PR (squash merge): `Feature/nome-da-branch (#N)`.
 - **Exceção: feature grande** (vários commits). Aí **pergunte ao usuário** se é para criar
   `feature/<topic>` ou mandar direto para `master` — nunca decida sozinho.
 - `master` sempre deployável; produção sai de tags `vX.Y.Z` (estratégia pretendida — ainda não há
-  tag nenhuma nos repos).
+  tag nenhuma). Uma tag versiona **os três serviços de uma vez**: é o preço, e a vantagem, do
+  monorepo — nunca existe combinação de versões que não foi testada junta. Ver `MONOREPO.md`.
 
 ## Nunca commitar sem pedido explícito
 
@@ -78,8 +81,8 @@ já cobre não é "de passagem", é o trabalho.
 
 ## Depois de qualquer mudança
 
-1. **Rodar os testes** do repo (`dotnet test` / `bun run test` / `go test ./...`).
+1. **Rodar os testes** do serviço que você tocou (`dotnet test` / `bun run test` / `go test ./...`).
 2. **Atualizar as docs afetadas na mesma leva** — o gatilho de cada arquivo está no `CLAUDE.md` do
-   repo. Doc desatualizada custa mais que código faltando: o `TODO.md` desta raiz tem uma seção
+   serviço. Doc desatualizada custa mais que código faltando: o `TODO.md` desta raiz tem uma seção
    inteira ("Documentação que mente") que só existiu por isso.
 3. **Sugerir o título do commit** e parar.

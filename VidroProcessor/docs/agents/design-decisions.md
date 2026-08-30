@@ -112,7 +112,7 @@ A new entry takes the **next number** (highest today is **#12**) plus one line h
 `minio/client.go`.
 
 - **Why**: one bucket easier to provision, replicate, + secure than many. Lifecycle rules + IAM policies still scopeable by prefix (`raw-archived/`).
-- **Path layout is shared contract** with VidroApi. Changing it is coordinated release (tag both repos together).
+- **Path layout is shared contract** with VidroApi. Changing it means changing the API in the same commit.
 
 ### 12. Graceful shutdown with a hard 30-second ceiling
 

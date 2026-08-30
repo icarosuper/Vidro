@@ -92,7 +92,7 @@ treated as a failure, not as an error.
 
 This is the contract the worker documents on its side:
 `../../../VidroProcessor/docs/agents/design-decisions.md` #3. Changing which steps are critical is a
-product decision that needs both repos.
+product decision that needs both services — change them in the same commit.
 
 **Don't "fix" by:** adding `[Required]`/non-null guards on the optional artifact fields. Diagnosing a
 stuck video: `../../../VidroProcessor/docs/agents/troubleshooting-stuck-video.md`.

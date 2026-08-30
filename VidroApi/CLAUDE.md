@@ -78,14 +78,14 @@ Each feature is self-contained file under `src/VidroApi.Api/Features/<Domain>/Fe
 ## Troubleshooting
 
 → A video stuck in `Processing`, or a job in the dead-letter queue, is diagnosed from the worker side:
-`../VidroProcessor/docs/agents/troubleshooting-stuck-video.md`. The runbook crosses both repos and
+`../VidroProcessor/docs/agents/troubleshooting-stuck-video.md`. The runbook crosses API and worker and
 starts at the API.
 
 ## Release
 
 - **`master`** — always deployable. **No deploy pipeline exists yet**: `.github/workflows/ci.yml` only builds and tests on PRs to `master`. Deploys are manual.
 - **Releases** — intended strategy: git tag (`v1.0.0`, `v1.1.0`, etc.) on `master`, production deploy from tags. Not in use yet — the repo has no tags.
-- **Coordination with VidroProcessor** — when change affect shared contract (MinIO paths, Redis queue name, webhook format), both repos must be tagged and deployed together.
+- **Coordination with VidroProcessor** — when change affect shared contract (MinIO paths, Redis queue name, webhook format), change both sides **in the same commit**. Monorepo: one tag covers every service, so a deploy is always coherent by construction.
 
 ## Implementation plan
 
