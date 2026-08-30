@@ -1,12 +1,23 @@
-name: CI
+name: API
 
-# Commits land straight on master here (see CLAUDE.md), so CI has to run on push too —
-# a PR-only trigger almost never fired.
+# Monorepo: cada serviço tem o seu workflow com filtro de path, para um commit no front
+# não disparar build de .NET. O filtro do `on:` é nativo do GitHub Actions — não há action
+# de terceiro no meio. Commits caem direto na master (ver CLAUDE.md), então roda em push
+# também; um gatilho só de PR quase nunca dispararia.
 on:
   push:
-    branches:
-      - master
+    branches: [master]
+    paths:
+      - "VidroApi/**"
+      - ".github/workflows/api.yml"
   pull_request:
+    paths:
+      - "VidroApi/**"
+      - ".github/workflows/api.yml"
+
+defaults:
+  run:
+    working-directory: VidroApi
 
 jobs:
   test:

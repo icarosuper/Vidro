@@ -1,12 +1,19 @@
-name: CI
+name: Processor
 
-# Commits land straight on master here (see CLAUDE.md), so CI has to run on push too —
-# a PR-only trigger would almost never fire.
 on:
   push:
-    branches:
-      - master
+    branches: [master]
+    paths:
+      - "VidroProcessor/**"
+      - ".github/workflows/processor.yml"
   pull_request:
+    paths:
+      - "VidroProcessor/**"
+      - ".github/workflows/processor.yml"
+
+defaults:
+  run:
+    working-directory: VidroProcessor
 
 jobs:
   test:

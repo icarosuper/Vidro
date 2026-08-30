@@ -1,12 +1,19 @@
-name: CI
+name: Front
 
-# Commits land straight on master here (see CLAUDE.md), so CI has to run on push too —
-# a PR-only trigger would almost never fire.
 on:
   push:
-    branches:
-      - master
+    branches: [master]
+    paths:
+      - "VidroFront/**"
+      - ".github/workflows/front.yml"
   pull_request:
+    paths:
+      - "VidroFront/**"
+      - ".github/workflows/front.yml"
+
+defaults:
+  run:
+    working-directory: VidroFront
 
 jobs:
   test:
