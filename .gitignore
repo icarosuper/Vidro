@@ -1,0 +1,4 @@
+# Cada serviço tem o seu próprio .gitignore; aqui só o que é do workspace.
+.env
+.env.local
+.DS_Store
