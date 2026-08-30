@@ -4,6 +4,8 @@ Registro da migração de três repositórios (`VidroApi`, `VidroFront`, `VidroP
 feita em **30/ago/2026**. Leia antes de propor voltar atrás, adicionar ferramenta de monorepo, ou
 mexer no CI.
 
+Os caminhos citados aqui são relativos à **raiz do monorepo**, não a esta pasta.
+
 ---
 
 ## Descobertas que motivaram a mudança

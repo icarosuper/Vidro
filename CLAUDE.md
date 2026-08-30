@@ -12,7 +12,7 @@ específico dele; o que está aqui não se repete lá.
 | `VidroProcessor/` | Worker Go: fila Redis → pipeline FFmpeg → MinIO → webhook | `VidroProcessor/docs/agents/` |
 
 Os três são **um repositório só** — este. A raiz carrega o `docker-compose.yml` do stack inteiro,
-o `TODO.md`, este arquivo e o `MONOREPO.md` (por que é monorepo, e o que isso custou).
+o `TODO.md`, este arquivo e o `docs/MONOREPO.md` (por que é monorepo, e o que isso custou).
 
 **Escopo de edição:** o padrão continua sendo mexer em **um** serviço por tarefa — leia os outros
 dois à vontade para entender contratos, tipos e endpoints. A exceção é o contrato compartilhado:
@@ -31,7 +31,7 @@ mensagem de log, comentário e XML doc. Vale também para as docs do `docs/agent
 Processor, que já são em inglês.
 
 Duas exceções: **mensagens de commit** (português, ver abaixo) e as docs em português — este
-arquivo, `MONOREPO.md`, `TODO.md`, `README.md` e o `CLAUDE.md` + `docs/` do `VidroFront`.
+arquivo, `docs/MONOREPO.md`, `TODO.md`, `README.md` e o `CLAUDE.md` + `docs/` do `VidroFront`.
 
 ## Legibilidade
 
@@ -104,7 +104,7 @@ Título de PR (squash merge): `Feature/nome-da-branch (#N)`.
   `feature/<topic>` ou mandar direto para `master` — nunca decida sozinho.
 - `master` sempre deployável; produção sai de tags `vX.Y.Z` (estratégia pretendida — ainda não há
   tag nenhuma). Uma tag versiona **os três serviços de uma vez**: é o preço, e a vantagem, do
-  monorepo — nunca existe combinação de versões que não foi testada junta. Ver `MONOREPO.md`.
+  monorepo — nunca existe combinação de versões que não foi testada junta. Ver `docs/MONOREPO.md`.
 - **Não existe pipeline de deploy.** `.github/workflows/{api,front,processor}.yml` só buildam e
   testam, um por serviço, com filtro de path. Deploy é manual.
 

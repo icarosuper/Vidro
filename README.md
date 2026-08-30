@@ -57,7 +57,7 @@ Falhou no meio? O runbook é [`docs/troubleshooting-stuck-video.md`](docs/troubl
 | Arquivo | Para quê |
 |---|---|
 | [`CLAUDE.md`](CLAUDE.md) | Regras que valem para os três serviços: idioma, commits, escopo, contrato compartilhado |
-| [`MONOREPO.md`](MONOREPO.md) | Por que é monorepo, o que foi decidido e o que isso custou |
+| [`docs/MONOREPO.md`](docs/MONOREPO.md) | Por que é monorepo, o que foi decidido e o que isso custou |
 | [`TODO.md`](TODO.md) | Backlog dos três serviços, com referência de arquivo/linha |
 | [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md) | Vídeo preso em `Processing` — atravessa API, Redis, worker e MinIO |
 

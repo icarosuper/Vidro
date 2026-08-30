@@ -7,7 +7,7 @@ não precisar redescobrir o problema.
 do job), CORS na API, porta 5000 unificada, P0.1 inteiro (docs mentirosas), compose único
 na raiz + `/health` (os três finalmente rodam juntos, E2E verificado), **P1 inteiro**
 (CI nos três repos, rate limiting, migrations no startup). *(2026-08-30)* testes de `queue/`
-no Processor, **migração para monorepo** (os três viraram um repo só; ver `MONOREPO.md`) e a
+no Processor, **migração para monorepo** (os três viraram um repo só; ver `docs/MONOREPO.md`) e a
 **consolidação das docs** (runbook de vídeo preso subiu para `docs/` da raiz; `roadmap.md` do
 Processor virou o P6 daqui; `workflow.md` do Front, o `docker-compose.yml` do Processor e as
 regras repetidas nos três `CLAUDE.md` foram removidos; README da raiz criado).
@@ -320,7 +320,7 @@ Os 7 steps do pipeline têm todos `_test.go`, o que faz parecer bem coberto. Mas
 ### Contrato entre serviços — destravado pelo monorepo (2026-08-30)
 
 Os dois P0 desta lista foram divergência de contrato entre serviços. Enquanto eram três repos,
-não havia onde colocar a rede que os pegaria. Agora há. Ver `MONOREPO.md`, seção "O que a
+não havia onde colocar a rede que os pegaria. Agora há. Ver `docs/MONOREPO.md`, seção "O que a
 migração destrava".
 
 - [ ] **Gerar os tipos do front a partir do OpenAPI da API.**
