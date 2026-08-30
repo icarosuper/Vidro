@@ -35,31 +35,14 @@
 
 ## Code readability
 
-- **Named variables over inline expressions** — always assign check/query result to descriptively named var before use in condition. Never inline into `if`. Applies to async calls and boolean logic.
-  ```csharp
-  // ✅
-  var emailAlreadyRegistered = await db.Users.AnyAsync(u => u.Email == normalizedEmail, ct);
-  if (emailAlreadyRegistered) return Errors.User.EmailAlreadyInUse();
+The language-agnostic rules — named variables over inline expressions, extracting complex logic
+into a named method, names that say *what*, three-line ternaries — live once in the monorepo root
+[`../../../CLAUDE.md`](../../../CLAUDE.md), section "Legibilidade". What follows is C#-specific.
 
-  // ❌
-  if (await db.Users.AnyAsync(u => u.Email == normalizedEmail, ct)) return Errors.User.EmailAlreadyInUse();
-  ```
-- **Extract complex/long logic into private methods** — if block needs comment to explain, make it method w/ name that explains instead.
 - **`Handle` read like sequence of named steps** — any non-trivial inline block (query building, object construction, projection/mapping) must extract to private method. Goal: `Handle` reads top-to-bottom as descriptive calls, no impl detail.
 - **`SaveChangesAsync` always stays in `Handle`** — private methods must never call `db.SaveChangesAsync`. Only stage changes (e.g. `db.Add`, `db.Remove`). Keeps persistence boundary explicit and visible.
 - **Build `Response` inline in `Handle`** — only extract mapping to private method if `Response` is very large (many fields across multiple related objects). For typical responses, keep `new Response { ... }` directly in `Handle`.
-- **Method + variable names must express intent** — name answers "what" not "how". No abbreviations, single-letter names (outside loops), or generic names like `result`, `data`, `temp`.
 - **No `Async` suffix on method names** — return type (`Task`/`ValueTask`) already communicates that.
-- **Ternaries always span three lines** — condition on first, `?` branch on second, `:` on third. Never single-line ternary.
-  ```csharp
-  // ✅
-  Guid? requestingUserId = user.Identity?.IsAuthenticated == true
-      ? user.GetUserId()
-      : null;
-
-  // ❌
-  Guid? requestingUserId = user.Identity?.IsAuthenticated == true ? user.GetUserId() : null;
-  ```
 - **Prefer `{}` block body over `=>` expression body** for methods w/ more than one line. Reserve `=>` for true one-liners (e.g. computed props on entities, simple delegating calls).
   ```csharp
   // ✅ one-liner → =>

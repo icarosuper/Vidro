@@ -2,9 +2,13 @@
 
 Rules when write/modify Go code. New pipeline step, MinIO/Redis call, or config knob — read first.
 
-## Language and formatting
+Code language and the readability rules that apply to all three services — named variable over inline
+expression, extract complex logic into a named function, names that say *what*, three-line ternaries —
+live once in the monorepo root [`../../../CLAUDE.md`](../../../CLAUDE.md). **They apply here too.**
+This file is Go-specific.
 
-- **All logs, errors, comments, commits, identifiers: English.** No Portuguese mix.
+## Formatting
+
 - Standard `gofmt` / `go vet`. No custom linter.
 - Package names: lower-case, short (`queue`, `minio`, `metrics`, `processor`).
 
@@ -64,7 +68,7 @@ Most important rule in `internal/processor`:
 ## Tests
 
 - Unit tests: `*_test.go` same package.
-- Integration tests: `test/integration/`, need docker-compose (Redis + MinIO). Slow; run `-timeout 10m`.
+- Integration tests: `test/integration/`, need a running Docker daemon — they spin up Redis + MinIO with testcontainers (`setup_test.go`). Slow; run `-timeout 10m`.
 - Tests using `ffmpeg`/`ffprobe`: must skip when binaries missing — use `GenerateTestVideo` from `test_helpers.go`.
 - No mocking MinIO/Redis in integration tests. Test real contract.
 
@@ -76,10 +80,11 @@ Most important rule in `internal/processor`:
 
 ## Shared contract with VidroApi
 
-Changes touching the shared contract (queue names, MinIO paths, webhook payload) must change both
-sides **in the same commit** — API and worker live in one repo, so there is no window where the two
-disagree. See [design-decisions.md #11](design-decisions.md#11-single-bucket-path-based-namespacing)
-and [#10](design-decisions.md#10-webhook-contract-uses-camelcase-to-match-the-net-api).
+The rule — both sides change **in the same commit** — is in the root
+[`../../../CLAUDE.md`](../../../CLAUDE.md). What the contract *is*, on this side: queue names, MinIO
+paths and the webhook payload, spelled out in
+[design-decisions.md #11](design-decisions.md#11-single-bucket-path-based-namespacing) and
+[#10](design-decisions.md#10-webhook-contract-uses-camelcase-to-match-the-net-api).
 
 ## Checklist — adding a pipeline step
 
@@ -112,5 +117,5 @@ hand, and a step wired into only some of them fails silently or hangs.
    optional. Never `os.Getenv` outside this file.
 2. Mirror it in `.env-example` — commented out when it has a default, uncommented when required.
 3. Add a row to [`config.md`](config.md), with the default **and why the default is that value**.
-4. If it belongs in the running stack, add it to `../docker-compose.yml` (service `worker`).
+4. If it belongs in the running stack, add it to the monorepo root `../../../docker-compose.yml` (service `worker`).
 5. `go test ./...`.

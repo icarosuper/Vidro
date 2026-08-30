@@ -1,7 +1,8 @@
 # VidroFront
 
 Frontend for Vidro, a video platform.
-Consumes [VidroApi](https://github.com/icarosuper/VidroApi); videos processed by [VidroProcessor](https://github.com/icarosuper/video-processor-go).
+One of the three services in the Vidro monorepo: it consumes [VidroApi](../VidroApi/), whose videos
+are processed by [VidroProcessor](../VidroProcessor/).
 Built with TanStack Start (SSR) + React.
 
 ## Stack
@@ -24,7 +25,9 @@ bun run dev
 
 Default: `http://localhost:3000`
 
-Requires VidroApi running at `http://localhost:5000` (set via `VITE_API_URL`).
+Requires VidroApi running at `http://localhost:5000` (set via `VITE_API_URL`). To bring up the whole
+stack instead — API, worker, infra and this front in containers — run `docker compose up -d --build`
+from the monorepo root.
 
 ## Commands
 

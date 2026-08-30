@@ -24,6 +24,55 @@ dois lados **no mesmo commit**. É a razão principal de isto ser um monorepo �
 `TODO.md` foram divergências de contrato que ninguém viu por meses. Ver
 `VidroProcessor/docs/agents/design-decisions.md`.
 
+## Idioma do código
+
+**Todo código em inglês** nos três serviços: nomes de classe, método, variável, tipo, teste,
+mensagem de log, comentário e XML doc. Vale também para as docs do `docs/agents/` da API e do
+Processor, que já são em inglês.
+
+Duas exceções: **mensagens de commit** (português, ver abaixo) e as docs em português — este
+arquivo, `MONOREPO.md`, `TODO.md`, `README.md` e o `CLAUDE.md` + `docs/` do `VidroFront`.
+
+## Legibilidade
+
+Valem para os **três** serviços — C#, TypeScript e Go. O que é idiomático de uma linguagem fica no
+`conventions.md` do serviço; o que está aqui não se repete lá.
+
+- **Variável nomeada em vez de expressão inline.** O resultado de uma checagem, query ou chamada
+  async recebe um nome antes de entrar numa condição. Nunca inline dentro do `if`.
+
+  ```ts
+  // ✅
+  const emailAlreadyTaken = users.some((u) => u.email === email)
+  if (emailAlreadyTaken) return { error: 'Email already in use' }
+
+  // ❌
+  if (users.some((u) => u.email === email)) return { error: 'Email already in use' }
+  ```
+
+- **Lógica complexa vira função com nome.** Se o bloco precisa de um comentário para se explicar,
+  ele precisa de um nome.
+
+- **Nome diz "o quê", não "como".** Sem abreviação, sem nome de uma letra (fora índice de loop),
+  sem genérico — `result`, `data`, `temp`.
+
+- **Ternário sempre em três linhas:** condição, `?`, `:`. Nunca em uma linha só.
+
+  ```ts
+  // ✅
+  const label = isAuthenticated
+    ? 'Sign out'
+    : 'Sign in'
+
+  // ❌
+  const label = isAuthenticated ? 'Sign out' : 'Sign in'
+  ```
+
+## Vídeo preso em `Processing`
+
+O runbook é [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md). Mora na
+raiz porque atravessa API → Redis → worker → MinIO; nenhum serviço sozinho o resolve.
+
 ## Padrão de mensagem de commit
 
 Conventional Commits, **em português**, só o assunto — sem corpo, sem escopo, sem rodapé (nada de
@@ -56,6 +105,8 @@ Título de PR (squash merge): `Feature/nome-da-branch (#N)`.
 - `master` sempre deployável; produção sai de tags `vX.Y.Z` (estratégia pretendida — ainda não há
   tag nenhuma). Uma tag versiona **os três serviços de uma vez**: é o preço, e a vantagem, do
   monorepo — nunca existe combinação de versões que não foi testada junta. Ver `MONOREPO.md`.
+- **Não existe pipeline de deploy.** `.github/workflows/{api,front,processor}.yml` só buildam e
+  testam, um por serviço, com filtro de path. Deploy é manual.
 
 ## Nunca commitar sem pedido explícito
 

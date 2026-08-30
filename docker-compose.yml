@@ -131,7 +131,15 @@ services:
     volumes:
       - ./VidroProcessor/tmp:/tmp
     # GPU (NVENC): the default image (Alpine + ffmpeg) has no NVIDIA support.
-    # See VidroProcessor/docker-compose.yml for the deploy.resources block to add.
+    # To use one: install nvidia-container-toolkit, switch to an image with FFmpeg+NVENC
+    # (ubuntu/cuda base or jrottenberg/ffmpeg), and add:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
 
   front:
     build:

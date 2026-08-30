@@ -2,22 +2,23 @@
 
 File give guidance to Claude Code (claude.ai/code) when work with code in repo.
 
-Commit convention, branching, edit scope and the "bad code nearby" rule live **once**, in the
-workspace root `../CLAUDE.md` (loaded automatically alongside this file). Short version: conventional
-commits **in Portuguese**, subject line only; straight to `master` unless the user approves a branch;
-**never commit without an explicit request**.
+Commit convention, branching, edit scope, code language, release/tags and the "bad code nearby" rule
+live **once**, in the monorepo root `../CLAUDE.md` (loaded automatically alongside this file). Short
+version: all code in English, conventional commits **in Portuguese**, subject line only; straight to
+`master` unless the user approves a branch; **never commit without an explicit request**.
 
-## Language
+## Keeping the docs healthy
 
-All code must be in English: class names, method names, variables, test names, log messages, comments, and XML docs. Only exception is commit messages, written in Portuguese.
+The post-implementation cycle (tests → docs → suggested commit) is in the root `../CLAUDE.md`. What
+is specific here is **which** file to update:
 
-## Working style
+- Schema, endpoint or feature added/removed → `docs/agents/features-index.md` (+ `docs/plans/`)
+- New setting in `appsettings.json` or a `Settings` POCO → `docs/agents/config.md`
+- New non-obvious pattern, or a *why* that changed → new numbered entry in `docs/agents/design-decisions.md`
+- Layer boundaries or cross-cutting flow changed → `docs/agents/architecture.md`
+- Coding rule changed → `docs/agents/conventions.md`
 
-After each implementation step:
-1. **Run all tests** — `dotnet test` after finish feature. Fix failures before proceed.
-2. **Update relevant docs** — reflect schema, endpoint, or design changes in `docs/plans/` and `docs/agents/features-index.md`. New setting in `appsettings.json` → `docs/agents/config.md`. New non-obvious pattern → new numbered entry in `docs/agents/design-decisions.md`.
-3. **Suggest commit message in Portuguese** — user review and commit manually. Never commit without ask.
-4. **Show next possible steps** — brief list so user choose what implement next.
+Tests for this service: `dotnet test`.
 
 ## Commands
 
@@ -74,18 +75,6 @@ Each feature is self-contained file under `src/VidroApi.Api/Features/<Domain>/Fe
 ## Features index
 
 → Read `docs/agents/features-index.md` to locate existing feature file before search codebase. Update whenever feature added or removed.
-
-## Troubleshooting
-
-→ A video stuck in `Processing`, or a job in the dead-letter queue, is diagnosed from the worker side:
-`../VidroProcessor/docs/agents/troubleshooting-stuck-video.md`. The runbook crosses API and worker and
-starts at the API.
-
-## Release
-
-- **`master`** — always deployable. **No deploy pipeline exists yet**: `.github/workflows/ci.yml` only builds and tests on PRs to `master`. Deploys are manual.
-- **Releases** — intended strategy: git tag (`v1.0.0`, `v1.1.0`, etc.) on `master`, production deploy from tags. Not in use yet — the repo has no tags.
-- **Coordination with VidroProcessor** — when change affect shared contract (MinIO paths, Redis queue name, webhook format), change both sides **in the same commit**. Monorepo: one tag covers every service, so a deploy is always coherent by construction.
 
 ## Implementation plan
 

@@ -1,9 +1,10 @@
 # Troubleshooting — a video that never becomes `Ready`
 
 Follow this when a video sits in `Processing` (or `PendingUpload`) and never finishes, or when a job
-lands in the dead-letter queue. The path crosses **both** repos, so the runbook starts at the API and
-walks towards the worker. Commands assume the root `docker-compose.yml` stack; adjust the service
-names if you run the pieces by hand.
+lands in the dead-letter queue. The path crosses API, Redis, worker and MinIO, so the runbook starts
+at the API and walks towards the worker — that is why it lives at the root and not inside a service.
+Commands assume the root `docker-compose.yml` stack; adjust the service names if you run the pieces
+by hand.
 
 The four states a video can hold (`VidroApi.Domain.Enums.VideoStatus`): `PendingUpload` → `Processing`
 → `Ready` | `Failed`.
@@ -24,7 +25,7 @@ There are exactly four handoffs, and the symptom tells you which one to look at 
 | `Processing`, `job:<id>` says `done` | Worker finished, the webhook never landed | Step 6 |
 | Flipped to `Failed` ~45 min in, no worker error | The API's reconciliation timeout fired | Step 6 |
 
-`<queue>` is `PROCESSING_REQUEST_QUEUE` (`video_queue` in the stack) — see [config.md](config.md).
+`<queue>` is `PROCESSING_REQUEST_QUEUE` (`video_queue` in the stack) — see [config.md](../VidroProcessor/docs/agents/config.md).
 
 ---
 
@@ -82,9 +83,9 @@ docker compose exec redis redis-cli LRANGE video_queue:dead 0 -1
 - **In `video_queue:processing`** — a worker took the lease. Either it is genuinely running (normal
   for up to the whole-job budget, 18 min at scale 1) or it died holding it. `StartRecovery` sweeps
   every minute and re-queues anything in flight beyond `jobTimeout + 1min`, so wait that long before
-  concluding anything. See [design-decisions.md #1](design-decisions.md#1-redis-brpoplpush-instead-of-streams--plain-brpop).
+  concluding anything. See [design-decisions.md #1](../VidroProcessor/docs/agents/design-decisions.md#1-redis-brpoplpush-instead-of-streams--plain-brpop).
 - **In `video_queue:dead`** — three attempts failed. `job:<id>.error` holds the last one. **Nothing
-  drains the DLQ automatically, on purpose** ([#2](design-decisions.md#2-retry-in-place-then-dead-letter)):
+  drains the DLQ automatically, on purpose** ([#2](../VidroProcessor/docs/agents/design-decisions.md#2-retry-in-place-then-dead-letter)):
   a job here is waiting for a human. Do not add an auto-drain — it would hide the bug.
 
 ---
@@ -101,7 +102,7 @@ Read it against the pipeline: `validate → analyze → transcode → thumbnails
 
 - **`Warn` on a step, job continues** — that is by design. `thumbnails`, `audio`, `preview` and
   `streaming` are non-critical: they log and are swallowed, and the success webhook simply omits that
-  artifact ([#3](design-decisions.md#3-critical-vs-non-critical-pipeline-steps)). A missing preview
+  artifact ([#3](../VidroProcessor/docs/agents/design-decisions.md#3-critical-vs-non-critical-pipeline-steps)). A missing preview
   is **not** the reason the video is stuck. Do not "fix" it by making the step critical.
 - **`Error` on `validate` or `transcode`** — those two are critical; the job aborts and retries.
 - **`context deadline exceeded`** — a timeout. Which one matters:
@@ -112,7 +113,7 @@ Read it against the pipeline: `validate → analyze → transcode → thumbnails
     download or the artifact uploads, which sit outside every step timeout. Same knob.
 - **No log line at all for the id** — the worker never picked it up. Back to Step 3.
 - **NVENC errors followed by a `libx264` retry** — expected. The per-step CPU fallback is deliberate
-  ([#6](design-decisions.md#6-nvenc-resolved-at-startup-cpu-fallback-inside-each-step)).
+  ([#6](../VidroProcessor/docs/agents/design-decisions.md#6-nvenc-resolved-at-startup-cpu-fallback-inside-each-step)).
 - **`circuit breaker is open`** — MinIO or Redis was failing repeatedly and the breaker tripped. Fix
   the dependency; the breaker closes on its own (`MaxRequests: 1` probe while half-open).
 
@@ -139,7 +140,7 @@ The video never reached the worker at all; the queue is irrelevant here.
 exist, and knowing which one fired tells you what actually broke:
 
 - **Webhook delivery is fire-and-forget.** A failed POST is logged and never fails the job
-  ([#10](design-decisions.md#10-webhook-contract-uses-camelcase-to-match-the-net-api)). Grep the
+  ([#10](../VidroProcessor/docs/agents/design-decisions.md#10-webhook-contract-uses-camelcase-to-match-the-net-api)). Grep the
   worker log for the videoID plus `webhook`.
 - **`ProcessingFinishedQueue`** (`video_success_queue`) is the recovery channel — the API consumes it
   independently of the webhook.
@@ -175,5 +176,5 @@ Pushing the raw id like this leaves `callback_url` empty, so the API is notified
 `PublishJob` uses (`status: "pending"`, `callback_url: "http://api:5000/webhooks/video-processed"`).
 
 If the raw object was already archived (`raw-archived/<id>`, 30-day lifecycle —
-[#7](design-decisions.md#7-raw-videos-soft-archived-then-deleted-by-lifecycle-rule)), copy it back to
+[#7](../VidroProcessor/docs/agents/design-decisions.md#7-raw-videos-soft-archived-then-deleted-by-lifecycle-rule)), copy it back to
 `raw/<id>` before requeueing. Past 30 days the source is gone and the video cannot be reprocessed.

@@ -2,25 +2,23 @@
 
 Async Go worker for VidroApi. Pull video IDs from Redis queue, download from MinIO, run 7-step FFmpeg pipeline, upload artifacts back. Stateless — scale via more instances same Redis.
 
-Commit convention, branching, edit scope and the "bad code nearby" rule live **once**, in the
-workspace root `../CLAUDE.md` (loaded automatically alongside this file). Short version: conventional
-commits **in Portuguese**, subject line only; straight to `master` unless the user approves a branch;
-**never commit without an explicit request**.
+Commit convention, branching, edit scope, code language, release/tags and the "bad code nearby" rule
+live **once**, in the monorepo root `../CLAUDE.md` (loaded automatically alongside this file). Short
+version: all code in English, conventional commits **in Portuguese**, subject line only; straight to
+`master` unless the user approves a branch; **never commit without an explicit request**.
 
 ## Always-on rules
 
-- **Language**: all code, logs, errors, comments, docs in English. No Portuguese in source (commit messages are the one exception).
 - **Error wrapping**: `fmt.Errorf("context: %w", err)` — never `%v`.
 - **Required config**: required env vars use `notEmpty` (caarlos0/env); optional use `envDefault`. Mirror every new var in `.env-example` **and** in `docs/agents/config.md`.
-- **Shared contract with VidroApi**: queue names, MinIO paths, webhook payload. Change both sides **in the same commit** — they live in one repo.
 - **Only create files when necessary.** No `*.md`/README unless asked.
 
 ## Running locally
 
 ```bash
 cp .env-example .env
-docker-compose up -d redis minio          # this repo's compose (processor only)
-# or the whole Vidro stack, from the parent dir: cd .. && docker compose up -d --build
+docker compose -f ../docker-compose.yml up -d redis minio   # just the deps
+# or the whole Vidro stack: cd .. && docker compose up -d --build
 go run main.go
 ```
 
@@ -45,9 +43,9 @@ Tests shelling to `ffmpeg`/`ffprobe` auto-skip when binaries missing — use `Ge
 
 - **`docs/agents/config.md`** — read when touching an env var, a timeout, or a knob in `config/config.go`. Every variable with its default, where it is read, and why the default is what it is.
 
-- **`docs/agents/troubleshooting-stuck-video.md`** — follow when a video never leaves `Processing`, or a job lands in the dead-letter queue. Step-by-step across API, Redis, worker and MinIO.
+- **`../docs/troubleshooting-stuck-video.md`** (monorepo root) — follow when a video never leaves `Processing`, or a job lands in the dead-letter queue. Step-by-step across API, Redis, worker and MinIO.
 
-- **`docs/roadmap.md`** — read when user asks project status, remaining work, or what to build next. ~95% prod-ready; remaining work: scalability + Grafana dashboards.
+- **`../TODO.md`** (monorepo root, in Portuguese) — read when user asks project status, remaining work, or what to build next. Section **P6** holds this worker's backlog: FFmpeg pipeline performance (P-PERF1..4, P-OPT1) and scalability.
 
 - **`docs/GETTING_STARTED.md`**, **`docs/OBSERVABILITY.md`**, **`docs/TESTING.md`** — guides for setup, observability stack, full integration suite. Read when question is about operating worker, not code.
 

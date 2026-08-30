@@ -1,7 +1,8 @@
 # VidroApi
 
 REST API for Vidro, a video platform.
-Works alongside [VidroProcessor](https://github.com/icarosuper/video-processor-go) for video processing and [VidroFront](https://github.com/icarosuper/VidroFront) as the frontend.
+One of the three services in the Vidro monorepo: [VidroProcessor](../VidroProcessor/) does the
+video processing, [VidroFront](../VidroFront/) is the frontend.
 Built with .NET 10, Clean Architecture + Vertical Slice.
 
 ## Stack

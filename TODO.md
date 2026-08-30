@@ -7,7 +7,10 @@ não precisar redescobrir o problema.
 do job), CORS na API, porta 5000 unificada, P0.1 inteiro (docs mentirosas), compose único
 na raiz + `/health` (os três finalmente rodam juntos, E2E verificado), **P1 inteiro**
 (CI nos três repos, rate limiting, migrations no startup). *(2026-08-30)* testes de `queue/`
-no Processor, e **migração para monorepo** (os três viraram um repo só; ver `MONOREPO.md`).
+no Processor, **migração para monorepo** (os três viraram um repo só; ver `MONOREPO.md`) e a
+**consolidação das docs** (runbook de vídeo preso subiu para `docs/` da raiz; `roadmap.md` do
+Processor virou o P6 daqui; `workflow.md` do Front, o `docker-compose.yml` do Processor e as
+regras repetidas nos três `CLAUDE.md` foram removidos; README da raiz criado).
 Itens marcados `[x]` trazem o commit e o que ficou no lugar.
 
 **Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
@@ -78,7 +81,8 @@ E `VideoReconciliationService.cs:41` só resgata vídeos em `PendingUpload` com
 > Testes: `VideoProcessedTests` — sucesso sem artefato opcional nenhum → `Ready` com
 > `thumbnailUrls` vazio; sucesso sem `processedPath` → `Failed`. 324 testes passando.
 
-> Nota: `VidroProcessor/docs/roadmap.md` (P-OPT1, seção "Coordination") já tinha
+> Nota: o antigo `VidroProcessor/docs/roadmap.md` (P-OPT1, seção "Coordination" — hoje P6
+> deste arquivo) já tinha
 > sinalizado exatamente esse risco — *"delete/cleanup + `VideoProcessed` handler
 > must tolerate missing optional artifacts"* — e ninguém agiu.
 
@@ -94,7 +98,7 @@ audio 2min + preview 2min + streaming 4min.
 O próprio `docs/agents/design-decisions.md` define a regra: *"whole-job budget
 must always exceed sum of critical-path steps (validate + analyze + transcode)
 plus download + upload slack"*. Só o caminho crítico já são 4min, sobrando ~1min
-para baixar e subir tudo — e o roadmap diz que um vídeo de 500 MB / 1080p leva
+para baixar e subir tudo — e o P6 aqui embaixo diz que um vídeo de 500 MB / 1080p leva
 "vários minutos" hoje (a meta de 2–3 min é *pós*-otimização).
 
 **Consequência:** vídeo grande estoura o `processCtx` no meio do pipeline → job
@@ -131,7 +135,7 @@ falha → 3 retries → DLQ. Um vídeo perfeitamente bom nunca processa.
       `MINIO_USE_SSL` (`config/config.go:24`), `.env` ausente já tolerado
       (`config.go:60`, `errors.Is(err, os.ErrNotExist)`).
 - [x] **`VidroProcessor/README.md`**: badge `bugs known` → `functional` apontando para o
-      roadmap; `Version: 0.1.0` removido (não existe tag nenhuma nos três repos, era
+      roadmap (que hoje é o P6 deste arquivo); `Version: 0.1.0` removido (não existe tag nenhuma nos três repos, era
       ficção) e data atualizada.
 
 ### Afirmações falsas nos docs
@@ -143,7 +147,7 @@ falha → 3 retries → DLQ. Um vídeo perfeitamente bom nunca processa.
 - [x] `VidroFront/docs/agents/workflow.md` — "Fase 6 ✅ SSR + **SEO**" → só SSR, com a
       nota de que só `__root.tsx` define `head`. De quebra: fase 9 (Playlists) estava
       sem ✅ e está pronta (feature + rota + plano com 0 pendências).
-- [x] `VidroProcessor/docs/roadmap.md` (P-OPT1) — **a afirmação do roadmap estava certa e
+- [x] `VidroProcessor/docs/roadmap.md` (P-OPT1, hoje P6 daqui) — **a afirmação do roadmap estava certa e
       este TODO é que estava errado.** O fluxo de watch serve o MP4 mesmo: `GetVideo`
       monta `videoUrl` a partir de `ProcessedPath` e nunca expõe `hlsPath`. O que o
       `VideoPlayer.tsx:16` prova é que o *player* já toca `.m3u8` via `hls.js` — falta só
@@ -397,13 +401,15 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
 
 ## P4 — Documentação para humanos
 
-- [ ] **Não existe README na raiz `vidro/`.** Nada explica o que é o Vidro nem como
-      subir os três juntos.
-- [ ] **Não existe doc do fluxo ponta a ponta.** Cada repo documenta a própria caixa;
+- [x] **README na raiz** *(2026-08-30)* — o que é o Vidro, os três serviços, como subir o stack,
+      portas/credenciais, testes, convenções e índice das docs da raiz.
+- [ ] **Não existe doc do fluxo ponta a ponta.** Cada serviço documenta a própria caixa;
       o caminho que importa — upload → presigned PUT → webhook `minio-upload-completed`
       → fila Redis → pipeline → webhook `video-processed` → HLS no player — atravessa
-      os três e não está escrito em lugar nenhum. É a coisa mais difícil de
-      reconstruir sozinho e a única não documentada.
+      os três. É a coisa mais difícil de reconstruir sozinho.
+      *(2026-08-30: o `README.md` da raiz agora traz esse fluxo em 8 passos + diagrama. Serve de
+      mapa, não substitui a doc — falta shape de cada payload, retries, e o que acontece quando
+      cada handoff falha.)*
 - [ ] **`VidroApi/README.md` tem 46 linhas e o quickstart não funciona.**
 - [ ] **60% do markdown do projeto é arqueologia.** 4.797 de 7.992 linhas são
       `docs/plans/` de fases 100% concluídas (o plano da API sozinho tem 2.717
@@ -420,6 +426,61 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
       de vídeo.
 - [ ] **Sem notificações** de vídeo novo em canal inscrito. `ChannelFollower` já
       existe; falta o resto.
+
+---
+
+## P6 — VidroProcessor: performance do pipeline e escalabilidade
+
+Vindo do antigo `VidroProcessor/docs/roadmap.md`, absorvido aqui em 2026-08-30 — era um
+segundo backlog do mesmo worker, sem nenhum item em comum com este arquivo. O que já estava
+concluído lá não foi copiado: quem quer saber o que existe lê
+`VidroProcessor/docs/agents/features-index.md`, que mapeia feature → arquivo.
+
+**Custo hoje:** um vídeo de ~500 MB / 1080p leva vários minutos. Os três primeiros itens
+juntos devem levar para ~2–3 min.
+
+- [ ] **P-PERF1: HLS em comando único (maior impacto).** `SegmentForStreaming`
+      (`internal/processor/processor-steps/streaming.go`) roda um processo FFmpeg por variante,
+      em sequência — até 5 passes de encode completos para 1080p, cada um relendo o input
+      inteiro. Trocar o loop por uma invocação só com `-filter_complex split` + vários `-map`:
+      FFmpeg lê o input uma vez e encoda todas as variantes juntas. Ganho esperado: **~4–5×**
+      no passo 7.
+- [ ] **P-PERF2: preset de transcode `medium` → `fast`.** `TranscodeVideo`
+      (`transcode.go`) usa `-preset medium`. Para web/streaming, `fast` ou `faster` dá ~2× de
+      velocidade com diferença de qualidade desprezível (CRF 23 inalterado). Ganho: **~2×** no
+      passo 3.
+- [ ] **P-PERF3: paralelizar os passos não-críticos 4–7.** Thumbnails, áudio, preview e
+      streaming rodam em sequência em `processor.go`, mas são independentes — todos leem o
+      arquivo transcodificado. Goroutines + `errgroup` fazem o tempo total virar
+      `max(4,5,6,7)` em vez da soma. Ganho: **~2–3×** no bloco.
+- [ ] **P-PERF4: guard rails para o pipeline otimizado.** Reduz o risco de soltar
+      P-PERF1/2/3: teto configurável de tarefas FFmpeg paralelas por job (evita pico de
+      CPU/RAM); política de cancelamento explícita (falha de passo não-crítico não derruba o
+      pipeline, mas cancelar o contexto pai interrompe todos); manter
+      `video_processing_step_duration_seconds{step=...}` por passo paralelizado; fallback do
+      HLS de comando único para o modo sequencial; e flags de env para rollout e rollback
+      rápido (`PARALLEL_NON_CRITICAL_STEPS`, `MAX_PARALLEL_POST_TRANSCODE_STEPS`,
+      `HLS_SINGLE_COMMAND`, `HLS_SINGLE_COMMAND_FALLBACK`).
+- [ ] **P-OPT1: tornar os passos não-críticos opcionais.** Passos 4–7 não são necessários
+      para toda superfície do produto: hoje o front toca o **MP4 processado** + thumbnails —
+      `GetVideo` monta `videoUrl` a partir de `ProcessedPath` e nunca expõe `hlsPath`.
+      Config (flags de env) para **pular** qualquer combinação reduz tempo de FFmpeg e escrita
+      no MinIO. Caminho crítico: validate → analyze → transcode → upload.
+      **Coordenação com a API:** payload do webhook / `VideoArtifacts` precisa aceitar caminhos
+      omitidos onde já são nullable (`HlsPath`), e o handler `VideoProcessed` + cleanup precisam
+      tolerar artefato opcional faltando.
+
+      > ⚠️ **Não leia isso como "HLS é código morto".**
+      > `VidroFront/src/features/videos/components/VideoPlayer.tsx` já detecta `.m3u8` e toca via
+      > `hls.js`; o player está ligado, só falta o campo na API. HLS está a uma mudança de
+      > `GetVideo` de virar o caminho principal de reprodução — coloque o passo atrás de uma
+      > flag, não apague.
+
+**Longo prazo — escalabilidade:**
+
+- [ ] **Auto-scaling:** subir workers conforme o tamanho da fila.
+- [ ] **Escala horizontal:** várias instâncias do worker em máquinas diferentes.
+- [ ] **Prioridade na fila:** vídeos curtos primeiro, longos em fila separada.
 
 ---
 
@@ -471,3 +532,5 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
 6. SEO + error boundaries (P3), CI no Front e Processor (P1).
 7. README raiz + doc do fluxo ponta a ponta (P4).
 8. Histórico/notificações (P5).
+9. Performance do pipeline (P6) — P-PERF1 e P-PERF2 sozinhos já valem a maior parte do ganho
+   e são mudanças pequenas; P-PERF4 é pré-requisito de soltar P-PERF3 com segurança.

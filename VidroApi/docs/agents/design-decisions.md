@@ -95,7 +95,7 @@ This is the contract the worker documents on its side:
 product decision that needs both services — change them in the same commit.
 
 **Don't "fix" by:** adding `[Required]`/non-null guards on the optional artifact fields. Diagnosing a
-stuck video: `../../../VidroProcessor/docs/agents/troubleshooting-stuck-video.md`.
+stuck video: `../../../docs/troubleshooting-stuck-video.md`.
 
 ---
 

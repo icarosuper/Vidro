@@ -99,5 +99,5 @@ Object layout inside bucket:
 ## Tests
 
 - Unit tests: co-located `*_test.go` per package.
-- Integration tests: `test/integration/` — real Redis/MinIO via docker-compose. See `docs/TESTING.md`.
+- Integration tests: `test/integration/` — real Redis/MinIO spun up with testcontainers. See `docs/TESTING.md`.
 - FFmpeg-dependent tests auto-skip when `ffmpeg` absent (see `test_helpers.go`).

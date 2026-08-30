@@ -2,48 +2,10 @@
 
 Read doc before write component, hook, API fn. Define non-obvious patterns for all code.
 
-## Idioma
-
-- **Código em inglês:** variáveis, funções, tipos, comentários, nomes de testes.
-- **Commits em português.**
-- **Docs em `docs/`** podem ser em português.
-
-## Legibilidade
-
-### Variáveis nomeadas > expressões inline
-
-Always assign check/expression result to named var before use in condition.
-
-```ts
-// ✅
-const emailAlreadyTaken = users.some((u) => u.email === email)
-if (emailAlreadyTaken) return { error: 'Email already in use' }
-
-// ❌
-if (users.some((u) => u.email === email)) return { error: 'Email already in use' }
-```
-
-### Extraia lógica complexa em funções
-
-Block need comment to explain → make named function instead.
-
-### Nomes expressam intenção
-
-Name answer "what", not "how". No abbreviations, no single-letter (except loops), no generic names (`result`, `data`, `temp`).
-
-### Ternários sempre em três linhas
-
-Condition first line, `?` second, `:` third. Never one line.
-
-```ts
-// ✅
-const label = isAuthenticated
-  ? 'Sign out'
-  : 'Sign in'
-
-// ❌
-const label = isAuthenticated ? 'Sign out' : 'Sign in'
-```
+Idioma do código e as regras de legibilidade que valem para os três serviços — variável nomeada em
+vez de expressão inline, extrair lógica complexa, nomes que dizem *o quê*, ternário em três linhas —
+moram uma vez só no [`../../../CLAUDE.md`](../../../CLAUDE.md) da raiz do monorepo. Este arquivo tem
+só o que é específico do front.
 
 ## Feature module layout
 

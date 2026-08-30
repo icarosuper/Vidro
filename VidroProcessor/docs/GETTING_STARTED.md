@@ -30,8 +30,10 @@ The `.env-example` already comes with default values for local development. Edit
 
 ## 2. Start the infrastructure
 
+The stack lives in the monorepo root; run from `VidroProcessor/`:
+
 ```bash
-docker-compose up -d redis minio
+docker compose -f ../docker-compose.yml up -d redis minio
 ```
 
 This starts:
@@ -187,10 +189,11 @@ curl http://localhost:8080/health
 To run the worker in a container too (without needing local Go):
 
 ```bash
-docker-compose up --build
+cd .. && docker compose up -d --build
 ```
 
-> The worker inside Docker uses env vars defined in `docker-compose.yml`.
+> That brings up the whole Vidro stack (API, front, worker, observability). The worker inside Docker
+> uses the env vars defined for the `worker` service in the root `docker-compose.yml`.
 
 ---
 

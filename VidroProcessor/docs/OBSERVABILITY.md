@@ -69,7 +69,7 @@ Video size from MinIO, recorded post-download.
 
 ## Grafana Dashboard
 
-Pre-configured dashboard at `grafana/provisioning/dashboards/video-processor.json`, auto-loaded on `docker-compose` start.
+Pre-configured dashboard at `grafana/provisioning/dashboards/video-processor.json`, auto-loaded when the root `docker-compose.yml` stack starts.
 
 **Available panels:**
 - Active workers and queue size (with color thresholds)
@@ -80,13 +80,13 @@ Pre-configured dashboard at `grafana/provisioning/dashboards/video-processor.jso
 - Total job duration p50/p90/p99
 - Video size distribution
 
-Access at `http://localhost:3000` (admin/admin) after `docker-compose up` in this repo. In the root stack Grafana is on `http://localhost:3001` — the front owns 3000.
+Access at `http://localhost:3001` (admin/admin) after `docker compose up -d` in the monorepo root — Grafana is on 3001 because the front owns 3000.
 
 ---
 
 ## Prometheus Integration
 
-`prometheus.yml` pre-configured at `prometheus/prometheus.yml`, mounted via `docker-compose`. To run worker outside Docker, add to `prometheus.yml`:
+`prometheus.yml` pre-configured at `prometheus/prometheus.yml`, mounted by the root `docker-compose.yml`. To run worker outside Docker, add to `prometheus.yml`:
 
 ```yaml
 scrape_configs:
