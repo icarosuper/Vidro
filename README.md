@@ -203,11 +203,13 @@ docker-compose down
 
 ## 📖 Documentation
 
-- [🏛️ Architecture](docs/claude/architecture.md) - Worker lifecycle, queue protocol, pipeline, storage layout
+- [🏛️ Architecture](docs/agents/architecture.md) - Worker lifecycle, queue protocol, pipeline, storage layout
 - [🚀 Getting Started](docs/GETTING_STARTED.md) - Local setup walkthrough
 - [🗺️ Roadmap](./docs/roadmap.md) - Features and improvements
 - [📊 Observability](docs/OBSERVABILITY.md) - Metrics and monitoring
 - [🧪 Testing](docs/TESTING.md) - Testing guide
+- [⚙️ Config Reference](docs/agents/config.md) - Every env var, its default and why
+- [🚑 Stuck video](docs/agents/troubleshooting-stuck-video.md) - Runbook for a video that never becomes Ready
 
 ## 🤝 Contributing
 
