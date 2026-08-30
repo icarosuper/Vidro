@@ -7,7 +7,8 @@ não precisar redescobrir o problema.
 do job), CORS na API, porta 5000 unificada, P0.1 inteiro (docs mentirosas), compose único
 na raiz + `/health` (os três finalmente rodam juntos, E2E verificado), **P1 inteiro**
 (CI nos três repos, rate limiting, migrations no startup). *(2026-08-30)* testes de `queue/`
-no Processor. Itens marcados `[x]` trazem o commit e o que ficou no lugar.
+no Processor, e **migração para monorepo** (os três viraram um repo só; ver `MONOREPO.md`).
+Itens marcados `[x]` trazem o commit e o que ficou no lugar.
 
 **Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
 API 100% marcado, Processor ~95%). O que falta não é feature — é (a) os três
@@ -204,6 +205,8 @@ falha → 3 retries → DLQ. Um vídeo perfeitamente bom nunca processa.
       **Sem step de lint no Front:** `biome check` acusa 108 erros no código existente, então
       ligar isso deixaria o CI vermelho no primeiro push. Limpar o código antes — ver
       "Limpar o que o `biome check` acusa" em Sujeira pequena.
+      *(2026-08-30: com o monorepo, os três `ci.yml` viraram
+      `.github/workflows/{api,front,processor}.yml` na raiz, cada um com filtro `paths:`.)*
 - [x] **Rate limiting em `SignIn`/`SignUp`** — `AddRateLimiter` nativo do .NET 10, zero
       dependência nova. Fixed window por IP, política `auth`, 429 na rejeição, configurável
       em `RateLimit:AuthPermitLimit` / `AuthWindowSeconds` (10/min por padrão), seguindo o
@@ -309,6 +312,46 @@ Os 7 steps do pipeline têm todos `_test.go`, o que faz parecer bem coberto. Mas
 
 - [ ] Nenhum teste E2E do fluxo que define o produto: upload → processamento → play.
       Cada repo testa a própria borda; a integração entre eles não é testada.
+
+### Contrato entre serviços — destravado pelo monorepo (2026-08-30)
+
+Os dois P0 desta lista foram divergência de contrato entre serviços. Enquanto eram três repos,
+não havia onde colocar a rede que os pegaria. Agora há. Ver `MONOREPO.md`, seção "O que a
+migração destrava".
+
+- [ ] **Gerar os tipos do front a partir do OpenAPI da API.**
+      `VidroFront/src/shared/types.ts:64-69` espelha **na mão** seis enums do backend
+      (`VideoStatus`, `VideoVisibility`, `ReactionType`, `PlaylistVisibility`, `PlaylistScope`,
+      `CommentSortOrder`), e as shapes de request/response de cada feature são redigitadas em
+      `features/*/types.ts`.
+      **Conferi os seis: batem com o backend hoje** — cinco contra `VidroApi/src/VidroApi.Domain/Enums/`
+      e `CommentSortOrder` contra `Features/Comments/ListComments.cs:19`. O problema não é estarem
+      errados, é **nada garantir que continuem certos**: `ReactionType` começa em `1`, não em `0`,
+      e é exatamente o tipo de detalhe que um refactor no backend leva junto sem ninguém notar no
+      front. O P0.1 ("4 rotas erradas no `features-index.md`") foi essa mesma classe de drift, só
+      que em doc.
+      Caminho: `MapOpenApi()` já existe (`VidroApi/src/VidroApi.Api/Program.cs:76`) mas está sob
+      `if (app.Environment.IsDevelopment())` — para gerar em CI, ou sobe a API em Development e
+      busca `/openapi/v1.json`, ou adiciona `Microsoft.Extensions.ApiDescription.Server`, que
+      emite o JSON no build sem subir nada. Daí `openapi-typescript` gera o `.d.ts`, e um job de
+      CI regenera e falha se o diff não for vazio.
+      **Não é drop-in:** a API envelopa tudo em `{ data: T }` e devolve enum como
+      `EnumValue { id, value }` — o tipo gerado descreve o envelope, e o `apiClient` é quem
+      desembrulha. Planejar a camada fina antes de trocar os tipos escritos à mão.
+
+- [ ] **Fixture de contrato compartilhada entre Processor e API para o webhook.**
+      `VideoProcessedTests` (feito no BUG-1) já cobre payload de sucesso parcial — mas o JSON do
+      teste foi **escrito à mão do lado da API**, e nada o amarra ao que o worker realmente
+      emite (`VidroProcessor/internal/webhook/webhook.go:17-30`, struct `Payload`, camelCase,
+      `omitempty` em tudo menos `videoId`/`success`).
+      Versão preguiçosa que já resolve: um JSON golden versionado, o worker testa que **serializa
+      exatamente aquilo** e a API testa que **aceita exatamente aquilo**. Divergência quebra um dos
+      dois lados no mesmo CI. Antes do monorepo isso exigia publicar um pacote; agora é um arquivo.
+      Cobrir os três casos que o BUG-1 provou serem reais: sucesso completo, sucesso sem nenhum
+      artefato opcional e sem bloco de metadata, e sucesso sem `processedPath` (→ `Failed`).
+      O mesmo vale para o resto do contrato, hoje só documentado: nome da fila
+      (`JobQueueSettings:QueueName` ↔ `PROCESSING_REQUEST_QUEUE`), `callback_url` no `JobState`,
+      e o layout de paths no MinIO.
 
 ---
 
@@ -423,6 +466,8 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
 4. ✅ ~~Testes de `queue/`~~ (2026-08-30). Falta `processor.go` (P2) — 253 linhas, zero
    testes fora do `JobBudget`.
 5. Ligar busca + ThemeToggle (P3) — features já pagas, custo quase zero.
+5.1. Fixture de contrato do webhook (P2) — é a rede que teria pego o BUG-1 no ato, e agora
+   custa um arquivo. Tipos gerados do OpenAPI vêm depois: mais valor, mais trabalho.
 6. SEO + error boundaries (P3), CI no Front e Processor (P1).
 7. README raiz + doc do fluxo ponta a ponta (P4).
 8. Histórico/notificações (P5).
