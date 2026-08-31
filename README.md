@@ -60,6 +60,7 @@ Falhou no meio? O runbook é [`docs/troubleshooting-stuck-video.md`](docs/troubl
 | [`docs/MONOREPO.md`](docs/MONOREPO.md) | Por que é monorepo, o que foi decidido e o que isso custou |
 | [`TODO.md`](TODO.md) | Backlog dos três serviços, com referência de arquivo/linha |
 | [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md) | Vídeo preso em `Processing` — atravessa API, Redis, worker e MinIO |
+| [`docs/padroes-a-importar.md`](docs/padroes-a-importar.md) | Regras e ferramentas de outros repos que valem para cá, com a ordem sugerida |
 
 Cada serviço tem o próprio `CLAUDE.md` e `docs/agents/` com o que é específico dele.
 

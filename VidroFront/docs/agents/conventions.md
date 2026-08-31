@@ -101,7 +101,14 @@ Keys used in multiple places → export `*Keys` object (e.g. `userKeys.me()` in 
 
 - **shadcn/ui** in `src/components/ui/`. Customize by extension, not editing base wrappers.
 - **Feature components** in `src/features/<name>/components/`. Shared across features → `src/components/`.
-- **Forms:** direct composition with shadcn components + `useState` + inline validation. No `react-hook-form` or form libs without discussion.
+- **Forms:** `react-hook-form` + `zodResolver` + os componentes `Form*` do shadcn
+  (`components/ui/form.tsx`). O padrão é o mesmo nos 8 formulários (`SignInForm`,
+  `SignUpForm`, `CreateChannelForm`, `EditChannelForm`, `CreatePlaylistForm`,
+  `EditPlaylistForm`, `UploadVideoForm`, `EditVideoForm`): schema `zod` no topo do arquivo,
+  `type XxxFormValues = z.infer<typeof schema>`, `useForm({ resolver: zodResolver(schema),
+  defaultValues })`, um `FormField` por campo e `form.handleSubmit(...)` no `onSubmit`.
+  Erro de validação aparece no `FormMessage`; erro da API vem do estado da mutation, via
+  `getApiErrorMessage(mutation.error)`. Não componha formulário na mão com `useState`.
 - **No props drilling beyond 2 levels** — use context (e.g. `AuthModalProvider`) when needed.
 
 ## Imports
