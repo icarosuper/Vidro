@@ -21,6 +21,7 @@ Reescrita frontend Vidro (plataforma vídeo). Backend .NET `../VidroApi/` comple
 ```bash
 bun run dev                                 # http://localhost:3000
 bun run build
+bun run typecheck                           # tsc --noEmit (roda no CI)
 bun run test                                # todos
 bun run test src/tests/api-client.test.ts   # um arquivo
 biome check

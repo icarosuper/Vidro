@@ -33,6 +33,9 @@ jobs:
       # No lint step yet: `biome check` reports 108 errors on the existing code, so wiring it
       # in would make CI red from day one. ~100 of them clear with `biome check --write`;
       # the rest need a human. See "Limpar o que o biome check acusa" in the root TODO.md.
+      - name: Typecheck
+        run: bun run typecheck
+
       - name: Test
         run: bun run test
 
