@@ -77,6 +77,23 @@ Format: `['resource-type', id, ...sub]`.
 
 Keys used in multiple places → export `*Keys` object (e.g. `userKeys.me()` in `features/users/hooks.ts`).
 
+## Índice de array é `T | undefined`
+
+`noUncheckedIndexedAccess` está ligado no `tsconfig.json`. `items[0]` tem tipo
+`T | undefined`, mesmo quando você acabou de checar o `length` — o compilador não liga as
+duas coisas.
+
+- Em código de produção: `items[0] ?? fallback`, ou `?.` na continuação. É o que o repo já
+  fazia antes da flag existir (`video.thumbnailUrls[0] ?? undefined`).
+- Em teste: **não** silencie com `!` (o `biome` acusa `noNonNullAssertion`). Destruture e
+  falhe com mensagem própria, que também dá um erro legível quando a expectativa quebra:
+
+  ```ts
+  const [firstCall] = mockFetch.mock.calls
+  if (!firstCall) throw new Error('apiClient did not call fetch')
+  const [url, init] = firstCall
+  ```
+
 ## Error handling
 
 - **API errors** always become `ApiClientError { code, message, status }`.

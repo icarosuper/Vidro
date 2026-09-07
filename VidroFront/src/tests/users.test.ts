@@ -64,11 +64,14 @@ describe('users api', () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(2)
 
-    const [firstUrl, firstOptions] = mockFetch.mock.calls[0]
+    const [presignCall, uploadCall] = mockFetch.mock.calls
+    if (!presignCall || !uploadCall) throw new Error('expected two fetch calls')
+
+    const [firstUrl, firstOptions] = presignCall
     expect(firstUrl).toContain('/v1/users/me/avatar')
     expect(firstOptions.method).toBe('POST')
 
-    const [secondUrl, secondOptions] = mockFetch.mock.calls[1]
+    const [secondUrl, secondOptions] = uploadCall
     expect(secondUrl).toBe(presignedUrl)
     expect(secondOptions.method).toBe('PUT')
     expect(secondOptions.body).toBe(file)

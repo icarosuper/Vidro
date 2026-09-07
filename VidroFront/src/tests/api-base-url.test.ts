@@ -15,7 +15,10 @@ async function requestedUrl(): Promise<string> {
     }),
   )
   await apiClient.get('/v1/test')
-  return mockFetch.mock.calls[0][0] as string
+
+  const [firstCall] = mockFetch.mock.calls
+  if (!firstCall) throw new Error('apiClient did not call fetch')
+  return firstCall[0] as string
 }
 
 beforeEach(() => {

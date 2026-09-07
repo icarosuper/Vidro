@@ -53,7 +53,7 @@ describe('videos api', () => {
     const result = await getTrending(20)
 
     expect(result.videos).toHaveLength(1)
-    expect(result.videos[0].videoId).toBe('vid-1')
+    expect(result.videos[0]?.videoId).toBe('vid-1')
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/v1/videos/trending?limit=20'),
       expect.objectContaining({ method: 'GET' }),
@@ -86,7 +86,10 @@ describe('videos api', () => {
 
     await getFeed(20, cursor)
 
-    const [url] = mockFetch.mock.calls[0]
+    const [feedCall] = mockFetch.mock.calls
+    if (!feedCall) throw new Error('getFeed did not call fetch')
+
+    const [url] = feedCall
     expect(url).toContain('cursor=')
   })
 
@@ -123,7 +126,10 @@ describe('videos api', () => {
 
     await reactToVideo('vid-1', 1)
 
-    const [url, options] = mockFetch.mock.calls[0]
+    const [reactCall] = mockFetch.mock.calls
+    if (!reactCall) throw new Error('reactToVideo did not call fetch')
+
+    const [url, options] = reactCall
     expect(url).toContain('/v1/videos/vid-1/react')
     expect(options.method).toBe('POST')
     expect(JSON.parse(options.body)).toEqual({ type: 1 })

@@ -570,6 +570,15 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
       e passa a lintar `dist/`: 83 → 148 arquivos), e `biome-ignore` com motivo em duas linhas
       vira "unused suppression" sem aplicar a regra.
 
+- [x] ~~**`noUncheckedIndexedAccess` desligado no front**~~ **RESOLVIDO** *(2026-09-07)*.
+      Ligado no `tsconfig.json`. **Custou 4 correções, todas em teste** — o código de produção
+      passou limpo de primeira porque já tratava índice com `?? undefined`/`?.`
+      (`video.thumbnailUrls[0] ?? undefined`). Os 4 eram `mockFetch.mock.calls[0]`
+      destruturado direto; viraram guard com mensagem própria em vez de `!`, que o `biome`
+      acusaria. Verificado que a flag morde de fato (um `const first: string = items[0]`
+      temporário quebra o build). Regra escrita em
+      `VidroFront/docs/agents/conventions.md`.
+
 - [ ] **Os 11 `noNonNullAssertion` que sobraram no front.** `channels/hooks.ts` (3),
       `playlists/hooks.ts` (3), `videos/hooks.ts` (3), `CommentList.tsx` (1), `ReplyList.tsx` (1).
       São warning, então o CI passa — mas cada `!` é a mesma classe do BUG-1: uma promessa ao

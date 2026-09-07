@@ -218,7 +218,7 @@ pré-existentes** em 11 arquivos, corrigidos na mesma leva — inclusive um bug 
 que ainda estão abertos aqui: **ligar um checador conta os erros que ele encontra** — o custo
 real é a limpeza, não a configuração. Ver o item 16 (biome), que já sabia disso.
 
-### 16. Lint desligado no CI por 108 erros pré-existentes
+### ~~16. Lint desligado no CI por 108 erros pré-existentes~~ ✅ *(2026-09-07)*
 
 O comentário no `front.yml` é honesto sobre isso, e o `TODO.md` já registra. Caminho barato:
 rodar `biome check --write` (limpa ~100), resolver o resto à mão numa leva, ligar o passo.
@@ -245,10 +245,12 @@ O Vidro tem player, grid de feed e playlists: mesmo risco. Hoje os 5 arquivos em
 `VidroFront/src/tests/` cobrem só `api-client`, auth, users e videos. A estrutura em camadas
 do AAD (`tests/unit/`, `tests/component/`, `tests/smoke/`) é o alvo.
 
-### 18. `noUncheckedIndexedAccess: true`
+### ~~18. `noUncheckedIndexedAccess: true`~~ ✅ *(2026-09-07)*
 
-Falta no `tsconfig.json`. Com `strict` ligado, é a maior fonte de `undefined` em runtime que
-sobra — e o front consome listas paginadas da API o tempo todo.
+Ligado no `tsconfig.json`. Custou 4 correções, **todas em teste** — o código de produção já
+tratava índice com `?? undefined`/`?.`, então o risco previsto aqui ("a maior fonte de
+`undefined` em runtime que sobra") não se confirmou: a disciplina já existia, só não estava
+travada. Agora está.
 
 ---
 
@@ -268,6 +270,8 @@ pode entrar conforme se mexe na área correspondente.
 
 ## Já resolvido
 
+- **2026-09-07** — item 18 (`noUncheckedIndexedAccess`) ligado; item 16 (biome) fechado, com o
+  formatter ligado e a regra de ternário da raiz relaxada para permitir uma linha.
 - **2026-09-07** — item 10 (fail-fast vs. anomalia+ACK) escrito no `conventions.md` da API.
 - **2026-09-07** — item 15 (`typecheck` no front) fechado; ver a seção do item, reescrita com
   o custo real.
