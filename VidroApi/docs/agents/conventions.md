@@ -27,6 +27,38 @@
   - `FeatureErrors/Errors.X.cs` — same pattern for cross-entity feature errors (e.g. upload flow)
   - Each `Error` carries `Code`, `Message`, `ErrorType` (enum). Api layer maps `ErrorType` to HTTP status codes in `ResultExtensions`.
 
+## Fail fast in the domain, record an anomaly at a machine inbound
+
+Two rules that look contradictory and are not. Which one applies depends on **who calls**.
+
+- **Domain constructors and methods throw.** `ArgumentException.ThrowIfNullOrWhiteSpace`,
+  `ArgumentNullException.ThrowIfNull`, overflow guards. An entity must be impossible to build in an
+  invalid state, and the throw is what makes that true.
+- **A handler whose caller is a machine never lets that throw escape.** Webhook endpoints
+  (`VideoProcessed`, `MinioUploadCompleted`) and any future queue consumer: on a payload the domain
+  refuses, write the terminal state, log it, and **return success**. Never `throw` and never return
+  5xx to make the sender retry.
+
+**Why the second rule exists — this is BUG-1, and it cost a permanent data stall.**
+`VideoArtifacts` required `previewPath` and `audioPath`, but the Processor's contract says a success
+webhook may omit them ([`design-decisions.md #3`](../../../VidroProcessor/docs/agents/design-decisions.md)).
+A non-critical step failing (a thumbnail glitch) produced a legitimate success payload, the
+constructor threw, the handler returned 500 — and from there nothing recovers: the worker retries 3
+times and gives up (`internal/webhook/webhook.go`), the job was **already acked** so it never reaches
+the DLQ, and the video sits in `Processing` forever. A 500 to a person is a retry; a 500 to a machine
+with a finite retry budget is a silently dropped message.
+
+In practice:
+
+- **Whatever the contract marks optional must be nullable in the entity and in the EF configuration.**
+  A `!` (null-forgiving) on a field the sender is allowed to omit is this bug waiting to happen.
+- **Absent data has a meaning — decide it explicitly.** Missing optional artifact → persist without it.
+  Missing *required* artifact → `Failed`, which is terminal and visible. Both are ACKs.
+- **A terminal state is not enough on its own.** Pair it with a reconciliation pass for the records
+  that never got any callback (`VideoReconciliationService`).
+- **This does not apply to user-facing endpoints.** There, invalid input is a `Validator` returning
+  400 — the caller is a person who can read it and fix the request.
+
 ## Settings / POCO conventions
 
 - **Non-nullable `string` props** use `= null!` (not `= default!`) to suppress CS8618, intent clear.
@@ -93,6 +125,10 @@ into a named method, names that say *what*, three-line ternaries — live once i
    decides a write goes **inside** the transaction.
 5. Errors come from `Domain/Errors/` — `CommonErrors`, `Errors.<Entity>.X()`, or a new
    `FeatureErrors` entry. Return `Result.Success(response)` / the error; never throw for control flow.
+5.1. **Is the caller a machine?** (webhook, queue consumer) Then no input can reach a domain throw:
+   absent or malformed data becomes a terminal state plus a log, and the response is a success — see
+   "Fail fast in the domain, record an anomaly at a machine inbound" above. Getting this wrong drops
+   the message for good.
 6. Enums in the response are `EnumValue`, and inside an EF projection they are built inline
    (`EnumValue.From` does not translate to SQL).
 7. Entity or mapping changed → update the `IEntityTypeConfiguration`, add the composite index for

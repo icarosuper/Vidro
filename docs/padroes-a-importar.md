@@ -149,7 +149,14 @@ testes onde encaixa.
 Prefira `FirstOrDefault(...)` e trate o `null`/`default` explicitamente. O Vidro não tem
 essa regra, e o webhook do Processor é exatamente "dado externo".
 
-### 10. Fail-fast no domínio, anomalia + ACK no inbound (do MT) — melhor custo/benefício da lista
+### ~~10. Fail-fast no domínio, anomalia + ACK no inbound (do MT)~~ ✅ *(2026-09-07)*
+
+Escrito em `VidroApi/docs/agents/conventions.md`, seção *"Fail fast in the domain, record an
+anomaly at a machine inbound"*, com a cadeia do BUG-1 inteira como justificativa (500 para
+máquina com budget de retry finito = mensagem descartada em silêncio) e o passo 5.1 no
+checklist de feature slice, que obriga a pergunta *"o chamador é máquina?"*.
+
+*(texto original abaixo)*
 
 Regra do MT: em construtor de domínio, `throw` no overflow (fail-fast); em caminho de
 consumer/inbound, **registre anomalia e ACK em vez de lançar** — não envenenar a fila.
@@ -248,7 +255,7 @@ sobra — e o front consome listas paginadas da API o tempo todo.
 ## Ordem sugerida
 
 1. **`.golangci.yml` no Processor** (item 1) — maior ganho, zero decisão de produto
-2. **Regra do fail-fast vs. anomalia+ACK escrita** (item 10) — previne a recorrência do P0 já pago
+2. ✅ ~~**Regra do fail-fast vs. anomalia+ACK escrita**~~ (item 10) — feito em 2026-09-07
 3. ✅ ~~**`typecheck` no front**~~ (item 15) — feito em 2026-09-07 (custou 23 correções, não
    uma linha)
 4. **Seção de logging no `conventions.md` da API** (item 7) — a única seção que falta comparada aos outros dois serviços
@@ -261,6 +268,7 @@ pode entrar conforme se mexe na área correspondente.
 
 ## Já resolvido
 
+- **2026-09-07** — item 10 (fail-fast vs. anomalia+ACK) escrito no `conventions.md` da API.
 - **2026-09-07** — item 15 (`typecheck` no front) fechado; ver a seção do item, reescrita com
   o custo real.
 
