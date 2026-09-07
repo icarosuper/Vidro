@@ -11,8 +11,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "format": "biome format",
-    "lint": "biome lint",
+    "lint": "biome ci",
     "check": "biome check"
   },
   "dependencies": {

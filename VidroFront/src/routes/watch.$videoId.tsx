@@ -51,14 +51,17 @@ function WatchPage() {
   const reactToVideo = useReactToVideo(videoId)
   const removeReaction = useRemoveReaction(videoId)
 
+  // One view per loaded video. The id — not `video` — is the dependency: depending on the
+  // object re-registers on every refetch, and navigating between videos reuses this route
+  // instead of remounting it, so the id changing is what has to re-fire the effect.
+  // `mutate` is a stable reference from useMutation.
+  const loadedVideoId = video?.videoId
+  const registerViewOnce = registerView.mutate
+
   useEffect(() => {
-    const videoIsReady = video !== undefined
-    if (videoIsReady) {
-      registerView.mutate()
-    }
-  // Only fire once when video loads — intentionally omitting registerView from deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [video?.videoId])
+    if (loadedVideoId === undefined) return
+    registerViewOnce()
+  }, [loadedVideoId, registerViewOnce])
 
   if (isPending) {
     return (

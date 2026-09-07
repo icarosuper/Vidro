@@ -36,6 +36,7 @@ export function VideoPlayer({ src, poster }: VideoPlayerProps) {
   }, [src])
 
   return (
+    // biome-ignore lint/a11y/useMediaCaption: no caption source exists yet (no subtitle step in the pipeline, no caption field in the API) — real gap, tracked in the root TODO.md P5
     <video
       ref={videoRef}
       poster={poster}

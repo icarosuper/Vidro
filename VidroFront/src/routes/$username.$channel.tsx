@@ -228,10 +228,7 @@ function ChannelPage() {
 					<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
 						{Array.from({ length: 8 }).map((_, i) => (
 							// biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders have no identity
-							<div
-								key={i}
-								className="overflow-hidden rounded-lg border border-border"
-							>
+							<div key={i} className="overflow-hidden rounded-lg border border-border">
 								<Skeleton className="aspect-video w-full" />
 								<div className="p-3 space-y-2">
 									<Skeleton className="h-4 w-full" />
@@ -301,10 +298,7 @@ function ChannelPage() {
 					<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
 						{Array.from({ length: 4 }).map((_, i) => (
 							// biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders have no identity
-							<div
-								key={i}
-								className="overflow-hidden rounded-lg border border-border"
-							>
+							<div key={i} className="overflow-hidden rounded-lg border border-border">
 								<Skeleton className="aspect-video w-full" />
 								<div className="p-3 space-y-2">
 									<Skeleton className="h-4 w-full" />

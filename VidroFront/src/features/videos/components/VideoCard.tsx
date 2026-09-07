@@ -113,6 +113,9 @@ export function VideoCard({ video, hideChannelInfo = false, isOwner = false }: V
     <>
       <Link to="/watch/$videoId" params={{ videoId: video.videoId }} className="no-underline">
         <Card className="overflow-hidden transition-shadow hover:shadow-md border-0 shadow-none bg-transparent rounded-xl p-3 gap-0">
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: decorative hover preview — the
+              card itself is the Link, so it is already focusable and activatable by keyboard,
+              and cycling thumbnails carries no information a keyboard user would lose */}
           <div
             className="group relative aspect-video w-full bg-muted rounded-xl overflow-hidden"
             onMouseEnter={startCycling}

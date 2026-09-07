@@ -24,9 +24,16 @@ bun run build
 bun run typecheck                           # tsc --noEmit (roda no CI)
 bun run test                                # todos
 bun run test src/tests/api-client.test.ts   # um arquivo
-biome check
-biome format
+bun run lint                                # biome ci (roda no CI)
+biome check                                 # o mesmo, com saída para iterar local
 ```
+
+O **formatter do Biome está desligado de propósito** (`biome.json`) — ele colapsa ternário
+curto em uma linha e o `../CLAUDE.md` da raiz exige três. Ligar de volta reescreve ~63
+arquivos e quebra a regra. Duas armadilhas do Biome que custam tempo: comentário `//` dentro
+do `biome.json` **quebra a config em silêncio** (ele cai no default e passa a lintar `dist/`),
+e `biome-ignore` só funciona em **uma linha** — o motivo quebrado em duas vira "unused
+suppression" e a regra continua acusando.
 
 ## Stack resumida
 
