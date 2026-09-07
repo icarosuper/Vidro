@@ -166,5 +166,5 @@ Trending, feed, busca, detalhe, reações, upload (create + presigned + status p
 | tipos base | `src/shared/types.ts` | `ApiSuccess`, `ApiError`, `ValidationError`, `EnumValue`, `CursorPage`, `PagedResult`, `API_ERROR_CODES`, `VideoStatus`, `VideoVisibility`, `ReactionType`, `PlaylistVisibility`, `PlaylistScope`, `CommentSortOrder` |
 | erros | `src/shared/lib/error-messages.ts` | Map `code → mensagem user-facing` |
 | toast | `src/shared/lib/toast-error.ts` | `toastApiError(error)` |
-| components globais | `src/components/` | `Header`, `ThemeToggle`, `ui/*` (shadcn) |
+| components globais | `src/components/` | `Header` (busca + `ThemeToggle`), `ThemeToggle` (light → dark → auto, persistido em `localStorage`), `ui/*` (shadcn) |
 | integração | `src/integrations/tanstack-query/` | `QueryClient` + devtools |

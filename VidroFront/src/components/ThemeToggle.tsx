@@ -1,6 +1,26 @@
 import { useEffect, useState } from 'react'
+import { Monitor, Moon, Sun } from 'lucide-react'
+import { Button } from '#/components/ui/button'
 
 type ThemeMode = 'light' | 'dark' | 'auto'
+
+const NEXT_MODE: Record<ThemeMode, ThemeMode> = {
+  light: 'dark',
+  dark: 'auto',
+  auto: 'light',
+}
+
+const MODE_ICON: Record<ThemeMode, typeof Sun> = {
+  light: Sun,
+  dark: Moon,
+  auto: Monitor,
+}
+
+const MODE_LABEL: Record<ThemeMode, string> = {
+  light: 'Theme: light. Click for dark.',
+  dark: 'Theme: dark. Click to follow the system.',
+  auto: 'Theme: system. Click for light.',
+}
 
 function getInitialMode(): ThemeMode {
   if (typeof window === 'undefined') {
@@ -15,9 +35,19 @@ function getInitialMode(): ThemeMode {
   return 'auto'
 }
 
-function applyThemeMode(mode: ThemeMode) {
+function resolveMode(mode: ThemeMode): 'light' | 'dark' {
+  if (mode !== 'auto') {
+    return mode
+  }
+
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  const resolved = mode === 'auto' ? (prefersDark ? 'dark' : 'light') : mode
+  return prefersDark
+    ? 'dark'
+    : 'light'
+}
+
+function applyThemeMode(mode: ThemeMode) {
+  const resolved = resolveMode(mode)
 
   document.documentElement.classList.remove('light', 'dark')
   document.documentElement.classList.add(resolved)
@@ -31,6 +61,8 @@ function applyThemeMode(mode: ThemeMode) {
   document.documentElement.style.colorScheme = resolved
 }
 
+// ponytail: o tema só é aplicado depois da hidratação, então quem escolheu dark vê um
+// flash claro no primeiro paint. Resolver exige um script inline no <head> do shellComponent.
 export default function ThemeToggle() {
   const [mode, setMode] = useState<ThemeMode>('auto')
 
@@ -46,36 +78,33 @@ export default function ThemeToggle() {
     }
 
     const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = () => applyThemeMode('auto')
+    const onSystemThemeChange = () => applyThemeMode('auto')
 
-    media.addEventListener('change', onChange)
+    media.addEventListener('change', onSystemThemeChange)
     return () => {
-      media.removeEventListener('change', onChange)
+      media.removeEventListener('change', onSystemThemeChange)
     }
   }, [mode])
 
   function toggleMode() {
-    const nextMode: ThemeMode =
-      mode === 'light' ? 'dark' : mode === 'dark' ? 'auto' : 'light'
+    const nextMode = NEXT_MODE[mode]
     setMode(nextMode)
     applyThemeMode(nextMode)
     window.localStorage.setItem('theme', nextMode)
   }
 
-  const label =
-    mode === 'auto'
-      ? 'Theme mode: auto (system). Click to switch to light mode.'
-      : `Theme mode: ${mode}. Click to switch mode.`
+  const label = MODE_LABEL[mode]
+  const Icon = MODE_ICON[mode]
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
+      size="sm"
       onClick={toggleMode}
       aria-label={label}
       title={label}
-      className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-sm font-semibold text-[var(--sea-ink)] shadow-[0_8px_22px_rgba(30,90,72,0.08)] transition hover:-translate-y-0.5"
     >
-      {mode === 'auto' ? 'Auto' : mode === 'dark' ? 'Dark' : 'Light'}
-    </button>
+      <Icon className="h-4 w-4" />
+    </Button>
   )
 }
