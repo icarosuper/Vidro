@@ -99,7 +99,7 @@ export function useVideo(videoId: string) {
 |---|---|---|
 | `/` | SSR | Loader prefetch trending |
 | `/watch/$videoId` | SSR | Loader usa `fetchVideoSsr` com `accessToken` do contexto |
-| `/search` | SSR | |
+| `/search` | SSR | Query em `?q=` (`validateSearch`); sem prefetch no loader |
 | `/$username`, `/$username/$channel` | SSR | (ISR futuro) |
 | `/upload`, `/dashboard`, `/settings` | Client-only | `beforeLoad` redireciona `/` se não autenticado |
 

@@ -5,6 +5,7 @@ import type {
   CreateVideoRequest,
   CreateVideoResponse,
   FeedPage,
+  SearchPage,
   ThumbnailUploadResponse,
   TrendingResponse,
   UpdateVideoRequest,
@@ -20,6 +21,17 @@ export function getFeed(limit: number, cursor: string | undefined, signal?: Abor
   const params = new URLSearchParams({ limit: String(limit) })
   if (cursor) params.set('cursor', cursor)
   return apiClient.get<FeedPage>(`/v1/feed?${params.toString()}`, signal)
+}
+
+export function searchVideos(
+  query: string,
+  limit: number,
+  cursor: string | undefined,
+  signal?: AbortSignal,
+) {
+  const params = new URLSearchParams({ q: query, limit: String(limit) })
+  if (cursor) params.set('cursor', cursor)
+  return apiClient.get<SearchPage>(`/v1/videos/search?${params.toString()}`, signal)
 }
 
 export function getVideo(videoId: string, signal?: AbortSignal) {

@@ -81,6 +81,8 @@ export type FeedPage = {
   nextCursor: string | null
 }
 
+export type SearchPage = FeedPage
+
 export type ChannelVideoSummary = {
   videoId: string
   channelHandle: string

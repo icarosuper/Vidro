@@ -10,6 +10,7 @@ import {
   reactToVideo,
   registerView,
   removeReaction,
+  searchVideos,
   updateVideo,
   uploadThumbnail,
 } from './api'
@@ -20,6 +21,7 @@ export const videoKeys = {
   feed: () => ['videos', 'feed'] as const,
   detail: (videoId: string) => ['videos', videoId] as const,
   channelVideos: (username: string, handle: string) => ['videos', 'channel', username, handle] as const,
+  search: (query: string) => ['videos', 'search', query] as const,
 }
 
 const TRENDING_LIMIT = 20
@@ -43,6 +45,24 @@ export function useFeed(enabled: boolean) {
         ? lastPage.nextCursor
         : undefined,
     enabled,
+  })
+}
+
+const SEARCH_LIMIT = 20
+
+export function useSearchVideos(query: string) {
+  const hasQuery = query.length > 0
+
+  return useInfiniteQuery({
+    queryKey: videoKeys.search(query),
+    queryFn: ({ signal, pageParam }) =>
+      searchVideos(query, SEARCH_LIMIT, pageParam as string | undefined, signal),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.nextCursor
+        ? lastPage.nextCursor
+        : undefined,
+    enabled: hasQuery,
   })
 }
 

@@ -1,9 +1,32 @@
-import { Link } from '@tanstack/react-router'
-import { LogOut, Upload, User } from 'lucide-react'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { LogOut, Search, Upload, User } from 'lucide-react'
 import { Button } from '#/components/ui/button'
+import { Input } from '#/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { useAuthModal, useIsAuthenticated, useSignOut } from '#/features/auth/hooks'
 import { useCurrentUser } from '#/features/users/hooks'
+
+function SearchBox() {
+  const navigate = useNavigate()
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const typedQuery = String(new FormData(event.currentTarget).get('q') ?? '').trim()
+    if (!typedQuery) return
+    navigate({ to: '/search', search: { q: typedQuery } })
+  }
+
+  return (
+    <search className="mx-4 flex min-w-0 max-w-md flex-1">
+      <form onSubmit={handleSubmit} className="flex w-full items-center gap-1">
+        <Input name="q" type="search" placeholder="Search videos" aria-label="Search videos" />
+        <Button type="submit" variant="ghost" size="sm" aria-label="Search">
+          <Search className="h-4 w-4" />
+        </Button>
+      </form>
+    </search>
+  )
+}
 
 export function Header() {
   const isAuthenticated = useIsAuthenticated()
@@ -21,6 +44,8 @@ export function Header() {
         <Link to="/" className="text-lg font-bold text-foreground no-underline">
           Vidro
         </Link>
+
+        <SearchBox />
 
         <div className="flex items-center gap-2">
           {isAuthenticated

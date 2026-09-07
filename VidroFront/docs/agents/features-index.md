@@ -67,14 +67,14 @@ CRUD canais, follow/unfollow, avatar.
 
 ## videos — `src/features/videos/`
 
-Trending, feed, detalhe, reações, upload (create + presigned + status polling), thumbnail, CRUD, listagem por canal.
+Trending, feed, busca, detalhe, reações, upload (create + presigned + status polling), thumbnail, CRUD, listagem por canal.
 
 | Arquivo | Conteúdo |
 |---|---|
-| `api.ts` | `getTrending`, `getFeed`, `getVideo`, `registerView`, `reactToVideo`, `removeReaction`, `getChannelVideos`, `createVideo`, `uploadVideoFile` (XHR c/ progresso), `updateVideo`, `uploadThumbnail` |
-| `hooks.ts` | `useTrending`, `useFeed`, `useVideo`, `useRegisterView`, `useReactToVideo`, `useRemoveReaction`, `useVideoStatus`, `useCreateVideo`, `useUpdateVideo`, `useChannelVideos`, `useUploadThumbnail` |
+| `api.ts` | `getTrending`, `getFeed`, `searchVideos`, `getVideo`, `registerView`, `reactToVideo`, `removeReaction`, `getChannelVideos`, `createVideo`, `uploadVideoFile` (XHR c/ progresso), `updateVideo`, `uploadThumbnail` |
+| `hooks.ts` | `useTrending`, `useFeed`, `useSearchVideos`, `useVideo`, `useRegisterView`, `useReactToVideo`, `useRemoveReaction`, `useVideoStatus`, `useCreateVideo`, `useUpdateVideo`, `useChannelVideos`, `useUploadThumbnail` |
 | `server.ts` | `fetchVideoSsr` — loader de `/watch/$videoId` |
-| `types.ts` | `Video`, `VideoSummary`, `ChannelVideoSummary`, `TrendingResponse`, `FeedPage`, `ChannelVideosPage`, `CreateVideoRequest/Response`, `UpdateVideoRequest/Response`, `ThumbnailUploadResponse` |
+| `types.ts` | `Video`, `VideoSummary`, `ChannelVideoSummary`, `TrendingResponse`, `FeedPage`, `SearchPage`, `ChannelVideosPage`, `CreateVideoRequest/Response`, `UpdateVideoRequest/Response`, `ThumbnailUploadResponse` |
 | `components/VideoCard.tsx` | Card reutilizável (home/feed e canal). Props: `hideChannelInfo` oculta avatar/nome canal; `isOwner` exibe btn editar, overlay status e badge visibilidade |
 | `components/VideoGrid.tsx` | |
 | `components/VideoPlayer.tsx` | Player HLS |
@@ -84,6 +84,7 @@ Trending, feed, detalhe, reações, upload (create + presigned + status polling)
 **Endpoints backend:**
 - `GET /v1/videos/trending?limit`
 - `GET /v1/feed?limit&cursor`
+- `GET /v1/videos/search?q&limit&cursor` (`limit` obrigatório)
 - `GET /v1/videos/{videoId}`
 - `POST /v1/videos/{videoId}/view`
 - `POST /v1/videos/{videoId}/react`
@@ -148,7 +149,7 @@ Trending, feed, detalhe, reações, upload (create + presigned + status polling)
 |---|---|---|---|---|
 | `/` | `index.tsx` | SSR | pública | videos (trending/feed) |
 | `/watch/$videoId` | `watch.$videoId.tsx` | SSR | pública | videos, channels, comments |
-| `/search` | `search.tsx` | SSR | pública | videos |
+| `/search` | `search.tsx` | SSR | pública | videos (busca; query em `?q=`, campo no `Header`) |
 | `/$username` | `$username.tsx` + `$username.index.tsx` | SSR | pública | users, channels |
 | `/$username/$channel` | `$username.$channel.tsx` | SSR | pública | channels, videos, playlists |
 | `/playlists/$playlistId` | `playlists.$playlistId.tsx` | SSR | opcional | playlists |
