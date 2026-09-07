@@ -198,13 +198,18 @@ já existe.
 Não há repo de referência; o que segue é sugestão, com dois furos concretos achados no
 levantamento.
 
-### 15. Nada roda `tsc --noEmit` — nem script, nem CI
+### ~~15. Nada roda `tsc --noEmit` — nem script, nem CI~~ ✅ *(2026-09-07)*
 
-`tsconfig.json` está bem configurado (`strict`, `noUnusedLocals`, `noUnusedParameters`,
-`noFallthroughCasesInSwitch`) e **nada executa o compilador**. Vite/esbuild apagam os tipos
-sem checar; Biome não faz type-checking. Na prática, erro de tipo passa pelo CI e vai para a
-master. Correção: `"typecheck": "tsc --noEmit"` no `package.json` + um passo no
-`.github/workflows/front.yml`. Uma linha cada.
+`tsconfig.json` já estava bem configurado (`strict`, `noUnusedLocals`, `noUnusedParameters`,
+`noFallthroughCasesInSwitch`) e **nada executava o compilador**. Agora `bun run typecheck`
+existe e o `.github/workflows/front.yml` roda o passo antes do test.
+
+**A estimativa de "uma linha cada" estava errada:** ligar o compilador revelou **23 erros
+pré-existentes** em 11 arquivos, corrigidos na mesma leva — inclusive um bug real
+(`currentUser?.id` num `UserProfile` que só tem `userId`, deixando o `isOwner` do
+`CommentList` sempre falso). Detalhe no `TODO.md`, em "Sujeira pequena". Lição para os itens
+que ainda estão abertos aqui: **ligar um checador conta os erros que ele encontra** — o custo
+real é a limpeza, não a configuração. Ver o item 16 (biome), que já sabia disso.
 
 ### 16. Lint desligado no CI por 108 erros pré-existentes
 
@@ -244,7 +249,8 @@ sobra — e o front consome listas paginadas da API o tempo todo.
 
 1. **`.golangci.yml` no Processor** (item 1) — maior ganho, zero decisão de produto
 2. **Regra do fail-fast vs. anomalia+ACK escrita** (item 10) — previne a recorrência do P0 já pago
-3. **`typecheck` no front** (item 15) — uma linha, tapa um furo aberto
+3. ✅ ~~**`typecheck` no front**~~ (item 15) — feito em 2026-09-07 (custou 23 correções, não
+   uma linha)
 4. **Seção de logging no `conventions.md` da API** (item 7) — a única seção que falta comparada aos outros dois serviços
 5. **Teste de contrato Go↔C# por AST** (item 3) — o que justifica o monorepo existir
 
@@ -254,6 +260,9 @@ pode entrar conforme se mexe na área correspondente.
 ---
 
 ## Já resolvido
+
+- **2026-09-07** — item 15 (`typecheck` no front) fechado; ver a seção do item, reescrita com
+  o custo real.
 
 - **2026-08-31** — `VidroFront/docs/agents/conventions.md` dizia *"Forms: direct composition
   with shadcn components + `useState` + inline validation. No `react-hook-form` or form libs

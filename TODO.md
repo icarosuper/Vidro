@@ -11,6 +11,9 @@ no Processor, **migração para monorepo** (os três viraram um repo só; ver `d
 **consolidação das docs** (runbook de vídeo preso subiu para `docs/` da raiz; `roadmap.md` do
 Processor virou o P6 daqui; `workflow.md` do Front, o `docker-compose.yml` do Processor e as
 regras repetidas nos três `CLAUDE.md` foram removidos; README da raiz criado).
+*(2026-09-07)* busca ligada de ponta a ponta, `ThemeToggle` no Header, devtools fora de
+produção, `typecheck` no CI do front (com os 23 erros de tipo pré-existentes zerados),
+`gofmt` checado no CI do Processor e o teste template da API deletado.
 Itens marcados `[x]` trazem o commit e o que ficou no lugar.
 
 **Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
@@ -206,9 +209,11 @@ falha → 3 retries → DLQ. Um vídeo perfeitamente bom nunca processa.
       -timeout 15m`). Os três agora disparam em **push para `master` além de PR** — o
       gatilho só-PR do VidroApi quase nunca rodava, já que a convenção do repo é commitar
       direto na master. Rodei os dois pipelines localmente antes de commitar.
-      **Sem step de lint no Front:** `biome check` acusa 108 erros no código existente, então
+      **Sem step de lint no Front:** `biome check` acusa 109 erros no código existente, então
       ligar isso deixaria o CI vermelho no primeiro push. Limpar o código antes — ver
       "Limpar o que o `biome check` acusa" em Sujeira pequena.
+      *(2026-09-07: o front ganhou passo de **typecheck** (`tsc --noEmit`) — ver "Sujeira
+      pequena". O lint continua desligado; são checagens diferentes.)*
       *(2026-08-30: com o monorepo, os três `ci.yml` viraram
       `.github/workflows/{api,front,processor}.yml` na raiz, cada um com filtro `paths:`.)*
 - [x] **Rate limiting em `SignIn`/`SignUp`** — `AddRateLimiter` nativo do .NET 10, zero
@@ -309,8 +314,9 @@ Os 7 steps do pipeline têm todos `_test.go`, o que faz parecer bem coberto. Mas
 
 - [ ] Excelente no geral: 287 `[Fact]`/`[Theory]`, 43 arquivos de integração para
       43 features (≈1:1 por endpoint, com testcontainers). Nada a fazer além de:
-- [ ] Deletar `tests/VidroApi.UnitTests/UnitTest1.cs` — template vazio do
-      `dotnet new`, um `[Fact]` de corpo vazio que sempre passa.
+- [x] ~~Deletar `tests/VidroApi.UnitTests/UnitTest1.cs`~~ — template vazio do
+      `dotnet new`, um `[Fact]` de corpo vazio que sempre passa. **RESOLVIDO** *(2026-09-07)*.
+      327 testes continuam passando (82 unit + 245 integração).
 
 ### Nos três
 
@@ -367,14 +373,18 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
 
 ### Features construídas e desligadas
 
-- [ ] **Busca é uma feature morta de ponta a ponta.** A API tem `SearchVideos`
-      (`GET /v1/videos/search`) implementado e testado; o front não tem função de
-      API para ela; `src/routes/search.tsx` inteiro retorna `<p>Search</p>`; e o
-      `Header.tsx` não tem campo de busca nem link para `/search`. Numa plataforma
-      de vídeo é a lacuna nº1 de UX — e o backend já está pronto.
-- [ ] **`src/components/ThemeToggle.tsx` é código morto** — nunca importado em lugar
-      nenhum. `src/styles.css:29` já tem a variante `.dark` inteira estilizada.
-      Dark mode está construído e inalcançável. Plugar no Header.
+- [x] ~~**Busca é uma feature morta de ponta a ponta.**~~ **RESOLVIDO** *(2026-09-07)*.
+      `searchVideos` + `useSearchVideos` (cursor, `SEARCH_LIMIT` 20), `search.tsx` lê a query
+      de `?q=` via `validateSearch` e renderiza o `VideoGrid` com "Load more", e o `Header`
+      ganhou um `<search>` com o campo. **Atenção ao contrato:** `limit` é obrigatório no
+      endpoint (`SearchVideos.cs`, `int limit` sem default) — omitir dá 400.
+- [x] ~~**`src/components/ThemeToggle.tsx` é código morto**~~ **RESOLVIDO** *(2026-09-07)*.
+      Plugado no `Header`. O componente vinha de outro projeto e estilizava com
+      `--chip-bg`/`--chip-line`/`--sea-ink`, que **não existem** no `styles.css` — teria
+      renderizado sem estilo. Refeito com o `Button` do shadcn + ícone (`Sun`/`Moon`/`Monitor`).
+      Fica de dívida o flash claro no primeiro paint (o tema só é aplicado depois da
+      hidratação); resolver exige script inline no `<head>` do `shellComponent`, marcado com
+      `ponytail:` no arquivo.
 
 ### Acabamento
 
@@ -392,8 +402,8 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
 - [ ] **Nenhum `errorComponent` ou `notFoundComponent` em nenhuma rota.** URL
       inválida ou erro de loader = tela quebrada sem caminho de volta.
 - [ ] `index.tsx` (home) e `dashboard.tsx` tratam `isPending` mas não `isError`.
-- [ ] **Devtools vão para produção** — `__root.tsx:80` renderiza `<TanStackDevtools>`
-      sem guard de `import.meta.env.DEV`.
+- [x] ~~**Devtools vão para produção**~~ **RESOLVIDO** *(2026-09-07)* — `<TanStackDevtools>`
+      agora atrás de `import.meta.env.DEV` em `__root.tsx`.
 - [ ] **A11y rasa** — só 10 arquivos têm qualquer `aria-*`/`alt`/`sr-only`, e o
       Header não tem nenhum.
 
@@ -534,8 +544,8 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 ## Sujeira pequena
 
-- [ ] **Limpar o que o `biome check` acusa no `VidroFront`** — 108 erros, 32 warnings e
-      8 infos em 83 arquivos. É o que impede ligar o step de lint no CI (ver P1).
+- [ ] **Limpar o que o `biome check` acusa no `VidroFront`** — 109 erros, 24 warnings e
+      8 infos em 83 arquivos *(recontado em 2026-09-07)*. É o que impede ligar o step de lint no CI (ver P1).
       **~100 dos 108 saem sozinhos** com `bunx biome check --write`: formatação em 72
       arquivos, `assist/source/organizeImports` (28) e `lint/style/useImportType` (12).
       Atenção: o `--write` também reformata `biome.json` e `.vscode/settings.json`.
@@ -554,10 +564,24 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
       `noArrayIndexKey`, que são os que podem esconder bug de verdade. Ligar o step de lint
       no `.github/workflows/ci.yml` do Front ao fechar.
 
-- [ ] **`gofmt -l` acusa 3 arquivos no `VidroProcessor`** — `minio/client.go`,
-      `minio/client_test.go`, `test/integration/pipeline_test.go`. Só formatação
-      (`gofmt -w` resolve). Não quebra nada hoje porque o `ci.yml` roda `go vet` mas não
-      `gofmt`; ao limpar, adicionar o check no CI (`test -z "$(gofmt -l .)"`).
+- [x] ~~**`gofmt -l` acusa 3 arquivos no `VidroProcessor`**~~ **RESOLVIDO** *(2026-09-07)*.
+      `gofmt -w` nos três (alinhamento de const, comentário e ordem de import) e passo
+      **Format check** no `.github/workflows/processor.yml`, antes do `go vet`.
+      `docs/agents/conventions.md` atualizado: o CI agora falha com arquivo não formatado.
+
+- [x] ~~**Nada rodava `tsc --noEmit` no front** — nem script, nem CI.~~ **RESOLVIDO**
+      *(2026-09-07)*. `"typecheck": "tsc --noEmit"` no `package.json` + passo **Typecheck** no
+      `.github/workflows/front.yml`, antes do test.
+      **A doc subestimava:** `docs/padroes-a-importar.md` (item 15) dizia "uma linha cada" —
+      o compilador acusava **23 erros pré-existentes** em 11 arquivos, todos zerados junto:
+      8 de símbolo não usado, 5 de `ReactionType` (const, não tipo) usado como tipo — daí o
+      novo `ReactionTypeValue` em `shared/types.ts` —, 6 de generics de `react-hook-form`
+      (`z.coerce.number()` produz input `unknown` no zod 4; virou `z.number()`, já que os
+      dois `setValue` afetados já convertiam com `Number()`), 2 de narrowing que não
+      sobrevive dentro de closure em `watch.$videoId.tsx`, e 1 **bug real**:
+      `currentUserId={currentUser?.id}` — `UserProfile` tem `userId`, não `id`, então o
+      `isOwner` do `CommentList` era sempre falso e ninguém via os botões de editar/apagar
+      no próprio comentário. Era exatamente o tipo de erro que o portão existe para pegar.
 
 - [ ] `VidroProcessor/minio/client.go:34` — `const token = "" // TODO: Ver se precisa
       adicionar esse token`. **É o único marcador TODO/FIXME/HACK/BUG em todo o
@@ -574,10 +598,14 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 3. ✅ ~~P1 inteiro~~ — feito em 2026-08-29.
 4. ✅ ~~Testes de `queue/`~~ (2026-08-30). Falta `processor.go` (P2) — 253 linhas, zero
    testes fora do `JobBudget`.
-5. Ligar busca + ThemeToggle (P3) — features já pagas, custo quase zero.
+5. ✅ ~~Ligar busca + ThemeToggle~~ (P3) — feito em 2026-09-07, junto com devtools fora de
+   produção, `typecheck` no CI do front, `gofmt` no CI do Processor e o teste template da
+   API deletado.
 5.1. Fixture de contrato do webhook (P2) — é a rede que teria pego o BUG-1 no ato, e agora
    custa um arquivo. Tipos gerados do OpenAPI vêm depois: mais valor, mais trabalho.
-6. SEO + error boundaries (P3), CI no Front e Processor (P1).
+6. SEO + error boundaries (P3). **SEO não é acabamento:** exige `head` por rota nas 11 rotas
+   e decidir o idioma antes (`<html lang="pt-BR">` com a UI em inglês) — é trabalho médio,
+   não da mesma leva que os error boundaries.
 7. README raiz + doc do fluxo ponta a ponta (P4).
 8. Histórico/notificações (P5).
 9. Performance do pipeline (P6) — ✅ ~~P-PERF1 a P-PERF4~~ (já estavam no código; marcados
