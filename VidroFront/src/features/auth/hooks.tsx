@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 import {
   createContext,
   useCallback,
@@ -6,10 +7,9 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
-import type { ReactNode } from 'react'
 import { apiClient } from '#/shared/lib/api-client'
-import { tokenStore } from '#/shared/lib/token-store'
 import { toastApiError } from '#/shared/lib/toast-error'
+import { tokenStore } from '#/shared/lib/token-store'
 import { renewToken, serverSignIn, serverSignOut, serverSignUp } from './server'
 import type { SignInRequest, SignUpRequest } from './types'
 

@@ -1,12 +1,11 @@
-import { useState } from 'react'
 import { ThumbsDown, ThumbsUp } from 'lucide-react'
+import { useState } from 'react'
 import { Avatar, AvatarFallback } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
 import { Textarea } from '#/components/ui/textarea'
 import { useIsAuthenticated } from '#/features/auth/hooks'
-import { ReactionType } from '#/shared/types'
 import type { ReactionTypeValue } from '#/shared/types'
-import { ExpandableText } from './ExpandableText'
+import { ReactionType } from '#/shared/types'
 import {
   useAddComment,
   useComments,
@@ -16,6 +15,7 @@ import {
   useRemoveCommentReaction,
 } from '../hooks'
 import type { CommentSummary } from '../types'
+import { ExpandableText } from './ExpandableText'
 import { ReplyList } from './ReplyList'
 
 function formatRelativeDate(isoDate: string): string {

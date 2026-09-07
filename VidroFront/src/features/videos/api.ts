@@ -1,5 +1,5 @@
-import type { ReactionTypeValue } from '#/shared/types'
 import { apiClient } from '#/shared/lib/api-client'
+import type { ReactionTypeValue } from '#/shared/types'
 import type {
   ChannelVideosPage,
   CreateVideoRequest,

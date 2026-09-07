@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
@@ -10,9 +10,9 @@ import { SubscribeButton } from '#/features/channels/components/SubscribeButton'
 import { CommentList } from '#/features/comments/components/CommentList'
 import { useCurrentUser } from '#/features/users/hooks'
 import { getVideo } from '#/features/videos/api'
-import { fetchVideoSsr } from '#/features/videos/server'
 import { VideoPlayer } from '#/features/videos/components/VideoPlayer'
 import { useReactToVideo, useRegisterView, useRemoveReaction, useVideo, videoKeys } from '#/features/videos/hooks'
+import { fetchVideoSsr } from '#/features/videos/server'
 import { ReactionType } from '#/shared/types'
 
 export const Route = createFileRoute('/watch/$videoId')({

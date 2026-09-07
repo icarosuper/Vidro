@@ -1,18 +1,18 @@
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import type { QueryClient } from '@tanstack/react-query'
 import {
+  createRootRouteWithContext,
   HeadContent,
   Outlet,
   Scripts,
-  createRootRouteWithContext,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
-import type { QueryClient } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { Header } from '../components/Header'
-import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 import { AuthModal } from '../features/auth/components/AuthModal'
 import { AuthModalProvider, AuthProvider } from '../features/auth/hooks'
 import { getInitialToken, renewToken } from '../features/auth/server'
+import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 import { apiClient } from '../shared/lib/api-client'
 import { tokenStore } from '../shared/lib/token-store'
 import appCss from '../styles.css?url'

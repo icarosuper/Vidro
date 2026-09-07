@@ -10,15 +10,15 @@ import {
 } from "#/components/ui/dialog";
 import { Separator } from "#/components/ui/separator";
 import { Skeleton } from "#/components/ui/skeleton";
-import { useCurrentUser } from "#/features/users/hooks";
+import { getPlaylist } from "#/features/playlists/api";
 import { EditPlaylistForm } from "#/features/playlists/components/EditPlaylistForm";
 import { PlaylistItemList } from "#/features/playlists/components/PlaylistItemList";
-import { getPlaylist } from "#/features/playlists/api";
 import {
 	playlistKeys,
 	useDeletePlaylist,
 	usePlaylist,
 } from "#/features/playlists/hooks";
+import { useCurrentUser } from "#/features/users/hooks";
 
 export const Route = createFileRoute("/playlists/$playlistId")({
 	loader: async ({ params, context: { queryClient } }) => {

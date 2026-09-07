@@ -1,7 +1,7 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InfiniteData } from '@tanstack/react-query'
-import { ReactionType } from '#/shared/types'
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ReactionTypeValue } from '#/shared/types'
+import { ReactionType } from '#/shared/types'
 import {
   addComment,
   deleteComment,

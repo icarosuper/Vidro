@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Camera, Pencil, Plus, Users } from "lucide-react";
 import { useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
@@ -19,9 +19,9 @@ import { useChannel, useUploadChannelAvatar } from "#/features/channels/hooks";
 import { CreatePlaylistForm } from "#/features/playlists/components/CreatePlaylistForm";
 import { PlaylistCard } from "#/features/playlists/components/PlaylistCard";
 import { useChannelPlaylists } from "#/features/playlists/hooks";
+import { useCurrentUser } from "#/features/users/hooks";
 import { VideoCard } from "#/features/videos/components/VideoCard";
 import { useChannelVideos } from "#/features/videos/hooks";
-import { useCurrentUser } from "#/features/users/hooks";
 
 export const Route = createFileRoute("/$username/$channel")({
 	component: ChannelPage,

@@ -1,9 +1,9 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { LogOut, Search, Upload, User } from 'lucide-react'
-import { Button } from '#/components/ui/button'
 import ThemeToggle from '#/components/ThemeToggle'
-import { Input } from '#/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
+import { Button } from '#/components/ui/button'
+import { Input } from '#/components/ui/input'
 import { useAuthModal, useIsAuthenticated, useSignOut } from '#/features/auth/hooks'
 import { useCurrentUser } from '#/features/users/hooks'
 

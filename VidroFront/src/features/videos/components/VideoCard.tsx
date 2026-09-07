@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { Eye, ImagePlus, Pencil, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { TimeAgo } from '#/components/TimeAgo'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
@@ -11,9 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
-import { TimeAgo } from '#/components/TimeAgo'
-import { VideoVisibility } from '#/shared/types'
 import type { EnumValue } from '#/shared/types'
+import { VideoVisibility } from '#/shared/types'
 import { useUploadThumbnail } from '../hooks'
 import { EditVideoForm } from './EditVideoForm'
 

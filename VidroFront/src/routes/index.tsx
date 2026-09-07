@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '#/components/ui/button'
+import { useIsAuthenticated } from '#/features/auth/hooks'
+import { getTrending } from '#/features/videos/api'
 import { VideoGrid } from '#/features/videos/components/VideoGrid'
 import { useFeed, useTrending, videoKeys } from '#/features/videos/hooks'
-import { getTrending } from '#/features/videos/api'
-import { useIsAuthenticated } from '#/features/auth/hooks'
 
 export const Route = createFileRoute('/')({
   loader: async ({ context: { queryClient } }) => {

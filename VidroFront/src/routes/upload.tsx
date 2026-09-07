@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { UploadVideoForm } from '#/features/videos/components/UploadVideoForm'
 import { useCurrentUser } from '#/features/users/hooks'
+import { UploadVideoForm } from '#/features/videos/components/UploadVideoForm'
 import { tokenStore } from '#/shared/lib/token-store'
 
 export const Route = createFileRoute('/upload')({

@@ -1,11 +1,11 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ReactionType, VideoStatus } from '#/shared/types'
-import type { ReactionTypeValue } from '#/shared/types'
 import { toastApiError } from '#/shared/lib/toast-error'
+import type { ReactionTypeValue } from '#/shared/types'
+import { ReactionType, VideoStatus } from '#/shared/types'
 import {
   createVideo,
-  getFeed,
   getChannelVideos,
+  getFeed,
   getTrending,
   getVideo,
   reactToVideo,

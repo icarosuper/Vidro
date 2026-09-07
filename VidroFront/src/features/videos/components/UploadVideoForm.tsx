@@ -17,8 +17,8 @@ import { CreateChannelForm } from '#/features/channels/components/CreateChannelF
 import { useUserChannels } from '#/features/channels/hooks'
 import { getApiErrorMessage } from '#/shared/lib/error-messages'
 import { VideoStatus } from '#/shared/types'
-import { useCreateVideo, useUploadThumbnail, useVideoStatus } from '../hooks'
 import { uploadVideoFile } from '../api'
+import { useCreateVideo, useUploadThumbnail, useVideoStatus } from '../hooks'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
