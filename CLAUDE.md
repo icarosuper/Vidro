@@ -56,16 +56,21 @@ Valem para os **três** serviços — C#, TypeScript e Go. O que é idiomático 
 - **Nome diz "o quê", não "como".** Sem abreviação, sem nome de uma letra (fora índice de loop),
   sem genérico — `result`, `data`, `temp`.
 
-- **Ternário sempre em três linhas:** condição, `?`, `:`. Nunca em uma linha só.
+- **Ternário curto cabe em uma linha; longo ou aninhado vai para três** — condição, `?`, `:`.
+  A regra até 2026-09-07 era "sempre três linhas, nunca uma"; ela caiu porque o formatter do
+  Biome (`VidroFront`) colapsa ternário curto e não tem opção para preservar — manter a regra
+  custava desligar o formatter do front inteiro. No front **quem decide é o formatter**: rode
+  `bun run lint`. Em C# e Go, use o julgamento — o critério é o mesmo que o formatter aplica,
+  quebrar quando não couber na linha.
 
   ```ts
-  // ✅
-  const label = isAuthenticated
-    ? 'Sign out'
-    : 'Sign in'
-
-  // ❌
+  // ✅ curto
   const label = isAuthenticated ? 'Sign out' : 'Sign in'
+
+  // ✅ longo ou aninhado — três linhas, e considere extrair para uma função nomeada
+  const nextMode = mode === 'light'
+    ? 'dark'
+    : resolveModeFromSystemPreference(mode)
   ```
 
 ## Vídeo preso em `Processing`

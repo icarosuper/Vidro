@@ -549,14 +549,13 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 - [x] ~~**Limpar o que o `biome check` acusa no `VidroFront`**~~ **RESOLVIDO** *(2026-09-07)*.
       Zero erros; `bun run lint` (`biome ci`) roda no `.github/workflows/front.yml`.
-      **O caminho não foi o que este item previa.** Dos 109 erros, **72 eram "arquivo precisa
-      de formatação"** — e o formatter do Biome **colapsa ternário curto em uma linha**, contra
-      a regra do `CLAUDE.md` da raiz que vale para os três serviços. Não há opção no Biome para
-      preservar. Decisão: **`formatter.enabled: false`**, regra da casa vence. Isso derrubou
-      109 → 36 sem reescrever 63 arquivos; o `--write` sobrou só para ordenar import
-      (28) e `useImportType` (10), num diff de 33 arquivos que não mexeu em aspas nem em
-      ponto e vírgula de ninguém. Formatação segue **sem dono** — é o preço, e está registrado
-      no `VidroFront/CLAUDE.md`.
+      **Custou uma decisão de convenção.** Dos 109 erros, **72 eram "arquivo precisa de
+      formatação"**, e o formatter do Biome **colapsa ternário curto em uma linha**, contra a
+      regra do `CLAUDE.md` da raiz que valia para os três serviços — sem opção no Biome para
+      preservar. Resolvido **relaxando a regra**: ternário curto passou a caber em uma linha
+      nos três serviços, e o formatter ficou ligado com a config alinhada ao código
+      (2 espaços, aspas simples, sem ponto e vírgula). 62 arquivos reformatados num commit
+      mecânico, mais 33 de ordem de import e `useImportType`.
       Os 8 de mão: os 3 `noArrayIndexKey` eram `biome-ignore` **mal posicionado** (a suppression
       vale só para a linha seguinte e o `key={i}` caía duas abaixo); os 3
       `useExhaustiveDependencies` estavam "suprimidos" por um `// eslint-disable-next-line` —

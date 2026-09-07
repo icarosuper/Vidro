@@ -28,12 +28,20 @@ bun run lint                                # biome ci (roda no CI)
 biome check                                 # o mesmo, com saída para iterar local
 ```
 
-O **formatter do Biome está desligado de propósito** (`biome.json`) — ele colapsa ternário
-curto em uma linha e o `../CLAUDE.md` da raiz exige três. Ligar de volta reescreve ~63
-arquivos e quebra a regra. Duas armadilhas do Biome que custam tempo: comentário `//` dentro
-do `biome.json` **quebra a config em silêncio** (ele cai no default e passa a lintar `dist/`),
-e `biome-ignore` só funciona em **uma linha** — o motivo quebrado em duas vira "unused
-suppression" e a regra continua acusando.
+**O formatter manda na formatação** — `bun run lint` (`biome ci`) roda no CI e falha com
+arquivo fora do padrão (2 espaços, aspas simples, sem ponto e vírgula). Ele colapsa ternário
+curto em uma linha, e a regra da raiz foi ajustada para permitir isso; não tente preservar
+ternário de três linhas curto, o formatter desfaz.
+
+Três armadilhas do Biome que custam tempo:
+
+- Comentário `//` dentro do `biome.json` **quebra a config em silêncio** — cai no default e
+  passa a lintar `dist/` (83 → 148 arquivos), sem erro nenhum.
+- `biome-ignore` só funciona com o motivo em **uma linha**; quebrado em duas vira "unused
+  suppression" e a regra continua acusando.
+- A suppression vale só para a **linha seguinte**. Em JSX multi-linha ela vai **dentro da
+  tag**, colada no atributo (`key={i}`) — se ficar antes do `<div`, o formatter reposiciona o
+  atributo e a suppression descola.
 
 ## Stack resumida
 
