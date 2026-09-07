@@ -32,9 +32,10 @@ type ChannelCardProps = {
 
 function ChannelCard({ channel, username }: ChannelCardProps) {
   const channelInitial = channel.name.charAt(0).toUpperCase()
-  const followerLabel = channel.followerCount === 1
-    ? '1 follower'
-    : `${channel.followerCount} followers`
+  const followerLabel =
+    channel.followerCount === 1
+      ? '1 follower'
+      : `${channel.followerCount} followers`
 
   return (
     <Link
@@ -46,12 +47,19 @@ function ChannelCard({ channel, username }: ChannelCardProps) {
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
             <Avatar className="h-14 w-14 shrink-0">
-              <AvatarImage src={channel.avatarUrl ?? undefined} alt={channel.name} />
-              <AvatarFallback className="text-lg">{channelInitial}</AvatarFallback>
+              <AvatarImage
+                src={channel.avatarUrl ?? undefined}
+                alt={channel.name}
+              />
+              <AvatarFallback className="text-lg">
+                {channelInitial}
+              </AvatarFallback>
             </Avatar>
 
             <div className="min-w-0 flex-1">
-              <h2 className="truncate text-base font-semibold text-foreground">{channel.name}</h2>
+              <h2 className="truncate text-base font-semibold text-foreground">
+                {channel.name}
+              </h2>
               <p className="text-sm text-muted-foreground">@{channel.handle}</p>
               <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                 <Users className="h-3 w-3" />
@@ -108,7 +116,11 @@ function UserPage() {
       {!isPending && channels.length > 0 && (
         <div className="space-y-4">
           {channels.map((channel) => (
-            <ChannelCard key={channel.channelId} channel={channel} username={username} />
+            <ChannelCard
+              key={channel.channelId}
+              channel={channel}
+              username={username}
+            />
           ))}
         </div>
       )}

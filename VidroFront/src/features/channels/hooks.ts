@@ -13,7 +13,8 @@ import type { CreateChannelRequest, UpdateChannelRequest } from './types'
 
 export const channelKeys = {
   userChannels: (username: string) => ['channels', 'user', username] as const,
-  detail: (username: string, handle: string) => ['channels', username, handle] as const,
+  detail: (username: string, handle: string) =>
+    ['channels', username, handle] as const,
 }
 
 export function useUserChannels(username: string | undefined) {
@@ -24,7 +25,10 @@ export function useUserChannels(username: string | undefined) {
   })
 }
 
-export function useChannel(username: string | undefined, handle: string | undefined) {
+export function useChannel(
+  username: string | undefined,
+  handle: string | undefined,
+) {
   return useQuery({
     queryKey: channelKeys.detail(username ?? '', handle ?? ''),
     queryFn: ({ signal }) => getChannel(username!, handle!, signal),

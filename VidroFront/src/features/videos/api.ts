@@ -14,10 +14,17 @@ import type {
 } from './types'
 
 export function getTrending(limit: number, signal?: AbortSignal) {
-  return apiClient.get<TrendingResponse>(`/v1/videos/trending?limit=${limit}`, signal)
+  return apiClient.get<TrendingResponse>(
+    `/v1/videos/trending?limit=${limit}`,
+    signal,
+  )
 }
 
-export function getFeed(limit: number, cursor: string | undefined, signal?: AbortSignal) {
+export function getFeed(
+  limit: number,
+  cursor: string | undefined,
+  signal?: AbortSignal,
+) {
   const params = new URLSearchParams({ limit: String(limit) })
   if (cursor) params.set('cursor', cursor)
   return apiClient.get<FeedPage>(`/v1/feed?${params.toString()}`, signal)
@@ -31,7 +38,10 @@ export function searchVideos(
 ) {
   const params = new URLSearchParams({ q: query, limit: String(limit) })
   if (cursor) params.set('cursor', cursor)
-  return apiClient.get<SearchPage>(`/v1/videos/search?${params.toString()}`, signal)
+  return apiClient.get<SearchPage>(
+    `/v1/videos/search?${params.toString()}`,
+    signal,
+  )
 }
 
 export function getVideo(videoId: string, signal?: AbortSignal) {
@@ -42,7 +52,11 @@ export function registerView(videoId: string, signal?: AbortSignal) {
   return apiClient.post<void>(`/v1/videos/${videoId}/view`, undefined, signal)
 }
 
-export function reactToVideo(videoId: string, type: ReactionTypeValue, signal?: AbortSignal) {
+export function reactToVideo(
+  videoId: string,
+  type: ReactionTypeValue,
+  signal?: AbortSignal,
+) {
   return apiClient.post<void>(`/v1/videos/${videoId}/react`, { type }, signal)
 }
 
@@ -59,7 +73,10 @@ export function getChannelVideos(
 ) {
   const params = new URLSearchParams({ limit: String(limit) })
   if (cursor) params.set('cursor', cursor)
-  return apiClient.get<ChannelVideosPage>(`/v1/users/${username}/channels/${handle}/videos?${params.toString()}`, signal)
+  return apiClient.get<ChannelVideosPage>(
+    `/v1/users/${username}/channels/${handle}/videos?${params.toString()}`,
+    signal,
+  )
 }
 
 export function createVideo(
@@ -68,7 +85,11 @@ export function createVideo(
   data: CreateVideoRequest,
   signal?: AbortSignal,
 ) {
-  return apiClient.post<CreateVideoResponse>(`/v1/users/${username}/channels/${handle}/videos`, data, signal)
+  return apiClient.post<CreateVideoResponse>(
+    `/v1/users/${username}/channels/${handle}/videos`,
+    data,
+    signal,
+  )
 }
 
 export function uploadVideoFile(
@@ -116,7 +137,11 @@ export function updateVideo(
   data: UpdateVideoRequest,
   signal?: AbortSignal,
 ) {
-  return apiClient.put<UpdateVideoResponse>(`/v1/videos/${videoId}`, data, signal)
+  return apiClient.put<UpdateVideoResponse>(
+    `/v1/videos/${videoId}`,
+    data,
+    signal,
+  )
 }
 
 export async function uploadThumbnail(

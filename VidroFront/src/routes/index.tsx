@@ -16,7 +16,8 @@ export const Route = createFileRoute('/')({
 })
 
 function FeedSection() {
-  const { data, isPending, fetchNextPage, hasNextPage, isFetchingNextPage } = useFeed(true)
+  const { data, isPending, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useFeed(true)
 
   const feedVideos = data?.pages.flatMap((page) => page.videos) ?? []
 

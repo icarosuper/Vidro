@@ -24,7 +24,10 @@ const schema = z.object({
     .max(NAME_MAX, `Name must be at most ${NAME_MAX} characters`),
   description: z
     .string()
-    .max(DESCRIPTION_MAX, `Description must be at most ${DESCRIPTION_MAX} characters`)
+    .max(
+      DESCRIPTION_MAX,
+      `Description must be at most ${DESCRIPTION_MAX} characters`,
+    )
     .optional(),
 })
 
@@ -74,12 +77,16 @@ export function EditChannelForm({ channel, onSuccess }: Props) {
           placeholder="What is your channel about? (optional)"
         />
         {errors.description && (
-          <p className="text-sm text-destructive">{errors.description.message}</p>
+          <p className="text-sm text-destructive">
+            {errors.description.message}
+          </p>
         )}
       </div>
 
       {updateChannel.error && (
-        <p className="text-sm text-destructive">{getApiErrorMessage(updateChannel.error)}</p>
+        <p className="text-sm text-destructive">
+          {getApiErrorMessage(updateChannel.error)}
+        </p>
       )}
 
       <Button type="submit" disabled={updateChannel.isPending}>

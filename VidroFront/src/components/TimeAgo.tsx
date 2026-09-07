@@ -11,8 +11,10 @@ function formatRelativeTime(isoDate: string): string {
   const diffDays = Math.floor(diffHours / 24)
 
   if (diffSeconds < 60) return 'Just now'
-  if (diffMinutes < 60) return diffMinutes === 1 ? '1 minute ago' : `${diffMinutes} minutes ago`
-  if (diffHours < 24) return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`
+  if (diffMinutes < 60)
+    return diffMinutes === 1 ? '1 minute ago' : `${diffMinutes} minutes ago`
+  if (diffHours < 24)
+    return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`
   if (diffDays === 1) return 'Yesterday'
   if (diffDays < 7) return `${diffDays} days ago`
   if (diffDays < 30) {

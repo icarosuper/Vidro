@@ -2,7 +2,10 @@ import type { Video } from './types'
 
 const API_URL = process.env.VITE_API_URL ?? 'http://localhost:5000'
 
-export async function fetchVideoSsr(videoId: string, accessToken: string | null): Promise<Video> {
+export async function fetchVideoSsr(
+  videoId: string,
+  accessToken: string | null,
+): Promise<Video> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }

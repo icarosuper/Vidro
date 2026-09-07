@@ -23,7 +23,10 @@ const schema = z.object({
     .string()
     .min(HANDLE_MIN, `Handle must be at least ${HANDLE_MIN} characters`)
     .max(HANDLE_MAX, `Handle must be at most ${HANDLE_MAX} characters`)
-    .regex(/^[a-z0-9-]+$/, 'Handle may only contain lowercase letters, digits, and hyphens'),
+    .regex(
+      /^[a-z0-9-]+$/,
+      'Handle may only contain lowercase letters, digits, and hyphens',
+    ),
   name: z
     .string()
     .min(1, 'Name is required')
@@ -91,12 +94,16 @@ export function CreateChannelForm({ username, onSuccess }: Props) {
           rows={3}
         />
         {errors.description && (
-          <p className="text-sm text-destructive">{errors.description.message}</p>
+          <p className="text-sm text-destructive">
+            {errors.description.message}
+          </p>
         )}
       </div>
 
       {createChannel.error && (
-        <p className="text-sm text-destructive">{getApiErrorMessage(createChannel.error)}</p>
+        <p className="text-sm text-destructive">
+          {getApiErrorMessage(createChannel.error)}
+        </p>
       )}
 
       <Button type="submit" disabled={createChannel.isPending}>

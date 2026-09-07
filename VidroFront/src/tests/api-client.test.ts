@@ -32,7 +32,9 @@ describe('apiClient', () => {
     expect(mockFetch).toHaveBeenCalledOnce()
     const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit]
     expect(url).toContain('/v1/test')
-    expect((init.headers as Record<string, string>)['Authorization']).toBeUndefined()
+    expect(
+      (init.headers as Record<string, string>)['Authorization'],
+    ).toBeUndefined()
     expect(result).toEqual({ id: '1' })
   })
 
@@ -44,14 +46,22 @@ describe('apiClient', () => {
     await apiClient.get('/v1/test')
 
     const [, init] = mockFetch.mock.calls[0] as [string, RequestInit]
-    expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer meu-access-token')
+    expect((init.headers as Record<string, string>)['Authorization']).toBe(
+      'Bearer meu-access-token',
+    )
   })
 
   it('lança ApiError tipado em resposta de erro', async () => {
-    const { apiClient, ApiClientError } = await import('#/shared/lib/api-client')
+    const { apiClient, ApiClientError } = await import(
+      '#/shared/lib/api-client'
+    )
     mockFetch
-      .mockResolvedValueOnce(mockResponse({ code: 'resource.not_found', message: 'Not found' }, 404))
-      .mockResolvedValueOnce(mockResponse({ code: 'resource.not_found', message: 'Not found' }, 404))
+      .mockResolvedValueOnce(
+        mockResponse({ code: 'resource.not_found', message: 'Not found' }, 404),
+      )
+      .mockResolvedValueOnce(
+        mockResponse({ code: 'resource.not_found', message: 'Not found' }, 404),
+      )
 
     await expect(apiClient.get('/v1/missing')).rejects.toThrow(ApiClientError)
     await expect(apiClient.get('/v1/missing')).rejects.toMatchObject({
@@ -68,7 +78,12 @@ describe('apiClient', () => {
     apiClient.setRenewTokenCallback(renewToken)
 
     mockFetch
-      .mockResolvedValueOnce(mockResponse({ code: 'request.unauthorized', message: 'Unauthorized' }, 401))
+      .mockResolvedValueOnce(
+        mockResponse(
+          { code: 'request.unauthorized', message: 'Unauthorized' },
+          401,
+        ),
+      )
       .mockResolvedValueOnce(mockResponse({ data: { id: '1' } }))
 
     const result = await apiClient.get('/v1/test')
@@ -80,13 +95,18 @@ describe('apiClient', () => {
 
   it('lança erro e limpa o token quando a renovação falha', async () => {
     tokenStore.set('token-expirado')
-    const { apiClient, ApiClientError } = await import('#/shared/lib/api-client')
+    const { apiClient, ApiClientError } = await import(
+      '#/shared/lib/api-client'
+    )
 
     const renewToken = vi.fn().mockRejectedValue(new Error('refresh failed'))
     apiClient.setRenewTokenCallback(renewToken)
 
     mockFetch.mockResolvedValueOnce(
-      mockResponse({ code: 'request.unauthorized', message: 'Unauthorized' }, 401),
+      mockResponse(
+        { code: 'request.unauthorized', message: 'Unauthorized' },
+        401,
+      ),
     )
 
     await expect(apiClient.get('/v1/test')).rejects.toThrow(ApiClientError)
@@ -95,17 +115,26 @@ describe('apiClient', () => {
 
   it('faz POST com body JSON', async () => {
     const { apiClient } = await import('#/shared/lib/api-client')
-    mockFetch.mockResolvedValueOnce(mockResponse({ data: { videoId: 'abc' } }, 201))
+    mockFetch.mockResolvedValueOnce(
+      mockResponse({ data: { videoId: 'abc' } }, 201),
+    )
 
-    const result = await apiClient.post('/v1/users/joao/channels/meu-canal/videos', {
+    const result = await apiClient.post(
+      '/v1/users/joao/channels/meu-canal/videos',
+      {
+        title: 'Meu Vídeo',
+        tags: [],
+        visibility: 0,
+      },
+    )
+
+    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(init.body as string)).toEqual({
       title: 'Meu Vídeo',
       tags: [],
       visibility: 0,
     })
-
-    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit]
-    expect(init.method).toBe('POST')
-    expect(JSON.parse(init.body as string)).toEqual({ title: 'Meu Vídeo', tags: [], visibility: 0 })
     expect(result).toEqual({ videoId: 'abc' })
   })
 
@@ -113,7 +142,9 @@ describe('apiClient', () => {
     const { apiClient } = await import('#/shared/lib/api-client')
     mockFetch.mockResolvedValueOnce(new Response(null, { status: 204 }))
 
-    const result = await apiClient.delete('/v1/users/joao/channels/meu-canal/follow')
+    const result = await apiClient.delete(
+      '/v1/users/joao/channels/meu-canal/follow',
+    )
 
     expect(result).toBeUndefined()
   })

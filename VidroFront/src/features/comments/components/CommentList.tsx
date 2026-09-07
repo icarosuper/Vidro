@@ -26,7 +26,11 @@ function formatRelativeDate(isoDate: string): string {
   if (hours < 24) return `${hours}h ago`
   const days = Math.floor(hours / 24)
   if (days < 30) return `${days}d ago`
-  return new Date(isoDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return new Date(isoDate).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
 type CommentItemProps = {
@@ -36,7 +40,12 @@ type CommentItemProps = {
   isAuthenticated: boolean
 }
 
-function CommentItem({ comment, videoId, currentUserId, isAuthenticated }: CommentItemProps) {
+function CommentItem({
+  comment,
+  videoId,
+  currentUserId,
+  isAuthenticated,
+}: CommentItemProps) {
   const [showReplies, setShowReplies] = useState(false)
   const [openReplyForm, setOpenReplyForm] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -61,7 +70,10 @@ function CommentItem({ comment, videoId, currentUserId, isAuthenticated }: Comme
 
   async function handleEdit() {
     if (!editContent.trim()) return
-    await editComment.mutateAsync({ commentId: comment.commentId, content: editContent.trim() })
+    await editComment.mutateAsync({
+      commentId: comment.commentId,
+      content: editContent.trim(),
+    })
     setIsEditing(false)
   }
 
@@ -79,7 +91,9 @@ function CommentItem({ comment, videoId, currentUserId, isAuthenticated }: Comme
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className="text-sm font-medium">{comment.username}</span>
-          <span className="text-xs text-muted-foreground">{formatRelativeDate(comment.createdAt)}</span>
+          <span className="text-xs text-muted-foreground">
+            {formatRelativeDate(comment.createdAt)}
+          </span>
           {comment.updatedAt && (
             <span className="text-xs text-muted-foreground">(edited)</span>
           )}
@@ -94,16 +108,26 @@ function CommentItem({ comment, videoId, currentUserId, isAuthenticated }: Comme
               className="text-sm"
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleEdit} disabled={editComment.isPending}>
+              <Button
+                size="sm"
+                onClick={handleEdit}
+                disabled={editComment.isPending}
+              >
                 Save
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setIsEditing(false)}
+              >
                 Cancel
               </Button>
             </div>
           </div>
         ) : comment.isDeleted ? (
-          <p className="mt-0.5 text-sm text-muted-foreground italic">[deleted]</p>
+          <p className="mt-0.5 text-sm text-muted-foreground italic">
+            [deleted]
+          </p>
         ) : (
           <ExpandableText text={comment.content!} className="mt-0.5 text-sm" />
         )}
@@ -111,24 +135,36 @@ function CommentItem({ comment, videoId, currentUserId, isAuthenticated }: Comme
         {!comment.isDeleted && (
           <div className="mt-1 flex items-center gap-1 flex-wrap">
             <Button
-              variant={comment.userReaction?.id === ReactionType.Like ? 'default' : 'ghost'}
+              variant={
+                comment.userReaction?.id === ReactionType.Like
+                  ? 'default'
+                  : 'ghost'
+              }
               size="sm"
               className="h-7 px-2"
               onClick={() => handleReact(ReactionType.Like)}
               disabled={isMutating || !isAuthenticated}
             >
               <ThumbsUp className="h-3.5 w-3.5" />
-              {comment.likeCount > 0 && <span className="ml-1 text-xs">{comment.likeCount}</span>}
+              {comment.likeCount > 0 && (
+                <span className="ml-1 text-xs">{comment.likeCount}</span>
+              )}
             </Button>
             <Button
-              variant={comment.userReaction?.id === ReactionType.Dislike ? 'default' : 'ghost'}
+              variant={
+                comment.userReaction?.id === ReactionType.Dislike
+                  ? 'default'
+                  : 'ghost'
+              }
               size="sm"
               className="h-7 px-2"
               onClick={() => handleReact(ReactionType.Dislike)}
               disabled={isMutating || !isAuthenticated}
             >
               <ThumbsDown className="h-3.5 w-3.5" />
-              {comment.dislikeCount > 0 && <span className="ml-1 text-xs">{comment.dislikeCount}</span>}
+              {comment.dislikeCount > 0 && (
+                <span className="ml-1 text-xs">{comment.dislikeCount}</span>
+              )}
             </Button>
             {comment.replyCount > 0 && (
               <Button
@@ -137,12 +173,19 @@ function CommentItem({ comment, videoId, currentUserId, isAuthenticated }: Comme
                 className="h-7 px-2 text-xs"
                 onClick={() => setShowReplies((v) => !v)}
               >
-                {showReplies ? 'Hide' : `${comment.replyCount} ${comment.replyCount === 1 ? 'reply' : 'replies'}`}
+                {showReplies
+                  ? 'Hide'
+                  : `${comment.replyCount} ${comment.replyCount === 1 ? 'reply' : 'replies'}`}
               </Button>
             )}
             {isOwner && !isEditing && (
               <>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setIsEditing(true)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setIsEditing(true)}
+                >
                   Edit
                 </Button>
                 <Button
@@ -211,7 +254,10 @@ function AddCommentForm({ videoId }: AddCommentFormProps) {
         rows={3}
       />
       <div className="flex justify-end">
-        <Button onClick={handleSubmit} disabled={addComment.isPending || !content.trim()}>
+        <Button
+          onClick={handleSubmit}
+          disabled={addComment.isPending || !content.trim()}
+        >
           {addComment.isPending ? 'Posting…' : 'Comment'}
         </Button>
       </div>
@@ -227,7 +273,14 @@ type CommentListProps = {
 export function CommentList({ videoId, currentUserId }: CommentListProps) {
   const isAuthenticated = useIsAuthenticated()
   const [sort, setSort] = useState<0 | 1>(0)
-  const { data, isPending, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useComments(videoId, sort)
+  const {
+    data,
+    isPending,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useComments(videoId, sort)
 
   const comments = data?.pages.flatMap((page) => page.comments) ?? []
 
@@ -255,8 +308,12 @@ export function CommentList({ videoId, currentUserId }: CommentListProps) {
 
       {isAuthenticated && <AddCommentForm videoId={videoId} />}
 
-      {isPending && <p className="text-sm text-muted-foreground">Loading comments…</p>}
-      {isError && <p className="text-sm text-destructive">Failed to load comments.</p>}
+      {isPending && (
+        <p className="text-sm text-muted-foreground">Loading comments…</p>
+      )}
+      {isError && (
+        <p className="text-sm text-destructive">Failed to load comments.</p>
+      )}
 
       {!isPending && comments.length === 0 && (
         <p className="text-sm text-muted-foreground">No comments yet.</p>
@@ -276,7 +333,11 @@ export function CommentList({ videoId, currentUserId }: CommentListProps) {
 
       {hasNextPage && sort === 0 && (
         <div className="flex justify-center">
-          <Button variant="outline" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+          <Button
+            variant="outline"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+          >
             {isFetchingNextPage ? 'Loading…' : 'Load more comments'}
           </Button>
         </div>

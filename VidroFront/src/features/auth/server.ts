@@ -1,5 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
-import { deleteCookie, getCookie, setCookie } from '@tanstack/react-start/server'
+import {
+  deleteCookie,
+  getCookie,
+  setCookie,
+} from '@tanstack/react-start/server'
 import { z } from 'zod'
 import type { AuthTokens } from './types'
 

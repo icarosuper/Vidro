@@ -58,10 +58,16 @@ export const API_ERROR_CODES = {
   PLAYLIST_VIDEO_NOT_IN: 'playlist.video_not_in_playlist',
 } as const
 
-export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES]
+export type ApiErrorCode =
+  (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES]
 
 // Enums espelhando os da API
-export const VideoStatus = { PendingUpload: 0, Processing: 1, Ready: 2, Failed: 3 } as const
+export const VideoStatus = {
+  PendingUpload: 0,
+  Processing: 1,
+  Ready: 2,
+  Failed: 3,
+} as const
 export const VideoVisibility = { Public: 0, Unlisted: 1, Private: 2 } as const
 export const ReactionType = { Like: 1, Dislike: 2 } as const
 export type ReactionTypeValue = (typeof ReactionType)[keyof typeof ReactionType]

@@ -16,7 +16,8 @@ export function VideoPlayer({ src, poster }: VideoPlayerProps) {
     const isHlsManifest = src.includes('.m3u8')
 
     if (isHlsManifest) {
-      const browserSupportsHlsNatively = video.canPlayType('application/vnd.apple.mpegurl') !== ''
+      const browserSupportsHlsNatively =
+        video.canPlayType('application/vnd.apple.mpegurl') !== ''
 
       if (Hls.isSupported()) {
         const hls = new Hls()

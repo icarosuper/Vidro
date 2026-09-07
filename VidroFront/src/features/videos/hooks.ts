@@ -1,4 +1,9 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { toastApiError } from '#/shared/lib/toast-error'
 import type { ReactionTypeValue } from '#/shared/types'
 import { ReactionType, VideoStatus } from '#/shared/types'
@@ -21,7 +26,8 @@ export const videoKeys = {
   trending: () => ['videos', 'trending'] as const,
   feed: () => ['videos', 'feed'] as const,
   detail: (videoId: string) => ['videos', videoId] as const,
-  channelVideos: (username: string, handle: string) => ['videos', 'channel', username, handle] as const,
+  channelVideos: (username: string, handle: string) =>
+    ['videos', 'channel', username, handle] as const,
   search: (query: string) => ['videos', 'search', query] as const,
 }
 
@@ -42,9 +48,7 @@ export function useFeed(enabled: boolean) {
       getFeed(FEED_LIMIT, pageParam as string | undefined, signal),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.nextCursor
-        ? lastPage.nextCursor
-        : undefined,
+      lastPage.nextCursor ? lastPage.nextCursor : undefined,
     enabled,
   })
 }
@@ -57,12 +61,15 @@ export function useSearchVideos(query: string) {
   return useInfiniteQuery({
     queryKey: videoKeys.search(query),
     queryFn: ({ signal, pageParam }) =>
-      searchVideos(query, SEARCH_LIMIT, pageParam as string | undefined, signal),
+      searchVideos(
+        query,
+        SEARCH_LIMIT,
+        pageParam as string | undefined,
+        signal,
+      ),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.nextCursor
-        ? lastPage.nextCursor
-        : undefined,
+      lastPage.nextCursor ? lastPage.nextCursor : undefined,
     enabled: hasQuery,
   })
 }
@@ -87,30 +94,33 @@ export function useReactToVideo(videoId: string) {
     mutationFn: (type: ReactionTypeValue) => reactToVideo(videoId, type),
     onError: toastApiError,
     onSuccess: (_data, reactionType) => {
-      queryClient.setQueryData(videoKeys.detail(videoId), (prev: Video | undefined) => {
-        if (!prev) return prev
-        const isNewReactionLike = reactionType === ReactionType.Like
-        const previousReactionId = prev.userReaction?.id ?? null
-        const hadOppositeReaction =
-          previousReactionId !== null && previousReactionId !== reactionType
-        return {
-          ...prev,
-          likeCount: isNewReactionLike
-            ? prev.likeCount + 1
-            : hadOppositeReaction
-              ? prev.likeCount - 1
-              : prev.likeCount,
-          dislikeCount: !isNewReactionLike
-            ? prev.dislikeCount + 1
-            : hadOppositeReaction
-              ? prev.dislikeCount - 1
-              : prev.dislikeCount,
-          userReaction: {
-            id: reactionType,
-            value: isNewReactionLike ? 'Like' : 'Dislike',
-          },
-        }
-      })
+      queryClient.setQueryData(
+        videoKeys.detail(videoId),
+        (prev: Video | undefined) => {
+          if (!prev) return prev
+          const isNewReactionLike = reactionType === ReactionType.Like
+          const previousReactionId = prev.userReaction?.id ?? null
+          const hadOppositeReaction =
+            previousReactionId !== null && previousReactionId !== reactionType
+          return {
+            ...prev,
+            likeCount: isNewReactionLike
+              ? prev.likeCount + 1
+              : hadOppositeReaction
+                ? prev.likeCount - 1
+                : prev.likeCount,
+            dislikeCount: !isNewReactionLike
+              ? prev.dislikeCount + 1
+              : hadOppositeReaction
+                ? prev.dislikeCount - 1
+                : prev.dislikeCount,
+            userReaction: {
+              id: reactionType,
+              value: isNewReactionLike ? 'Like' : 'Dislike',
+            },
+          }
+        },
+      )
     },
   })
 }
@@ -122,16 +132,19 @@ export function useRemoveReaction(videoId: string) {
     mutationFn: () => removeReaction(videoId),
     onError: toastApiError,
     onSuccess: () => {
-      queryClient.setQueryData(videoKeys.detail(videoId), (prev: Video | undefined) => {
-        if (!prev) return prev
-        const wasLike = prev.userReaction?.id === ReactionType.Like
-        return {
-          ...prev,
-          likeCount: wasLike ? prev.likeCount - 1 : prev.likeCount,
-          dislikeCount: !wasLike ? prev.dislikeCount - 1 : prev.dislikeCount,
-          userReaction: null,
-        }
-      })
+      queryClient.setQueryData(
+        videoKeys.detail(videoId),
+        (prev: Video | undefined) => {
+          if (!prev) return prev
+          const wasLike = prev.userReaction?.id === ReactionType.Like
+          return {
+            ...prev,
+            likeCount: wasLike ? prev.likeCount - 1 : prev.likeCount,
+            dislikeCount: !wasLike ? prev.dislikeCount - 1 : prev.dislikeCount,
+            userReaction: null,
+          }
+        },
+      )
     },
   })
 }
@@ -147,16 +160,15 @@ export function useVideoStatus(videoId: string | null) {
       const status = query.state.data?.status.id
       const isTerminal =
         status === VideoStatus.Ready || status === VideoStatus.Failed
-      return isTerminal
-        ? false
-        : VIDEO_PROCESSING_POLL_INTERVAL_MS
+      return isTerminal ? false : VIDEO_PROCESSING_POLL_INTERVAL_MS
     },
   })
 }
 
 export function useCreateVideo(username: string, handle: string) {
   return useMutation({
-    mutationFn: (data: CreateVideoRequest) => createVideo(username, handle, data),
+    mutationFn: (data: CreateVideoRequest) =>
+      createVideo(username, handle, data),
   })
 }
 
@@ -174,16 +186,23 @@ export function useUpdateVideo(videoId: string) {
 
 const CHANNEL_VIDEOS_LIMIT = 20
 
-export function useChannelVideos(username: string | undefined, handle: string | undefined) {
+export function useChannelVideos(
+  username: string | undefined,
+  handle: string | undefined,
+) {
   return useInfiniteQuery({
     queryKey: videoKeys.channelVideos(username ?? '', handle ?? ''),
     queryFn: ({ signal, pageParam }) =>
-      getChannelVideos(username!, handle!, CHANNEL_VIDEOS_LIMIT, pageParam as string | undefined, signal),
+      getChannelVideos(
+        username!,
+        handle!,
+        CHANNEL_VIDEOS_LIMIT,
+        pageParam as string | undefined,
+        signal,
+      ),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.nextCursor
-        ? lastPage.nextCursor
-        : undefined,
+      lastPage.nextCursor ? lastPage.nextCursor : undefined,
     enabled: !!username && !!handle,
   })
 }

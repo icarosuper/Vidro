@@ -41,9 +41,7 @@ function resolveMode(mode: ThemeMode): 'light' | 'dark' {
   }
 
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  return prefersDark
-    ? 'dark'
-    : 'light'
+  return prefersDark ? 'dark' : 'light'
 }
 
 function applyThemeMode(mode: ThemeMode) {

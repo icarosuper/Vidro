@@ -9,7 +9,11 @@ type Props = {
   initialIsFollowing?: boolean
 }
 
-export function SubscribeButton({ username, handle, initialIsFollowing = false }: Props) {
+export function SubscribeButton({
+  username,
+  handle,
+  initialIsFollowing = false,
+}: Props) {
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing)
   const hasInteracted = useRef(false)
 
@@ -31,7 +35,8 @@ export function SubscribeButton({ username, handle, initialIsFollowing = false }
       onSuccess: () => setIsFollowing(true),
       onError: (error) => {
         const isAlreadyFollowing =
-          error instanceof ApiClientError && error.code === 'channel.already_following'
+          error instanceof ApiClientError &&
+          error.code === 'channel.already_following'
         if (isAlreadyFollowing) setIsFollowing(true)
       },
     })
@@ -43,7 +48,8 @@ export function SubscribeButton({ username, handle, initialIsFollowing = false }
       onSuccess: () => setIsFollowing(false),
       onError: (error) => {
         const isNotFollowing =
-          error instanceof ApiClientError && error.code === 'channel.not_following'
+          error instanceof ApiClientError &&
+          error.code === 'channel.not_following'
         if (isNotFollowing) setIsFollowing(false)
       },
     })

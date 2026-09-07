@@ -95,7 +95,9 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
         />
 
         {error && (
-          <p className="text-sm text-destructive">{getApiErrorMessage(error)}</p>
+          <p className="text-sm text-destructive">
+            {getApiErrorMessage(error)}
+          </p>
         )}
 
         <Button type="submit" className="w-full" disabled={isPending}>

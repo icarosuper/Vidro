@@ -82,7 +82,9 @@ function ProcessingStatus({ videoId }: { videoId: string }) {
   if (hasFailed) {
     return (
       <div className="space-y-2 text-center">
-        <p className="text-destructive text-lg font-medium">Processing failed</p>
+        <p className="text-destructive text-lg font-medium">
+          Processing failed
+        </p>
         <p className="text-sm text-muted-foreground">
           Something went wrong while processing your video. Please try again.
         </p>
@@ -141,13 +143,17 @@ function DoneState({ videoId }: { videoId: string }) {
             onClick={() => thumbnailInputRef.current?.click()}
             disabled={uploadThumbnail.isPending}
           >
-            {uploadThumbnail.isPending ? 'Uploading thumbnail…' : 'Upload custom thumbnail'}
+            {uploadThumbnail.isPending
+              ? 'Uploading thumbnail…'
+              : 'Upload custom thumbnail'}
           </Button>
           {uploadThumbnail.isSuccess && (
             <p className="text-sm text-green-600">Thumbnail uploaded!</p>
           )}
           {!!uploadThumbnail.error && (
-            <p className="text-sm text-destructive">{getApiErrorMessage(uploadThumbnail.error)}</p>
+            <p className="text-sm text-destructive">
+              {getApiErrorMessage(uploadThumbnail.error)}
+            </p>
           )}
         </div>
       </div>
@@ -162,7 +168,8 @@ export function UploadVideoForm({ username }: Props) {
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { data: channelsData, isPending: channelsPending } = useUserChannels(username)
+  const { data: channelsData, isPending: channelsPending } =
+    useUserChannels(username)
   const channels = channelsData?.channels ?? []
 
   const {
@@ -177,7 +184,9 @@ export function UploadVideoForm({ username }: Props) {
   })
 
   const selectedChannelId = watch('channelId')
-  const selectedChannel = channels.find((c) => c.channelId === selectedChannelId)
+  const selectedChannel = channels.find(
+    (c) => c.channelId === selectedChannelId,
+  )
 
   useEffect(() => {
     const firstChannel = channels[0]
@@ -230,9 +239,7 @@ export function UploadVideoForm({ username }: Props) {
         setStage({ kind: 'uploading', videoId, progress })
       })
     } catch (err) {
-      const message = err instanceof Error
-        ? err.message
-        : 'File upload failed'
+      const message = err instanceof Error ? err.message : 'File upload failed'
       setStage({ kind: 'failed', error: message })
       return
     }
@@ -308,23 +315,25 @@ export function UploadVideoForm({ username }: Props) {
       {/* Channel */}
       <div className="space-y-2">
         <Label htmlFor="channel">Channel</Label>
-        {channelsPending
-          ? <p className="text-sm text-muted-foreground">Loading channels…</p>
-          : (
-              <Select value={selectedChannelId} onValueChange={(val) => setValue('channelId', val)}>
-                <SelectTrigger id="channel">
-                  <SelectValue placeholder="Select a channel" />
-                </SelectTrigger>
-                <SelectContent>
-                  {channels.map((channel) => (
-                    <SelectItem key={channel.channelId} value={channel.channelId}>
-                      {channel.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )
-        }
+        {channelsPending ? (
+          <p className="text-sm text-muted-foreground">Loading channels…</p>
+        ) : (
+          <Select
+            value={selectedChannelId}
+            onValueChange={(val) => setValue('channelId', val)}
+          >
+            <SelectTrigger id="channel">
+              <SelectValue placeholder="Select a channel" />
+            </SelectTrigger>
+            <SelectContent>
+              {channels.map((channel) => (
+                <SelectItem key={channel.channelId} value={channel.channelId}>
+                  {channel.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         {errors.channelId && (
           <p className="text-sm text-destructive">{errors.channelId.message}</p>
         )}
@@ -362,7 +371,11 @@ export function UploadVideoForm({ username }: Props) {
       {/* Title */}
       <div className="space-y-2">
         <Label htmlFor="title">Title</Label>
-        <Input id="title" {...register('title')} placeholder="Enter video title" />
+        <Input
+          id="title"
+          {...register('title')}
+          placeholder="Enter video title"
+        />
         {errors.title && (
           <p className="text-sm text-destructive">{errors.title.message}</p>
         )}
@@ -378,7 +391,9 @@ export function UploadVideoForm({ username }: Props) {
           rows={4}
         />
         {errors.description && (
-          <p className="text-sm text-destructive">{errors.description.message}</p>
+          <p className="text-sm text-destructive">
+            {errors.description.message}
+          </p>
         )}
       </div>
 
@@ -390,7 +405,9 @@ export function UploadVideoForm({ username }: Props) {
           {...register('tags')}
           placeholder="gaming, tutorial, react (comma-separated)"
         />
-        <p className="text-xs text-muted-foreground">Up to {MAX_TAGS} tags, separated by commas</p>
+        <p className="text-xs text-muted-foreground">
+          Up to {MAX_TAGS} tags, separated by commas
+        </p>
       </div>
 
       {/* Visibility */}
@@ -414,7 +431,9 @@ export function UploadVideoForm({ username }: Props) {
       </div>
 
       {createVideo.error && (
-        <p className="text-sm text-destructive">{getApiErrorMessage(createVideo.error)}</p>
+        <p className="text-sm text-destructive">
+          {getApiErrorMessage(createVideo.error)}
+        </p>
       )}
 
       <Button
@@ -451,7 +470,9 @@ function ProcessingStatusWatcher({
   if (hasFailed) {
     return (
       <div className="space-y-2 text-center">
-        <p className="text-destructive text-lg font-medium">Processing failed</p>
+        <p className="text-destructive text-lg font-medium">
+          Processing failed
+        </p>
         <p className="text-sm text-muted-foreground">
           Something went wrong while processing your video. Please try again.
         </p>

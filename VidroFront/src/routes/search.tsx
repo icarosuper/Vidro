@@ -7,17 +7,21 @@ type SearchParams = { q: string }
 
 export const Route = createFileRoute('/search')({
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
-    q: typeof search.q === 'string'
-      ? search.q
-      : '',
+    q: typeof search.q === 'string' ? search.q : '',
   }),
   component: SearchPage,
 })
 
 function SearchPage() {
   const { q } = Route.useSearch()
-  const { data, isPending, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useSearchVideos(q)
+  const {
+    data,
+    isPending,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useSearchVideos(q)
 
   const hasQuery = q.length > 0
   if (!hasQuery) {
@@ -53,9 +57,7 @@ function SearchPage() {
             onClick={() => fetchNextPage()}
             disabled={isFetchingNextPage}
           >
-            {isFetchingNextPage
-              ? 'Loading…'
-              : 'Load more'}
+            {isFetchingNextPage ? 'Loading…' : 'Load more'}
           </Button>
         </div>
       )}

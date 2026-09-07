@@ -20,7 +20,11 @@ function UploadPage() {
   const { data: profile, isPending, isError, error } = useCurrentUser()
 
   if (isPending) {
-    return <main className="page-container py-8"><p>Loading…</p></main>
+    return (
+      <main className="page-container py-8">
+        <p>Loading…</p>
+      </main>
+    )
   }
 
   if (isError) {

@@ -11,7 +11,13 @@ import { CommentList } from '#/features/comments/components/CommentList'
 import { useCurrentUser } from '#/features/users/hooks'
 import { getVideo } from '#/features/videos/api'
 import { VideoPlayer } from '#/features/videos/components/VideoPlayer'
-import { useReactToVideo, useRegisterView, useRemoveReaction, useVideo, videoKeys } from '#/features/videos/hooks'
+import {
+  useReactToVideo,
+  useRegisterView,
+  useRemoveReaction,
+  useVideo,
+  videoKeys,
+} from '#/features/videos/hooks'
 import { fetchVideoSsr } from '#/features/videos/server'
 import { ReactionType } from '#/shared/types'
 
@@ -83,7 +89,10 @@ function WatchPage() {
   const userReactionId = video.userReaction?.id
   const channelInitial = video.channelName.charAt(0).toUpperCase()
   const isMutating = reactToVideo.isPending || removeReaction.isPending
-  const isOwnChannel = isAuthenticated && !!currentUser && currentUser.username === video.ownerUsername
+  const isOwnChannel =
+    isAuthenticated &&
+    !!currentUser &&
+    currentUser.username === video.ownerUsername
   const canSubscribe = isAuthenticated && !isOwnChannel
 
   function handleLike() {
@@ -116,17 +125,17 @@ function WatchPage() {
         <div className="flex-1 min-w-0">
           {/* Player */}
           <div className="aspect-video w-full">
-            {video.videoUrl
-              ? <VideoPlayer src={video.videoUrl} poster={thumbnailUrl} />
-              : (
-                <div className="flex h-full w-full items-center justify-center rounded-lg bg-muted">
-                  <p className="text-muted-foreground">
-                    {video.status.value === 'Processing'
-                      ? 'Video is being processed…'
-                      : 'Video unavailable'}
-                  </p>
-                </div>
-              )}
+            {video.videoUrl ? (
+              <VideoPlayer src={video.videoUrl} poster={thumbnailUrl} />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded-lg bg-muted">
+                <p className="text-muted-foreground">
+                  {video.status.value === 'Processing'
+                    ? 'Video is being processed…'
+                    : 'Video unavailable'}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Title & metadata */}
@@ -138,7 +147,10 @@ function WatchPage() {
               <div className="flex items-center gap-3">
                 <Link
                   to="/$username/$channel"
-                  params={{ username: video.ownerUsername, channel: video.channelHandle }}
+                  params={{
+                    username: video.ownerUsername,
+                    channel: video.channelHandle,
+                  }}
                   className="no-underline flex items-center gap-3 group"
                 >
                   <Avatar className="h-9 w-9">
@@ -149,7 +161,9 @@ function WatchPage() {
                     <AvatarFallback>{channelInitial}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm font-medium group-hover:underline">{video.channelName}</p>
+                    <p className="text-sm font-medium group-hover:underline">
+                      {video.channelName}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       @{video.ownerUsername}/{video.channelHandle}
                     </p>
@@ -170,7 +184,11 @@ function WatchPage() {
                   {formatCount(video.viewCount)} views
                 </span>
                 <Button
-                  variant={video.userReaction?.id === ReactionType.Like ? 'default' : 'outline'}
+                  variant={
+                    video.userReaction?.id === ReactionType.Like
+                      ? 'default'
+                      : 'outline'
+                  }
                   size="sm"
                   onClick={handleLike}
                   disabled={isMutating || !isAuthenticated || isOwnChannel}
@@ -180,7 +198,11 @@ function WatchPage() {
                   {formatCount(video.likeCount)}
                 </Button>
                 <Button
-                  variant={video.userReaction?.id === ReactionType.Dislike ? 'default' : 'outline'}
+                  variant={
+                    video.userReaction?.id === ReactionType.Dislike
+                      ? 'default'
+                      : 'outline'
+                  }
                   size="sm"
                   onClick={handleDislike}
                   disabled={isMutating || !isAuthenticated || isOwnChannel}
@@ -195,7 +217,9 @@ function WatchPage() {
             <Separator className="my-4" />
 
             {/* Date + Description */}
-            <p className="text-xs text-muted-foreground mb-2">{formatDate(video.createdAt)}</p>
+            <p className="text-xs text-muted-foreground mb-2">
+              {formatDate(video.createdAt)}
+            </p>
             {video.description && (
               <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                 {video.description}
@@ -216,7 +240,10 @@ function WatchPage() {
             <Separator className="my-6" />
 
             <div className="max-w-2xl">
-              <CommentList videoId={video.videoId} currentUserId={currentUser?.userId} />
+              <CommentList
+                videoId={video.videoId}
+                currentUserId={currentUser?.userId}
+              />
             </div>
           </div>
         </div>

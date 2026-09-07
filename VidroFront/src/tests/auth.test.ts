@@ -68,7 +68,12 @@ describe('apiClient with renewed token', () => {
     apiClient.setRenewTokenCallback(renewToken)
 
     mockFetch
-      .mockResolvedValueOnce(mockResponse({ code: 'request.unauthorized', message: 'Unauthorized' }, 401))
+      .mockResolvedValueOnce(
+        mockResponse(
+          { code: 'request.unauthorized', message: 'Unauthorized' },
+          401,
+        ),
+      )
       .mockResolvedValueOnce(mockResponse({ data: { id: '1' } }))
 
     const result = await apiClient.get('/v1/test')
@@ -83,13 +88,18 @@ describe('apiClient with renewed token', () => {
 
   it('limpa o token quando a renovação falha', async () => {
     tokenStore.set('token-expirado')
-    const { apiClient, ApiClientError } = await import('#/shared/lib/api-client')
+    const { apiClient, ApiClientError } = await import(
+      '#/shared/lib/api-client'
+    )
 
     const renewToken = vi.fn().mockRejectedValue(new Error('refresh failed'))
     apiClient.setRenewTokenCallback(renewToken)
 
     mockFetch.mockResolvedValueOnce(
-      mockResponse({ code: 'request.unauthorized', message: 'Unauthorized' }, 401),
+      mockResponse(
+        { code: 'request.unauthorized', message: 'Unauthorized' },
+        401,
+      ),
     )
 
     await expect(apiClient.get('/v1/test')).rejects.toThrow(ApiClientError)

@@ -47,7 +47,12 @@ describe('users api', () => {
 
     // First call: POST /v1/users/me/avatar → presigned URL
     mockFetch.mockResolvedValueOnce(
-      mockResponse({ data: { uploadUrl: presignedUrl, uploadExpiresAt: '2026-04-08T18:00:00Z' } }),
+      mockResponse({
+        data: {
+          uploadUrl: presignedUrl,
+          uploadExpiresAt: '2026-04-08T18:00:00Z',
+        },
+      }),
     )
     // Second call: PUT to MinIO presigned URL
     mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }))

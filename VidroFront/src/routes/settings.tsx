@@ -41,9 +41,10 @@ type ChannelRowProps = {
 
 function ChannelRow({ channel, username }: ChannelRowProps) {
   const channelInitial = channel.name.charAt(0).toUpperCase()
-  const followerLabel = channel.followerCount === 1
-    ? '1 follower'
-    : `${channel.followerCount} followers`
+  const followerLabel =
+    channel.followerCount === 1
+      ? '1 follower'
+      : `${channel.followerCount} followers`
 
   return (
     <Link
@@ -53,12 +54,19 @@ function ChannelRow({ channel, username }: ChannelRowProps) {
     >
       <div className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted">
         <Avatar className="h-10 w-10 shrink-0">
-          <AvatarImage src={channel.avatarUrl ?? undefined} alt={channel.name} />
+          <AvatarImage
+            src={channel.avatarUrl ?? undefined}
+            alt={channel.name}
+          />
           <AvatarFallback>{channelInitial}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-foreground">{channel.name}</p>
-          <p className="text-xs text-muted-foreground">@{channel.handle} · {followerLabel}</p>
+          <p className="truncate text-sm font-medium text-foreground">
+            {channel.name}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            @{channel.handle} · {followerLabel}
+          </p>
         </div>
       </div>
     </Link>
@@ -126,7 +134,11 @@ function ChannelsSection({ username }: ChannelsSectionProps) {
         {!isPending && channels.length > 0 && (
           <div className="space-y-1">
             {channels.map((channel) => (
-              <ChannelRow key={channel.channelId} channel={channel} username={username} />
+              <ChannelRow
+                key={channel.channelId}
+                channel={channel}
+                username={username}
+              />
             ))}
           </div>
         )}
@@ -139,7 +151,11 @@ function SettingsPage() {
   const { data: profile, isPending, isError, error } = useCurrentUser()
 
   if (isPending) {
-    return <main className="page-container py-8"><p>Loading…</p></main>
+    return (
+      <main className="page-container py-8">
+        <p>Loading…</p>
+      </main>
+    )
   }
 
   if (isError) {

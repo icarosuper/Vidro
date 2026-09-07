@@ -6,7 +6,14 @@ import { Textarea } from '#/components/ui/textarea'
 import { useIsAuthenticated } from '#/features/auth/hooks'
 import type { ReactionTypeValue } from '#/shared/types'
 import { ReactionType } from '#/shared/types'
-import { useAddComment, useDeleteComment, useEditComment, useReactToComment, useRemoveCommentReaction, useReplies } from '../hooks'
+import {
+  useAddComment,
+  useDeleteComment,
+  useEditComment,
+  useReactToComment,
+  useRemoveCommentReaction,
+  useReplies,
+} from '../hooks'
 import type { ReplySummary } from '../types'
 import { ExpandableText } from './ExpandableText'
 
@@ -18,7 +25,11 @@ function formatRelativeDate(isoDate: string): string {
   if (hours < 24) return `${hours}h ago`
   const days = Math.floor(hours / 24)
   if (days < 30) return `${days}d ago`
-  return new Date(isoDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return new Date(isoDate).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
 type ReplyItemProps = {
@@ -29,7 +40,13 @@ type ReplyItemProps = {
   isAuthenticated: boolean
 }
 
-function ReplyItem({ reply, videoId, parentCommentId, currentUserId, isAuthenticated }: ReplyItemProps) {
+function ReplyItem({
+  reply,
+  videoId,
+  parentCommentId,
+  currentUserId,
+  isAuthenticated,
+}: ReplyItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(reply.content ?? '')
   const editComment = useEditComment(videoId)
@@ -46,13 +63,20 @@ function ReplyItem({ reply, videoId, parentCommentId, currentUserId, isAuthentic
     if (isActive) {
       removeReaction.mutate({ commentId: reply.commentId, parentCommentId })
     } else {
-      reactToComment.mutate({ commentId: reply.commentId, type, parentCommentId })
+      reactToComment.mutate({
+        commentId: reply.commentId,
+        type,
+        parentCommentId,
+      })
     }
   }
 
   async function handleEdit() {
     if (!editContent.trim()) return
-    await editComment.mutateAsync({ commentId: reply.commentId, content: editContent.trim() })
+    await editComment.mutateAsync({
+      commentId: reply.commentId,
+      content: editContent.trim(),
+    })
     setIsEditing(false)
   }
 
@@ -70,7 +94,9 @@ function ReplyItem({ reply, videoId, parentCommentId, currentUserId, isAuthentic
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className="text-sm font-medium">{reply.username}</span>
-          <span className="text-xs text-muted-foreground">{formatRelativeDate(reply.createdAt)}</span>
+          <span className="text-xs text-muted-foreground">
+            {formatRelativeDate(reply.createdAt)}
+          </span>
           {reply.updatedAt && (
             <span className="text-xs text-muted-foreground">(edited)</span>
           )}
@@ -85,16 +111,26 @@ function ReplyItem({ reply, videoId, parentCommentId, currentUserId, isAuthentic
               className="text-sm"
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleEdit} disabled={editComment.isPending}>
+              <Button
+                size="sm"
+                onClick={handleEdit}
+                disabled={editComment.isPending}
+              >
                 Save
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setIsEditing(false)}
+              >
                 Cancel
               </Button>
             </div>
           </div>
         ) : reply.isDeleted ? (
-          <p className="mt-0.5 text-sm text-muted-foreground italic">[deleted]</p>
+          <p className="mt-0.5 text-sm text-muted-foreground italic">
+            [deleted]
+          </p>
         ) : (
           <ExpandableText text={reply.content!} className="mt-0.5 text-sm" />
         )}
@@ -102,28 +138,45 @@ function ReplyItem({ reply, videoId, parentCommentId, currentUserId, isAuthentic
         {!reply.isDeleted && (
           <div className="mt-1 flex items-center gap-1">
             <Button
-              variant={reply.userReaction?.id === ReactionType.Like ? 'default' : 'ghost'}
+              variant={
+                reply.userReaction?.id === ReactionType.Like
+                  ? 'default'
+                  : 'ghost'
+              }
               size="sm"
               className="h-7 px-2"
               onClick={() => handleReact(ReactionType.Like)}
               disabled={isMutating || !isAuthenticated}
             >
               <ThumbsUp className="h-3.5 w-3.5" />
-              {reply.likeCount > 0 && <span className="ml-1 text-xs">{reply.likeCount}</span>}
+              {reply.likeCount > 0 && (
+                <span className="ml-1 text-xs">{reply.likeCount}</span>
+              )}
             </Button>
             <Button
-              variant={reply.userReaction?.id === ReactionType.Dislike ? 'default' : 'ghost'}
+              variant={
+                reply.userReaction?.id === ReactionType.Dislike
+                  ? 'default'
+                  : 'ghost'
+              }
               size="sm"
               className="h-7 px-2"
               onClick={() => handleReact(ReactionType.Dislike)}
               disabled={isMutating || !isAuthenticated}
             >
               <ThumbsDown className="h-3.5 w-3.5" />
-              {reply.dislikeCount > 0 && <span className="ml-1 text-xs">{reply.dislikeCount}</span>}
+              {reply.dislikeCount > 0 && (
+                <span className="ml-1 text-xs">{reply.dislikeCount}</span>
+              )}
             </Button>
             {isOwner && !isEditing && (
               <>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setIsEditing(true)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setIsEditing(true)}
+                >
                   Edit
                 </Button>
                 <Button
@@ -151,9 +204,15 @@ type ReplyListProps = {
   initialShowForm?: boolean
 }
 
-export function ReplyList({ commentId, videoId, currentUserId, initialShowForm = false }: ReplyListProps) {
+export function ReplyList({
+  commentId,
+  videoId,
+  currentUserId,
+  initialShowForm = false,
+}: ReplyListProps) {
   const isAuthenticated = useIsAuthenticated()
-  const { data, isPending, fetchNextPage, hasNextPage, isFetchingNextPage } = useReplies(commentId, true)
+  const { data, isPending, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useReplies(commentId, true)
   const addComment = useAddComment(videoId)
   const [replyContent, setReplyContent] = useState('')
   const [showReplyForm, setShowReplyForm] = useState(initialShowForm)
@@ -162,13 +221,18 @@ export function ReplyList({ commentId, videoId, currentUserId, initialShowForm =
 
   async function handleSubmitReply() {
     if (!replyContent.trim()) return
-    await addComment.mutateAsync({ content: replyContent.trim(), parentCommentId: commentId })
+    await addComment.mutateAsync({
+      content: replyContent.trim(),
+      parentCommentId: commentId,
+    })
     setReplyContent('')
     setShowReplyForm(false)
   }
 
   if (isPending) {
-    return <p className="pl-10 text-xs text-muted-foreground">Loading replies…</p>
+    return (
+      <p className="pl-10 text-xs text-muted-foreground">Loading replies…</p>
+    )
   }
 
   return (
@@ -208,16 +272,29 @@ export function ReplyList({ commentId, videoId, currentUserId, initialShowForm =
                 className="text-sm"
               />
               <div className="flex gap-2">
-                <Button size="sm" onClick={handleSubmitReply} disabled={addComment.isPending}>
+                <Button
+                  size="sm"
+                  onClick={handleSubmitReply}
+                  disabled={addComment.isPending}
+                >
                   Reply
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => setShowReplyForm(false)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowReplyForm(false)}
+                >
                   Cancel
                 </Button>
               </div>
             </div>
           ) : (
-            <Button variant="ghost" size="sm" className="text-xs" onClick={() => setShowReplyForm(true)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs"
+              onClick={() => setShowReplyForm(true)}
+            >
               Reply
             </Button>
           )}

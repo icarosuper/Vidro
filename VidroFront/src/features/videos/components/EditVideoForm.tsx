@@ -91,7 +91,11 @@ export function EditVideoForm({ video, onSuccess }: Props) {
       {/* Title */}
       <div className="space-y-2">
         <Label htmlFor="edit-title">Title</Label>
-        <Input id="edit-title" {...register('title')} placeholder="Enter video title" />
+        <Input
+          id="edit-title"
+          {...register('title')}
+          placeholder="Enter video title"
+        />
         {errors.title && (
           <p className="text-sm text-destructive">{errors.title.message}</p>
         )}
@@ -107,7 +111,9 @@ export function EditVideoForm({ video, onSuccess }: Props) {
           rows={4}
         />
         {errors.description && (
-          <p className="text-sm text-destructive">{errors.description.message}</p>
+          <p className="text-sm text-destructive">
+            {errors.description.message}
+          </p>
         )}
       </div>
 
@@ -119,7 +125,9 @@ export function EditVideoForm({ video, onSuccess }: Props) {
           {...register('tags')}
           placeholder="gaming, tutorial, react (comma-separated)"
         />
-        <p className="text-xs text-muted-foreground">Up to {MAX_TAGS} tags, separated by commas</p>
+        <p className="text-xs text-muted-foreground">
+          Up to {MAX_TAGS} tags, separated by commas
+        </p>
       </div>
 
       {/* Visibility */}
@@ -143,7 +151,9 @@ export function EditVideoForm({ video, onSuccess }: Props) {
       </div>
 
       {updateVideo.error && (
-        <p className="text-sm text-destructive">{getApiErrorMessage(updateVideo.error)}</p>
+        <p className="text-sm text-destructive">
+          {getApiErrorMessage(updateVideo.error)}
+        </p>
       )}
 
       <Button type="submit" disabled={updateVideo.isPending} className="w-full">

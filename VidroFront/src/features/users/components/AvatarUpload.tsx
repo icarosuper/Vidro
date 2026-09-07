@@ -41,7 +41,10 @@ export function AvatarUpload({ profile }: AvatarUploadProps) {
   return (
     <div className="flex items-center gap-4">
       <Avatar className="h-20 w-20">
-        <AvatarImage src={profile.avatarUrl ?? undefined} alt={profile.username} />
+        <AvatarImage
+          src={profile.avatarUrl ?? undefined}
+          alt={profile.username}
+        />
         <AvatarFallback className="text-2xl">{avatarInitial}</AvatarFallback>
       </Avatar>
 
@@ -65,7 +68,9 @@ export function AvatarUpload({ profile }: AvatarUploadProps) {
         </Button>
 
         {uploadAvatar.error && (
-          <p className="text-sm text-destructive">{getApiErrorMessage(uploadAvatar.error)}</p>
+          <p className="text-sm text-destructive">
+            {getApiErrorMessage(uploadAvatar.error)}
+          </p>
         )}
       </div>
     </div>

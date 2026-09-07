@@ -20,7 +20,8 @@ type RenewTokenCallback = () => Promise<string>
 // process.env is read at runtime on the server only — same split as `features/*/server.ts`.
 const isServer = typeof window === 'undefined'
 const serverApiUrl = isServer ? process.env.VITE_API_URL : undefined
-const BASE_URL = serverApiUrl ?? import.meta.env.VITE_API_URL ?? 'http://localhost:5000'
+const BASE_URL =
+  serverApiUrl ?? import.meta.env.VITE_API_URL ?? 'http://localhost:5000'
 
 let renewTokenCallback: RenewTokenCallback | null = null
 

@@ -24,7 +24,8 @@ const errorMessages: Record<string, string> = {
   'video.not_owner': "You don't own this video.",
   'video.not_ready': "This video isn't ready yet.",
   'video.already_processing': 'This video is already being processed.',
-  'video.not_in_processing_state': "This video isn't currently being processed.",
+  'video.not_in_processing_state':
+    "This video isn't currently being processed.",
   'video.not_pending_upload': "This video isn't awaiting upload.",
   'video.cannot_react_to_own': "You can't react to your own video.",
 
@@ -34,17 +35,21 @@ const errorMessages: Record<string, string> = {
   'comment.already_deleted': 'This comment has already been deleted.',
   'comment.parent_not_found': 'Parent comment not found.',
   'comment.reply_nesting_not_allowed': "You can't reply to a reply.",
-  'comment.parent_video_mismatch': "The parent comment belongs to a different video.",
+  'comment.parent_video_mismatch':
+    'The parent comment belongs to a different video.',
 
   // Comment reaction
   'comment_reaction.not_found': "You haven't reacted to this comment.",
 
   // Playlist
   'playlist.not_owner': "You don't own this playlist.",
-  'playlist.video_already_in_playlist': 'This video is already in the playlist.',
+  'playlist.video_already_in_playlist':
+    'This video is already in the playlist.',
   'playlist.video_not_in_playlist': "This video isn't in the playlist.",
-  'playlist.video_not_from_channel': "This video doesn't belong to this playlist's channel.",
-  'playlist.video_ids_mismatch': "The video order doesn't match the current playlist.",
+  'playlist.video_not_from_channel':
+    "This video doesn't belong to this playlist's channel.",
+  'playlist.video_ids_mismatch':
+    "The video order doesn't match the current playlist.",
 
   // Reaction
   'reaction.not_found': "You haven't reacted to this video.",

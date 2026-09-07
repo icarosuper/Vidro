@@ -26,7 +26,10 @@ type AuthProviderProps = {
   children: ReactNode
 }
 
-export function AuthProvider({ initialIsAuthenticated, children }: AuthProviderProps) {
+export function AuthProvider({
+  initialIsAuthenticated,
+  children,
+}: AuthProviderProps) {
   return (
     <AuthStateContext.Provider value={{ initialIsAuthenticated }}>
       {children}
@@ -129,7 +132,9 @@ export function AuthModalProvider({ children }: AuthModalProviderProps) {
   const close = useCallback(() => setIsOpen(false), [])
 
   return (
-    <AuthModalContext.Provider value={{ isOpen, view, openSignIn, openSignUp, close }}>
+    <AuthModalContext.Provider
+      value={{ isOpen, view, openSignIn, openSignUp, close }}
+    >
       {children}
     </AuthModalContext.Provider>
   )
