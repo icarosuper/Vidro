@@ -14,7 +14,9 @@ regras repetidas nos três `CLAUDE.md` foram removidos; README da raiz criado).
 *(2026-09-07)* busca ligada de ponta a ponta, `ThemeToggle` no Header, devtools fora de
 produção, `typecheck` no CI do front (com os 23 erros de tipo pré-existentes zerados),
 `gofmt` checado no CI do Processor, o teste template da API deletado e o **P-PERF5**
-(default de `WORKER_COUNT` derivado dos cores ÷ processos FFmpeg por job).
+(default de `WORKER_COUNT` derivado dos cores ÷ processos FFmpeg por job), a **regra de
+fail-fast vs. anomalia+ACK** escrita no `conventions.md` da API e o **lint do Biome ligado no
+CI do front** (com o formatter desligado de propósito — ver "Sujeira pequena").
 Itens marcados `[x]` trazem o commit e o que ficou no lugar.
 
 **Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
@@ -210,11 +212,9 @@ falha → 3 retries → DLQ. Um vídeo perfeitamente bom nunca processa.
       -timeout 15m`). Os três agora disparam em **push para `master` além de PR** — o
       gatilho só-PR do VidroApi quase nunca rodava, já que a convenção do repo é commitar
       direto na master. Rodei os dois pipelines localmente antes de commitar.
-      **Sem step de lint no Front:** `biome check` acusa 109 erros no código existente, então
-      ligar isso deixaria o CI vermelho no primeiro push. Limpar o código antes — ver
-      "Limpar o que o `biome check` acusa" em Sujeira pequena.
-      *(2026-09-07: o front ganhou passo de **typecheck** (`tsc --noEmit`) — ver "Sujeira
-      pequena". O lint continua desligado; são checagens diferentes.)*
+      **Sem step de lint no Front** *(era: 109 erros do `biome check`)* — resolvido em
+      2026-09-07: o workflow do front hoje roda **lint → typecheck → test → build**. Ver
+      "Limpar o que o `biome check` acusa" e o item do `tsc` em Sujeira pequena.
       *(2026-08-30: com o monorepo, os três `ci.yml` viraram
       `.github/workflows/{api,front,processor}.yml` na raiz, cada um com filtro `paths:`.)*
 - [x] **Rate limiting em `SignIn`/`SignUp`** — `AddRateLimiter` nativo do .NET 10, zero
@@ -437,6 +437,10 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
       de vídeo.
 - [ ] **Sem notificações** de vídeo novo em canal inscrito. `ChannelFollower` já
       existe; falta o resto.
+- [ ] **Nenhuma legenda/caption em lugar nenhum.** O pipeline não tem step de legenda, a API
+      não tem campo, e o `<video>` do `VideoPlayer.tsx` sai sem `<track>` — hoje suprimido com
+      `biome-ignore lint/a11y/useMediaCaption` **nomeando a lacuna**, não fingindo que não existe.
+      Para quem não ouve, todo vídeo da plataforma é inacessível. Atravessa os três serviços.
 
 ---
 
@@ -543,30 +547,35 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 ## Sujeira pequena
 
-- [ ] **Limpar o que o `biome check` acusa no `VidroFront`** — 109 erros, 24 warnings e
-      8 infos em 83 arquivos *(recontado em 2026-09-07)*. É o que impede ligar o step de lint no CI (ver P1).
-      **~100 dos 108 saem sozinhos** com `bunx biome check --write`: formatação em 72
-      arquivos, `assist/source/organizeImports` (28) e `lint/style/useImportType` (12).
-      Atenção: o `--write` também reformata `biome.json` e `.vscode/settings.json`.
-      **Sobra para mão humana** (8 erros + 20 warnings), e é aqui que mora o valor:
-      | regra | qtd | por quê importa |
-      |---|---|---|
-      | `lint/correctness/useExhaustiveDependencies` | 3 | dependência faltando em hook = bug real de stale closure |
-      | `lint/suspicious/noArrayIndexKey` | 12 | `key={index}` em lista que reordena/filtra corrompe estado de componente |
-      | `lint/style/noNonNullAssertion` | 11 | cada `!` é um crash em potencial — mesma classe do BUG-1 |
-      | `lint/complexity/useLiteralKeys` | 6 | cosmético |
-      | `lint/correctness/noUnusedImports` | 4 | cosmético |
-      | `lint/correctness/noUnusedFunctionParameters` | 2 | cosmético |
-      | `lint/complexity/noUselessFragments` | 1 | cosmético |
-      Ordem sugerida: rodar o `--write` num commit isolado (diff enorme, zero
-      comportamento), depois um segundo commit só com os `useExhaustiveDependencies` e
-      `noArrayIndexKey`, que são os que podem esconder bug de verdade. Ligar o step de lint
-      no `.github/workflows/ci.yml` do Front ao fechar.
+- [x] ~~**Limpar o que o `biome check` acusa no `VidroFront`**~~ **RESOLVIDO** *(2026-09-07)*.
+      Zero erros; `bun run lint` (`biome ci`) roda no `.github/workflows/front.yml`.
+      **O caminho não foi o que este item previa.** Dos 109 erros, **72 eram "arquivo precisa
+      de formatação"** — e o formatter do Biome **colapsa ternário curto em uma linha**, contra
+      a regra do `CLAUDE.md` da raiz que vale para os três serviços. Não há opção no Biome para
+      preservar. Decisão: **`formatter.enabled: false`**, regra da casa vence. Isso derrubou
+      109 → 36 sem reescrever 63 arquivos; o `--write` sobrou só para ordenar import
+      (28) e `useImportType` (10), num diff de 33 arquivos que não mexeu em aspas nem em
+      ponto e vírgula de ninguém. Formatação segue **sem dono** — é o preço, e está registrado
+      no `VidroFront/CLAUDE.md`.
+      Os 8 de mão: os 3 `noArrayIndexKey` eram `biome-ignore` **mal posicionado** (a suppression
+      vale só para a linha seguinte e o `key={i}` caía duas abaixo); os 3
+      `useExhaustiveDependencies` estavam "suprimidos" por um `// eslint-disable-next-line` —
+      **comentário morto, este repo não usa ESLint** — e viraram dependência honesta
+      (`loadedVideoId` no corpo do efeito, porque navegar entre vídeos reusa a rota em vez de
+      remontar); 1 `noStaticElementInteractions` é falso positivo (preview decorativo no hover,
+      o card já é `Link` focável) e 1 `useMediaCaption` é **lacuna real**, ver P5.
+      Sobram 11 `noNonNullAssertion` e 7 infos, todos **warning** — não quebram o CI. Cada `!`
+      continua sendo um crash em potencial (mesma classe do BUG-1); fica como item próprio.
+      **Duas armadilhas do Biome que custaram tempo e estão documentadas no `CLAUDE.md` do
+      front:** comentário `//` no `biome.json` quebra a config **em silêncio** (cai no default
+      e passa a lintar `dist/`: 83 → 148 arquivos), e `biome-ignore` com motivo em duas linhas
+      vira "unused suppression" sem aplicar a regra.
 
-- [x] ~~**`gofmt -l` acusa 3 arquivos no `VidroProcessor`**~~ **RESOLVIDO** *(2026-09-07)*.
-      `gofmt -w` nos três (alinhamento de const, comentário e ordem de import) e passo
-      **Format check** no `.github/workflows/processor.yml`, antes do `go vet`.
-      `docs/agents/conventions.md` atualizado: o CI agora falha com arquivo não formatado.
+- [ ] **Os 11 `noNonNullAssertion` que sobraram no front.** `channels/hooks.ts` (3),
+      `playlists/hooks.ts` (3), `videos/hooks.ts` (3), `CommentList.tsx` (1), `ReplyList.tsx` (1).
+      São warning, então o CI passa — mas cada `!` é a mesma classe do BUG-1: uma promessa ao
+      compilador que ninguém verificou. A maioria está em `queryFn` de hook com `enabled: !!x`,
+      onde o `!` é *provavelmente* verdade e o padrão certo é `skipToken`.
 
 - [x] ~~**Nada rodava `tsc --noEmit` no front** — nem script, nem CI.~~ **RESOLVIDO**
       *(2026-09-07)*. `"typecheck": "tsc --noEmit"` no `package.json` + passo **Typecheck** no
