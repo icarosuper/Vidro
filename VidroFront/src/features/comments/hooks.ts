@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InfiniteData } from '@tanstack/react-query'
 import { ReactionType } from '#/shared/types'
+import type { ReactionTypeValue } from '#/shared/types'
 import {
   addComment,
   deleteComment,
@@ -116,7 +117,7 @@ export function useReactToComment(videoId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ commentId, type }: { commentId: string; type: number; parentCommentId?: string }) =>
+    mutationFn: ({ commentId, type }: { commentId: string; type: ReactionTypeValue; parentCommentId?: string }) =>
       reactToComment(commentId, type),
     onMutate: async ({ commentId, type, parentCommentId }) => {
       if (parentCommentId) {
@@ -153,7 +154,7 @@ export function useReactToComment(videoId: string) {
       queryClient.setQueryData<InfiniteData<CommentsPage>>(commentKeys.list(videoId, 1), update)
       return { isReply: false as const, snapshot0, snapshot1 }
     },
-    onError: (_err, { parentCommentId }, context) => {
+    onError: (_err, _variables, context) => {
       if (!context) return
       if (context.isReply) {
         queryClient.setQueryData(context.key, context.snapshot)
@@ -213,7 +214,7 @@ export function useRemoveCommentReaction(videoId: string) {
       queryClient.setQueryData<InfiniteData<CommentsPage>>(commentKeys.list(videoId, 1), update)
       return { isReply: false as const, snapshot0, snapshot1 }
     },
-    onError: (_err, { parentCommentId }, context) => {
+    onError: (_err, _variables, context) => {
       if (!context) return
       if (context.isReply) {
         queryClient.setQueryData(context.key, context.snapshot)

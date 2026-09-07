@@ -17,7 +17,7 @@ import { CreateChannelForm } from '#/features/channels/components/CreateChannelF
 import { useUserChannels } from '#/features/channels/hooks'
 import { getApiErrorMessage } from '#/shared/lib/error-messages'
 import { VideoStatus } from '#/shared/types'
-import { useCreateVideo, useUpdateVideo, useUploadThumbnail, useVideoStatus } from '../hooks'
+import { useCreateVideo, useUploadThumbnail, useVideoStatus } from '../hooks'
 import { uploadVideoFile } from '../api'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -146,7 +146,7 @@ function DoneState({ videoId }: { videoId: string }) {
           {uploadThumbnail.isSuccess && (
             <p className="text-sm text-green-600">Thumbnail uploaded!</p>
           )}
-          {uploadThumbnail.error && (
+          {!!uploadThumbnail.error && (
             <p className="text-sm text-destructive">{getApiErrorMessage(uploadThumbnail.error)}</p>
           )}
         </div>

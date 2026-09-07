@@ -31,8 +31,8 @@ const schema = z.object({
 			`Description must be at most ${DESCRIPTION_MAX} characters`,
 		)
 		.optional(),
-	visibility: z.coerce.number(),
-	scope: z.coerce.number(),
+	visibility: z.number(),
+	scope: z.number(),
 	channelId: z.string().optional(),
 });
 
@@ -124,7 +124,7 @@ export function CreatePlaylistForm({ channelId, onSuccess }: Props) {
 				</Select>
 			</div>
 
-			{createPlaylist.error && (
+			{!!createPlaylist.error && (
 				<p className="text-sm text-destructive">
 					{getApiErrorMessage(createPlaylist.error)}
 				</p>

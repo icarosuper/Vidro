@@ -1,4 +1,4 @@
-import { ReactionType } from '#/shared/types'
+import type { ReactionTypeValue } from '#/shared/types'
 import { apiClient } from '#/shared/lib/api-client'
 import type {
   ChannelVideosPage,
@@ -42,7 +42,7 @@ export function registerView(videoId: string, signal?: AbortSignal) {
   return apiClient.post<void>(`/v1/videos/${videoId}/view`, undefined, signal)
 }
 
-export function reactToVideo(videoId: string, type: ReactionType, signal?: AbortSignal) {
+export function reactToVideo(videoId: string, type: ReactionTypeValue, signal?: AbortSignal) {
   return apiClient.post<void>(`/v1/videos/${videoId}/react`, { type }, signal)
 }
 

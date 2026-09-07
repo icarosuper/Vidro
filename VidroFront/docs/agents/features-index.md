@@ -163,7 +163,7 @@ Trending, feed, busca, detalhe, reações, upload (create + presigned + status p
 |---|---|---|
 | api client | `src/shared/lib/api-client.ts` | `apiClient`, `ApiClientError`, `setRenewTokenCallback` |
 | token store | `src/shared/lib/token-store.ts` | `tokenStore` (get/set/clear/subscribe) |
-| tipos base | `src/shared/types.ts` | `ApiSuccess`, `ApiError`, `ValidationError`, `EnumValue`, `CursorPage`, `PagedResult`, `API_ERROR_CODES`, `VideoStatus`, `VideoVisibility`, `ReactionType`, `PlaylistVisibility`, `PlaylistScope`, `CommentSortOrder` |
+| tipos base | `src/shared/types.ts` | `ApiSuccess`, `ApiError`, `ValidationError`, `EnumValue`, `CursorPage`, `PagedResult`, `API_ERROR_CODES`, `VideoStatus`, `VideoVisibility`, `ReactionType` + `ReactionTypeValue` (o tipo do valor; o const é só valor), `PlaylistVisibility`, `PlaylistScope`, `CommentSortOrder` |
 | erros | `src/shared/lib/error-messages.ts` | Map `code → mensagem user-facing` |
 | toast | `src/shared/lib/toast-error.ts` | `toastApiError(error)` |
 | components globais | `src/components/` | `Header` (busca + `ThemeToggle`), `ThemeToggle` (light → dark → auto, persistido em `localStorage`), `ui/*` (shadcn) |

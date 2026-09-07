@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ReactionType, VideoStatus } from '#/shared/types'
+import type { ReactionTypeValue } from '#/shared/types'
 import { toastApiError } from '#/shared/lib/toast-error'
 import {
   createVideo,
@@ -83,7 +84,7 @@ export function useReactToVideo(videoId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (type: ReactionType) => reactToVideo(videoId, type),
+    mutationFn: (type: ReactionTypeValue) => reactToVideo(videoId, type),
     onError: toastApiError,
     onSuccess: (_data, reactionType) => {
       queryClient.setQueryData(videoKeys.detail(videoId), (prev: Video | undefined) => {

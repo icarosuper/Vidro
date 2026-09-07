@@ -77,6 +77,7 @@ function WatchPage() {
   }
 
   const thumbnailUrl = video.thumbnailUrls[0] ?? undefined
+  const userReactionId = video.userReaction?.id
   const channelInitial = video.channelName.charAt(0).toUpperCase()
   const isMutating = reactToVideo.isPending || removeReaction.isPending
   const isOwnChannel = isAuthenticated && !!currentUser && currentUser.username === video.ownerUsername
@@ -85,7 +86,7 @@ function WatchPage() {
   function handleLike() {
     if (!isAuthenticated) return
 
-    const isAlreadyLiked = video.userReaction?.id === ReactionType.Like
+    const isAlreadyLiked = userReactionId === ReactionType.Like
 
     if (isAlreadyLiked) {
       removeReaction.mutate()
@@ -97,7 +98,7 @@ function WatchPage() {
   function handleDislike() {
     if (!isAuthenticated) return
 
-    const isAlreadyDisliked = video.userReaction?.id === ReactionType.Dislike
+    const isAlreadyDisliked = userReactionId === ReactionType.Dislike
 
     if (isAlreadyDisliked) {
       removeReaction.mutate()
@@ -212,7 +213,7 @@ function WatchPage() {
             <Separator className="my-6" />
 
             <div className="max-w-2xl">
-              <CommentList videoId={video.videoId} currentUserId={currentUser?.id} />
+              <CommentList videoId={video.videoId} currentUserId={currentUser?.userId} />
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { Button } from '#/components/ui/button'
 import { Textarea } from '#/components/ui/textarea'
 import { useIsAuthenticated } from '#/features/auth/hooks'
 import { ReactionType } from '#/shared/types'
+import type { ReactionTypeValue } from '#/shared/types'
 import { ExpandableText } from './ExpandableText'
 import {
   useAddComment,
@@ -48,7 +49,7 @@ function CommentItem({ comment, videoId, currentUserId, isAuthenticated }: Comme
   const isOwner = !!currentUserId && currentUserId === comment.userId
   const isMutating = reactToComment.isPending || removeReaction.isPending
 
-  function handleReact(type: ReactionType) {
+  function handleReact(type: ReactionTypeValue) {
     if (!isAuthenticated) return
     const isActive = comment.userReaction?.id === type
     if (isActive) {

@@ -32,7 +32,7 @@ const schema = z.object({
 			`Description must be at most ${DESCRIPTION_MAX} characters`,
 		)
 		.optional(),
-	visibility: z.coerce.number(),
+	visibility: z.number(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -115,7 +115,7 @@ export function EditPlaylistForm({ playlist, onSuccess }: Props) {
 				</Select>
 			</div>
 
-			{updatePlaylist.error && (
+			{!!updatePlaylist.error && (
 				<p className="text-sm text-destructive">
 					{getApiErrorMessage(updatePlaylist.error)}
 				</p>

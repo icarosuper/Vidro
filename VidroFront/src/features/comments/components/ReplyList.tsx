@@ -5,6 +5,7 @@ import { Button } from '#/components/ui/button'
 import { Textarea } from '#/components/ui/textarea'
 import { useIsAuthenticated } from '#/features/auth/hooks'
 import { ReactionType } from '#/shared/types'
+import type { ReactionTypeValue } from '#/shared/types'
 import { useAddComment, useDeleteComment, useEditComment, useReactToComment, useRemoveCommentReaction, useReplies } from '../hooks'
 import type { ReplySummary } from '../types'
 import { ExpandableText } from './ExpandableText'
@@ -39,7 +40,7 @@ function ReplyItem({ reply, videoId, parentCommentId, currentUserId, isAuthentic
   const isOwner = !!currentUserId && currentUserId === reply.userId
   const isMutating = reactToComment.isPending || removeReaction.isPending
 
-  function handleReact(type: ReactionType) {
+  function handleReact(type: ReactionTypeValue) {
     if (!isAuthenticated) return
     const isActive = reply.userReaction?.id === type
     if (isActive) {
