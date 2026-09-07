@@ -17,7 +17,7 @@ decision by **anchor**, never by line number — `[design-decisions.md #4](desig
 - [**#6** — NVENC resolved at startup, CPU fallback inside each step](#6-nvenc-resolved-at-startup-cpu-fallback-inside-each-step)
 - [**#7** — Raw videos soft-archived, then deleted by lifecycle rule](#7-raw-videos-soft-archived-then-deleted-by-lifecycle-rule)
 - [**#8** — Circuit breakers with different thresholds for MinIO vs Redis](#8-circuit-breakers-with-different-thresholds-for-minio-vs-redis)
-- [**#9** — Worker count defaults to `runtime.NumCPU()`](#9-worker-count-defaults-to-runtimenumcpu)
+- [**#9** — Worker count derived from the cores and the FFmpeg processes one job can spawn](#9-worker-count-derived-from-the-cores-and-the-ffmpeg-processes-one-job-can-spawn)
 - [**#10** — Webhook contract uses camelCase to match the .NET API](#10-webhook-contract-uses-camelcase-to-match-the-net-api)
 - [**#11** — Single bucket, path-based namespacing](#11-single-bucket-path-based-namespacing)
 - [**#12** — Graceful shutdown with a hard 30-second ceiling](#12-graceful-shutdown-with-a-hard-30-second-ceiling)
@@ -92,12 +92,16 @@ A new entry takes the **next number** (highest today is **#12**) plus one line h
 - **Different thresholds**: Redis failures cheaper to retry + more likely to self-heal, so trip faster (3 vs 5) and reset sooner (30s vs 60s). MinIO ops expensive + sometimes slow — tolerate more failures before opening to avoid thrashing.
 - **`MaxRequests: 1` in half-open**: one probe request only while half-open; don't flood recovering service.
 
-### 9. Worker count defaults to `runtime.NumCPU()`
+### 9. Worker count derived from the cores and the FFmpeg processes one job can spawn
 
-`main.go`.
+`processor.DefaultWorkerCount`, called from `workerCount` in `main.go`.
 
-- **Why**: FFmpeg is CPU-bound, so one worker per core is right starting point. Default avoids wasted threads waiting on I/O while still saturating encoder.
-- **Override via `WORKER_COUNT`**: set explicitly for NVENC deployments (GPU is bottleneck, fewer workers better) or containers with CPU quotas (where `NumCPU` reports host count).
+- **Was `runtime.NumCPU()` until 2026-09-07**, on the premise that the worker is the unit of parallelism. It is not, and the premise was already stale: a job runs up to `MAX_PARALLEL_POST_TRANSCODE_STEPS` FFmpeg processes at once (steps 4-7), and no FFmpeg command in `internal/` passes `-threads`, so libx264 opens roughly 1.5x the core count in threads per process. `NumCPU` workers on an 8-core host meant up to **32 concurrent FFmpeg** fighting over 8 cores.
+- **Why the division**: `numCPU / clampParallelSteps(...)` keeps concurrent FFmpeg near the core count. It follows the two knobs that create the contention — `PARALLEL_NON_CRITICAL_STEPS=false` or `MAX_PARALLEL_POST_TRANSCODE_STEPS=1` give one process per job, and the default goes back to one worker per core on its own. No new knob.
+- **Floor of 1**: a host with fewer cores than parallel steps still starts a worker. Refusing to run is worse than oversubscribing a single job.
+- **Override via `WORKER_COUNT`** (any value > 0 wins): NVENC deployments (the GPU is the bottleneck, so fewer workers is better) and containers with CPU quotas, where `NumCPU` reports the *host's* cores and the derived default is still too high.
+- **`MAX_PARALLEL_POST_TRANSCODE_STEPS` is a different guard**: it bounds one job's FFmpeg processes (`clampParallelSteps`, shared with `runNonCriticalStepsParallel` so the two cannot drift). This default bounds the *host*, which nothing did before.
+- **Not measured yet**: the number is reasoned, not benchmarked. P-PERF6 in the root `TODO.md` is what would confirm it — and it only became worth running once the processes stopped trampling each other.
 
 ### 10. Webhook contract uses camelCase to match the .NET API
 

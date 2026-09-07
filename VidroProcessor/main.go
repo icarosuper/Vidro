@@ -38,6 +38,17 @@ func jobTimeout(cfg *config.Config) time.Duration {
 	return processor.JobBudget(cfg.ProcessingTimeoutScale)
 }
 
+// workerCount returns how many queue-consuming goroutines to start: WORKER_COUNT when
+// set, otherwise derived from the cores and from how many FFmpeg processes one job can
+// spawn at once — see processor.DefaultWorkerCount.
+func workerCount(cfg *config.Config) int {
+	if cfg.WorkerCount > 0 {
+		return cfg.WorkerCount
+	}
+	return processor.DefaultWorkerCount(
+		runtime.NumCPU(), cfg.ParallelNonCriticalSteps, cfg.MaxParallelPostTranscodeSteps)
+}
+
 func main() {
 	// Configure zerolog
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
@@ -61,12 +72,15 @@ func main() {
 	// Start HTTP server with metrics and health check
 	startHTTPServer(cfg.HTTPPort)
 
-	numWorkers := cfg.WorkerCount
-	if numWorkers == 0 {
-		numWorkers = runtime.NumCPU()
-	}
+	numWorkers := workerCount(cfg)
 
-	log.Info().Int("workers", numWorkers).Dur("jobTimeout", jobTimeout(cfg)).Msg("Starting video-processor")
+	log.Info().
+		Int("workers", numWorkers).
+		Int("cores", runtime.NumCPU()).
+		Bool("parallelNonCriticalSteps", cfg.ParallelNonCriticalSteps).
+		Int("maxParallelPostTranscodeSteps", cfg.MaxParallelPostTranscodeSteps).
+		Dur("jobTimeout", jobTimeout(cfg)).
+		Msg("Starting video-processor")
 
 	ctx, cancel := context.WithCancel(context.Background())
 

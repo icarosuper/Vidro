@@ -210,7 +210,7 @@ cd .. && docker compose up -d --build
 | `MINIO_BUCKET_NAME` | `videos` | Bucket name |
 | `MINIO_USE_SSL` | `false` | Enable SSL on MinIO |
 | `HTTP_PORT` | `8080` | HTTP server port |
-| `WORKER_COUNT` | CPU cores | Number of parallel workers |
+| `WORKER_COUNT` | derived | Number of parallel workers. `0` = cores / FFmpeg processes per job (2 on an 8-core host with the defaults) |
 | `MAX_FILE_SIZE_MB` | `5120` (5GB) | Maximum file size |
 | `WEBHOOK_SECRET` | — | HMAC secret for signing webhooks |
 | `OTEL_ENDPOINT` | — | OTLP endpoint for tracing (e.g. `localhost:4318`) |

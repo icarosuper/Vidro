@@ -38,7 +38,7 @@ first (`godotenv`, missing file is fine — Docker injects the vars instead), th
 
 | Variable | Default | Description |
 |---|---|---|
-| `WORKER_COUNT` | `0` = `runtime.NumCPU()` | Goroutines consuming the queue. One per core is the right starting point because FFmpeg is CPU-bound. **Override it in two cases**: on an NVENC host (the GPU is the bottleneck, so fewer workers is faster) and in a container with a CPU quota (`NumCPU` reports the *host's* cores, not the quota, so the default over-subscribes). See [#9](design-decisions.md#9-worker-count-defaults-to-runtimenumcpu) |
+| `WORKER_COUNT` | `0` = derived | Goroutines consuming the queue. `0` derives it as `NumCPU / parallel FFmpeg processes per job` (floor 1), because one job runs up to `MAX_PARALLEL_POST_TRANSCODE_STEPS` FFmpeg processes at once and none of them passes `-threads` — one worker per core meant up to 4x the cores in concurrent FFmpeg. On 8 cores with today's defaults that is **2 workers**; with `PARALLEL_NON_CRITICAL_STEPS=false` it is 8. **Override it in two cases**: on an NVENC host (the GPU is the bottleneck, so fewer workers is faster) and in a container with a CPU quota (`NumCPU` reports the *host's* cores, not the quota, so even the derived default over-subscribes). See [#9](design-decisions.md#9-worker-count-derived-from-the-cores-and-the-ffmpeg-processes-one-job-can-spawn) |
 
 ## Processing
 

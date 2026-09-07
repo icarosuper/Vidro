@@ -13,7 +13,8 @@ Processor virou o P6 daqui; `workflow.md` do Front, o `docker-compose.yml` do Pr
 regras repetidas nos três `CLAUDE.md` foram removidos; README da raiz criado).
 *(2026-09-07)* busca ligada de ponta a ponta, `ThemeToggle` no Header, devtools fora de
 produção, `typecheck` no CI do front (com os 23 erros de tipo pré-existentes zerados),
-`gofmt` checado no CI do Processor e o teste template da API deletado.
+`gofmt` checado no CI do Processor, o teste template da API deletado e o **P-PERF5**
+(default de `WORKER_COUNT` derivado dos cores ÷ processos FFmpeg por job).
 Itens marcados `[x]` trazem o commit e o que ficou no lugar.
 
 **Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
@@ -455,24 +456,22 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 ### 🔴 Prioridade alta
 
-- [ ] **P-PERF5: `WORKER_COUNT` × passos paralelos oversubscreve a CPU.**
-      `main.go:64-67` — `WORKER_COUNT=0` (o default) vira `runtime.NumCPU()`. Cada job roda
-      até `MAX_PARALLEL_POST_TRANSCODE_STEPS` (default **4**) processos FFmpeg em paralelo
-      (`internal/processor/processor.go:196-203`), e **nenhum comando FFmpeg passa `-threads`**
-      (varredura em `internal/`), então cada processo fica no modo automático — libx264 abre
-      ~1,5× o número de cores em threads. Num host de 8 cores: até **32 FFmpeg simultâneos**
-      disputando 8 cores.
-      Não é oversight: é decisão documentada — `docs/agents/design-decisions.md` #9,
-      *"FFmpeg is CPU-bound, so one worker per core is right starting point"*. A premissa é que
-      o worker é a unidade de paralelismo, mas o FFmpeg **já** paraleliza internamente — e a
-      decisão foi tomada **antes** de o P-PERF3 multiplicar por 4 o número de processos por
-      job. Nunca foi revisitada.
-      Para encode CPU-bound o default certo é 1–2 workers (ou `max(1, NumCPU/4)`), com
-      `WORKER_COUNT` continuando a mandar. Mexer aqui obriga a reescrever a decisão #9 e a
-      linha do `WORKER_COUNT` em `docs/agents/config.md:41`, que hoje só alerta para quota de
-      CPU em container — não para a disputa entre workers do mesmo host.
-      **Barato e reversível** (um número de default + duas docs), e vem **antes** de qualquer
-      benchmark: medição não é interpretável enquanto os processos se atropelam.
+- [x] ~~**P-PERF5: `WORKER_COUNT` × passos paralelos oversubscreve a CPU.**~~ **RESOLVIDO**
+      *(2026-09-07)*. `processor.DefaultWorkerCount(numCPU, parallelSteps, maxParallelSteps)`
+      = `numCPU / processos FFmpeg por job`, piso 1; `workerCount(cfg)` no `main.go` (mesmo
+      padrão de `jobTimeout`/`JobBudget`). Num host de 8 cores: **2 workers** em vez de 8, e
+      ~8 FFmpeg simultâneos em vez de até 32. Desligar `PARALLEL_NON_CRITICAL_STEPS` ou baixar
+      `MAX_PARALLEL_POST_TRANSCODE_STEPS` para 1 devolve 1 worker por core sozinho — nenhum
+      knob novo. `WORKER_COUNT > 0` continua mandando.
+      O clamp `[1,4]` que estava inline em `runNonCriticalStepsParallel` virou
+      `clampParallelSteps`, compartilhado com o default: teste que copia a condição não pega
+      drift (mesma lição dos testes de `queue/`).
+      Docs reescritas: decisão **#9** (título, âncora e índice), `config.md:41`,
+      `architecture.md:27`, `features-index.md:9`, `GETTING_STARTED.md:213`.
+      Testes: `internal/processor/workers_test.go` — a invariante é
+      `workers × passos paralelos ≤ cores`. **Verificado por mutação:** trocar
+      `processesPerJob` por `1` quebra 2 dos 4 testes.
+      **Continua não medido:** o número é raciocinado, não medido — é o P-PERF6 que confirma.
 
 ### 🟡 Prioridade média
 
@@ -609,6 +608,6 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 7. README raiz + doc do fluxo ponta a ponta (P4).
 8. Histórico/notificações (P5).
 9. Performance do pipeline (P6) — ✅ ~~P-PERF1 a P-PERF4~~ (já estavam no código; marcados
-   em 2026-09-03). O que sobrou, em ordem: **P-PERF5** (default de `WORKER_COUNT` — barato,
-   reversível, e nenhuma medição vale nada antes dele), depois P-OPT1, e só então P-PERF6
-   (benchmark) para medir o que P-PERF1/2/3 renderam de fato.
+   em 2026-09-03) e ✅ ~~P-PERF5~~ (2026-09-07). Sobrou **P-OPT1** e, depois dele, **P-PERF6**
+   (benchmark) — que agora finalmente vale a pena: com o P-PERF5 fechado, os processos não se
+   atropelam mais e a medição passa a ser interpretável.
