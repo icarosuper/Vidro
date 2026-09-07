@@ -436,31 +436,36 @@ segundo backlog do mesmo worker, sem nenhum item em comum com este arquivo. O qu
 concluído lá não foi copiado: quem quer saber o que existe lê
 `VidroProcessor/docs/agents/features-index.md`, que mapeia feature → arquivo.
 
-**Custo hoje:** um vídeo de ~500 MB / 1080p leva vários minutos. Os três primeiros itens
-juntos devem levar para ~2–3 min.
+**Estado em 2026-09-03:** P-PERF1 a P-PERF4 estão **implementados no código** e estavam
+marcados `[ ]` aqui — mesma classe de drift do P0.1 ("documentação que mente"), agora do lado
+do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a meta de
+"~2–3 min" continua sendo estimativa de papel, ninguém rodou antes/depois (ver P-PERF6).
 
-- [ ] **P-PERF1: HLS em comando único (maior impacto).** `SegmentForStreaming`
-      (`internal/processor/processor-steps/streaming.go`) roda um processo FFmpeg por variante,
-      em sequência — até 5 passes de encode completos para 1080p, cada um relendo o input
-      inteiro. Trocar o loop por uma invocação só com `-filter_complex split` + vários `-map`:
-      FFmpeg lê o input uma vez e encoda todas as variantes juntas. Ganho esperado: **~4–5×**
-      no passo 7.
-- [ ] **P-PERF2: preset de transcode `medium` → `fast`.** `TranscodeVideo`
-      (`transcode.go`) usa `-preset medium`. Para web/streaming, `fast` ou `faster` dá ~2× de
-      velocidade com diferença de qualidade desprezível (CRF 23 inalterado). Ganho: **~2×** no
-      passo 3.
-- [ ] **P-PERF3: paralelizar os passos não-críticos 4–7.** Thumbnails, áudio, preview e
-      streaming rodam em sequência em `processor.go`, mas são independentes — todos leem o
-      arquivo transcodificado. Goroutines + `errgroup` fazem o tempo total virar
-      `max(4,5,6,7)` em vez da soma. Ganho: **~2–3×** no bloco.
-- [ ] **P-PERF4: guard rails para o pipeline otimizado.** Reduz o risco de soltar
-      P-PERF1/2/3: teto configurável de tarefas FFmpeg paralelas por job (evita pico de
-      CPU/RAM); política de cancelamento explícita (falha de passo não-crítico não derruba o
-      pipeline, mas cancelar o contexto pai interrompe todos); manter
-      `video_processing_step_duration_seconds{step=...}` por passo paralelizado; fallback do
-      HLS de comando único para o modo sequencial; e flags de env para rollout e rollback
-      rápido (`PARALLEL_NON_CRITICAL_STEPS`, `MAX_PARALLEL_POST_TRANSCODE_STEPS`,
-      `HLS_SINGLE_COMMAND`, `HLS_SINGLE_COMMAND_FALLBACK`).
+**Custo original:** um vídeo de ~500 MB / 1080p levava vários minutos.
+
+### 🔴 Prioridade alta
+
+- [ ] **P-PERF5: `WORKER_COUNT` × passos paralelos oversubscreve a CPU.**
+      `main.go:64-67` — `WORKER_COUNT=0` (o default) vira `runtime.NumCPU()`. Cada job roda
+      até `MAX_PARALLEL_POST_TRANSCODE_STEPS` (default **4**) processos FFmpeg em paralelo
+      (`internal/processor/processor.go:196-203`), e **nenhum comando FFmpeg passa `-threads`**
+      (varredura em `internal/`), então cada processo fica no modo automático — libx264 abre
+      ~1,5× o número de cores em threads. Num host de 8 cores: até **32 FFmpeg simultâneos**
+      disputando 8 cores.
+      Não é oversight: é decisão documentada — `docs/agents/design-decisions.md` #9,
+      *"FFmpeg is CPU-bound, so one worker per core is right starting point"*. A premissa é que
+      o worker é a unidade de paralelismo, mas o FFmpeg **já** paraleliza internamente — e a
+      decisão foi tomada **antes** de o P-PERF3 multiplicar por 4 o número de processos por
+      job. Nunca foi revisitada.
+      Para encode CPU-bound o default certo é 1–2 workers (ou `max(1, NumCPU/4)`), com
+      `WORKER_COUNT` continuando a mandar. Mexer aqui obriga a reescrever a decisão #9 e a
+      linha do `WORKER_COUNT` em `docs/agents/config.md:41`, que hoje só alerta para quota de
+      CPU em container — não para a disputa entre workers do mesmo host.
+      **Barato e reversível** (um número de default + duas docs), e vem **antes** de qualquer
+      benchmark: medição não é interpretável enquanto os processos se atropelam.
+
+### 🟡 Prioridade média
+
 - [ ] **P-OPT1: tornar os passos não-críticos opcionais.** Passos 4–7 não são necessários
       para toda superfície do produto: hoje o front toca o **MP4 processado** + thumbnails —
       `GetVideo` monta `videoUrl` a partir de `ProcessedPath` e nunca expõe `hlsPath`.
@@ -476,10 +481,53 @@ juntos devem levar para ~2–3 min.
       > `GetVideo` de virar o caminho principal de reprodução — coloque o passo atrás de uma
       > flag, não apague.
 
+### 🟢 Prioridade baixa
+
+- [ ] **P-PERF6: benchmark de transcode — escopo enxuto.** `VidroProcessor/docs/TESTING.md:198`
+      já lista "Transcoding + throughput benchmarks" como lacuna. O que vale: um
+      `go test -bench` sobre `TranscodeVideo` com um clipe fixo de ~10s versionado, medindo
+      **uma variável de cada vez** (`WORKER_COUNT`, depois `MAX_PARALLEL_POST_TRANSCODE_STEPS`),
+      num host só. Serve para (a) confirmar o default escolhido no P-PERF5 e (b) finalmente
+      medir o ganho de P-PERF1/2/3, que hoje é só estimativa.
+      **O que não vale: matriz de perfis de hardware** (RAM × cores × GPU) para "otimizar para
+      cada caso". É especulativo enquanto há um worker, um host e deploy manual — auto-scaling e
+      escala horizontal estão abertos aqui embaixo, e são o pré-requisito de fazer sentido.
+      E o instrumento já existe: `metrics/metrics.go` expõe
+      `video_processing_step_duration_seconds{step}`, `video_processing_duration_seconds` e
+      `video_size_bytes` — medição por passo, com input real e carga real. Olhar o que já está
+      instalado ganha de um harness sintético, e custa zero código.
+
+### ~~Concluído~~ ✅ — P-PERF1 a P-PERF4 *(marcados em 2026-09-03; código já estava lá)*
+
+- [x] ~~**P-PERF1: HLS em comando único (maior impacto).**~~ `segmentForStreamingSingleCommand`
+      (`internal/processor/processor-steps/streaming.go:114`) monta uma invocação só, com
+      `-filter_complex` (`:134`) e um `-map` por variante — FFmpeg lê o input uma vez. O loop
+      sequencial sobreviveu de propósito, como fallback (`:100`).
+- [x] ~~**P-PERF2: preset de transcode `medium` → `fast`.**~~ `transcode.go:32` usa
+      `-preset fast`, CRF inalterado. O caminho NVENC usa o preset de `NVENC_PRESET`
+      (default `p5`).
+- [x] ~~**P-PERF3: paralelizar os passos não-críticos 4–7.**~~ `runNonCriticalStepsParallel`
+      (`internal/processor/processor.go:195`): semáforo dimensionado por
+      `MaxParallelPostTranscodeSteps`, `sync.WaitGroup` e mutex no `result`. **Não** usa
+      `errgroup` como o item previa — passo não-crítico que falha não pode cancelar os irmãos,
+      que é exatamente a política que o `errgroup` aplicaria.
+- [x] ~~**P-PERF4: guard rails para o pipeline otimizado.**~~ Os quatro no lugar: teto de
+      FFmpeg paralelos por job (`processor.go:197-203`, com clamp em `[1,4]` — passar mais que
+      4 é silenciosamente ignorado, e 4 é o número de passos); métrica por passo preservada
+      (`processor.go:276`, `metrics.ProcessingStepDuration`); fallback do HLS de comando único
+      para o sequencial (`streaming.go:86-97`, atrás de `HLS_SINGLE_COMMAND_FALLBACK`); e as
+      quatro flags de env em `config/config.go:41-44`, documentadas em
+      `docs/agents/config.md:48-51`.
+
+      > O teto do P-PERF4 protege contra pico de CPU/RAM **dentro de um job**. Ele não vê os
+      > outros workers do mesmo host — é essa lacuna que o P-PERF5 fecha.
+
 **Longo prazo — escalabilidade:**
 
 - [ ] **Auto-scaling:** subir workers conforme o tamanho da fila.
 - [ ] **Escala horizontal:** várias instâncias do worker em máquinas diferentes.
+      É o que faria a matriz de perfis de hardware descartada no P-PERF6 passar a fazer
+      sentido: com uma máquina só, não faz.
 - [ ] **Prioridade na fila:** vídeos curtos primeiro, longos em fila separada.
 
 ---
@@ -532,5 +580,7 @@ juntos devem levar para ~2–3 min.
 6. SEO + error boundaries (P3), CI no Front e Processor (P1).
 7. README raiz + doc do fluxo ponta a ponta (P4).
 8. Histórico/notificações (P5).
-9. Performance do pipeline (P6) — P-PERF1 e P-PERF2 sozinhos já valem a maior parte do ganho
-   e são mudanças pequenas; P-PERF4 é pré-requisito de soltar P-PERF3 com segurança.
+9. Performance do pipeline (P6) — ✅ ~~P-PERF1 a P-PERF4~~ (já estavam no código; marcados
+   em 2026-09-03). O que sobrou, em ordem: **P-PERF5** (default de `WORKER_COUNT` — barato,
+   reversível, e nenhuma medição vale nada antes dele), depois P-OPT1, e só então P-PERF6
+   (benchmark) para medir o que P-PERF1/2/3 renderam de fato.
