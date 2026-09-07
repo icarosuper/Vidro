@@ -9,7 +9,7 @@ This file is Go-specific.
 
 ## Formatting
 
-- Standard `gofmt` / `go vet`. No custom linter.
+- Standard `gofmt` / `go vet`. No custom linter. CI fails on unformatted files (`gofmt -l` must be empty), so run `gofmt -w .` before committing.
 - Package names: lower-case, short (`queue`, `minio`, `metrics`, `processor`).
 
 ## Logging

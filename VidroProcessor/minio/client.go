@@ -18,8 +18,8 @@ import (
 type VideoType string
 
 const (
-	VideoTypeRaw        VideoType = "raw"
-	VideoTypeProcessed  VideoType = "processed"
+	VideoTypeRaw         VideoType = "raw"
+	VideoTypeProcessed   VideoType = "processed"
 	VideoTypeRawArchived VideoType = "raw-archived"
 )
 

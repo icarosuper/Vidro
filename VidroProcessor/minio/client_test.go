@@ -9,7 +9,7 @@ func TestContentTypeByExt(t *testing.T) {
 	}{
 		{".jpg", "image/jpeg"},
 		{".jpeg", "image/jpeg"},
-		{".JPG", "image/jpeg"},  // case-insensitive
+		{".JPG", "image/jpeg"}, // case-insensitive
 		{".mp3", "audio/mpeg"},
 		{".mp4", "video/mp4"},
 		{".ts", "video/MP2T"},
