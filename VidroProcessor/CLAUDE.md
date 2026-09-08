@@ -25,6 +25,7 @@ go run main.go
 ## Running tests
 
 ```bash
+golangci-lint fmt && golangci-lint run            # the CI gate — run it before committing
 go test ./...                                     # unit
 go test -v ./test/integration/... -timeout 10m    # integration (needs Docker)
 ```

@@ -38,7 +38,7 @@ func TestProcessingDuration_Observe(t *testing.T) {
 
 	// Check that the histogram recorded observations
 	metric := &dto.Metric{}
-	if err := ProcessingDuration.(prometheus.Histogram).Write(metric); err != nil {
+	if err := ProcessingDuration.Write(metric); err != nil {
 		t.Fatalf("Error reading metric: %v", err)
 	}
 
@@ -62,7 +62,7 @@ func TestProcessingStepDuration_MultipleSteps(t *testing.T) {
 
 	// Check that each step was recorded
 	for _, step := range steps {
-		histogram := ProcessingStepDuration.WithLabelValues(step).(prometheus.Observer)
+		histogram := ProcessingStepDuration.WithLabelValues(step)
 
 		// There is no direct way to read a histogram value with labels in the Prometheus client
 		// But we can verify there is no error when using the metric

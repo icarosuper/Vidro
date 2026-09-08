@@ -67,7 +67,7 @@ func SegmentForStreamingWithOptions(ctx context.Context, inputPath, outputDir st
 }
 
 func segmentForStreamingBody(ctx context.Context, inputPath, outputDir string, opts HLSOptions, encoder, nvencPreset string) error {
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
@@ -100,7 +100,7 @@ func segmentForStreamingBody(ctx context.Context, inputPath, outputDir string, o
 func segmentForStreamingSequential(ctx context.Context, inputPath, outputDir string, selected []hlsVariant, encoder, nvencPreset string) error {
 	for _, v := range selected {
 		varDir := filepath.Join(outputDir, v.Name)
-		if err := os.MkdirAll(varDir, 0755); err != nil {
+		if err := os.MkdirAll(varDir, 0o755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", v.Name, err)
 		}
 		if err := transcodeHLSVariant(ctx, inputPath, varDir, v, encoder, nvencPreset); err != nil {
@@ -113,7 +113,7 @@ func segmentForStreamingSequential(ctx context.Context, inputPath, outputDir str
 
 func segmentForStreamingSingleCommand(ctx context.Context, inputPath, outputDir string, selected []hlsVariant, encoder, nvencPreset string) error {
 	for _, v := range selected {
-		if err := os.MkdirAll(filepath.Join(outputDir, v.Name), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(outputDir, v.Name), 0o755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", v.Name, err)
 		}
 	}
@@ -255,11 +255,12 @@ func transcodeHLSVariantNVENC(ctx context.Context, inputPath, varDir string, v h
 		playlistPath,
 	}
 	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
-	output, err := cmd.CombinedOutput()
-	if err == nil {
+	// The output of this attempt is not read: the retry below is what reports failure.
+	if _, err := cmd.CombinedOutput(); err == nil {
 		return nil
+	} else {
+		log.Warn().Err(err).Str("variant", v.Name).Msg("HLS variant NVENC with CUDA decode failed, retrying without hwaccel")
 	}
-	log.Warn().Err(err).Str("variant", v.Name).Msg("HLS variant NVENC with CUDA decode failed, retrying without hwaccel")
 
 	args = []string{
 		"-i", inputPath,
@@ -280,7 +281,7 @@ func transcodeHLSVariantNVENC(ctx context.Context, inputPath, varDir string, v h
 		playlistPath,
 	}
 	cmd = exec.CommandContext(ctx, "ffmpeg", args...)
-	output, err = cmd.CombinedOutput()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("segmentation failed %s: %w, output: %s", v.Name, err, string(output))
 	}
@@ -294,7 +295,7 @@ func writeMasterPlaylist(outputDir string, variants []hlsVariant) error {
 		fmt.Fprintf(&sb, "#EXT-X-STREAM-INF:BANDWIDTH=%d\n%s/playlist.m3u8\n", v.Bandwidth, v.Name)
 	}
 	masterPath := filepath.Join(outputDir, "master.m3u8")
-	return os.WriteFile(masterPath, []byte(sb.String()), 0644)
+	return os.WriteFile(masterPath, []byte(sb.String()), 0o644)
 }
 
 func probeSourceHeight(ctx context.Context, inputPath string) int {

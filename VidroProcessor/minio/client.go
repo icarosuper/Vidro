@@ -6,13 +6,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"video-processor/config"
-	"video-processor/internal/circuitbreaker"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/minio/minio-go/v7/pkg/lifecycle"
 	"github.com/rs/zerolog/log"
+
+	"video-processor/config"
+	"video-processor/internal/circuitbreaker"
 )
 
 type VideoType string
@@ -41,7 +42,6 @@ func InitMinioClient(config *config.Config) {
 		Creds:  credentials.NewStaticV4(cfg.MinioRootUser, cfg.MinioRootPassword, token),
 		Secure: cfg.MinioUseSSL,
 	})
-
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize MinIO client")
 	}

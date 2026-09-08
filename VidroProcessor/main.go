@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,7 +16,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-
 	"go.opentelemetry.io/otel/attribute"
 	oteltrace "go.opentelemetry.io/otel/trace"
 
@@ -65,7 +65,11 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize tracing")
 	}
-	defer shutdownTracing(context.Background())
+	defer func() {
+		if err := shutdownTracing(context.Background()); err != nil {
+			log.Warn().Err(err).Msg("Failed to shut down tracing")
+		}
+	}()
 
 	initClients(cfg)
 
@@ -112,7 +116,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	// Start workers
-	for i := 0; i < numWorkers; i++ {
+	for i := range numWorkers {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
@@ -123,7 +127,7 @@ func main() {
 					return
 				default:
 					if err := processNextMessage(ctx, workerID, cfg, videoEncoder); err != nil {
-						if err != context.Canceled {
+						if !errors.Is(err, context.Canceled) {
 							log.Error().Err(err).Int("workerID", workerID).Msg("Error processing message")
 						}
 					}
@@ -191,7 +195,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK"))
 }
 
 func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, videoEncoder string) error {
@@ -265,12 +269,14 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 		outputPath := filepath.Join(os.TempDir(), videoID+"_output.mp4")
 
 		defer func() {
-			os.Remove(inputPath)
-			os.Remove(outputPath)
+			// Best-effort cleanup: the job is over either way, and a leftover temp file
+			// is a disk-space problem, not a job outcome.
+			_ = os.Remove(inputPath)
+			_ = os.Remove(outputPath)
 		}()
 
 		if err := minio.DownloadVideo(minio.VideoTypeRaw, videoID, inputPath); err != nil {
-			jobErr = fmt.Errorf("failed to download video: %v", err)
+			jobErr = fmt.Errorf("failed to download video: %w", err)
 			metrics.VideosProcessedTotal.WithLabelValues("error").Inc()
 			done <- jobErr
 			return
@@ -289,10 +295,10 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 			TimeoutScale:                  cfg.ProcessingTimeoutScale,
 		})
 		if result != nil {
-			defer os.RemoveAll(result.TempDir)
+			defer func() { _ = os.RemoveAll(result.TempDir) }()
 		}
 		if err != nil {
-			jobErr = fmt.Errorf("failed to process video: %v", err)
+			jobErr = fmt.Errorf("failed to process video: %w", err)
 			metrics.VideosProcessedTotal.WithLabelValues("error").Inc()
 			done <- jobErr
 			return
@@ -300,7 +306,7 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 
 		processedID := videoID + "_processed"
 		if err := minio.UploadVideo(outputPath, minio.VideoTypeProcessed, processedID); err != nil {
-			jobErr = fmt.Errorf("failed to upload video: %v", err)
+			jobErr = fmt.Errorf("failed to upload video: %w", err)
 			metrics.VideosProcessedTotal.WithLabelValues("error").Inc()
 			done <- jobErr
 			return
@@ -335,7 +341,7 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 		}
 
 		if err := queue.PublishSuccessMessage(processedID); err != nil {
-			jobErr = fmt.Errorf("failed to publish success message: %v", err)
+			jobErr = fmt.Errorf("failed to publish success message: %w", err)
 			metrics.VideosProcessedTotal.WithLabelValues("error").Inc()
 			done <- jobErr
 			return
@@ -365,7 +371,7 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 	case err := <-done:
 		return err
 	case <-processCtx.Done():
-		return fmt.Errorf("operation canceled: %v", processCtx.Err())
+		return fmt.Errorf("operation canceled: %w", processCtx.Err())
 	}
 }
 

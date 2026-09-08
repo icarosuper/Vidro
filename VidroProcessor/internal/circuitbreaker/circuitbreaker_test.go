@@ -49,8 +49,8 @@ func TestCircuitBreaker_OpensAfter5ConsecutiveFailures(t *testing.T) {
 		},
 	})
 
-	for i := 0; i < 5; i++ {
-		cb.Execute(func() (interface{}, error) { //nolint:errcheck
+	for range 5 {
+		cb.Execute(func() (interface{}, error) {
 			return nil, errFailure
 		})
 	}
@@ -71,8 +71,8 @@ func TestCircuitBreaker_OpensAfter3ConsecutiveFailures_Redis(t *testing.T) {
 		},
 	})
 
-	for i := 0; i < 3; i++ {
-		cb.Execute(func() (interface{}, error) { //nolint:errcheck
+	for range 3 {
+		cb.Execute(func() (interface{}, error) {
 			return nil, errFailure
 		})
 	}
@@ -93,8 +93,8 @@ func TestCircuitBreaker_RejectsCallsWhenOpen(t *testing.T) {
 		},
 	})
 
-	for i := 0; i < 3; i++ {
-		cb.Execute(func() (interface{}, error) { //nolint:errcheck
+	for range 3 {
+		cb.Execute(func() (interface{}, error) {
 			return nil, errFailure
 		})
 	}
@@ -120,11 +120,11 @@ func TestCircuitBreaker_DoesNotOpenWithNonConsecutiveFailures(t *testing.T) {
 	})
 
 	// 4 failures interleaved with 1 success — should not open
-	for i := 0; i < 4; i++ {
-		cb.Execute(func() (interface{}, error) { //nolint:errcheck
+	for range 4 {
+		cb.Execute(func() (interface{}, error) {
 			return nil, errFailure
 		})
-		cb.Execute(func() (interface{}, error) { //nolint:errcheck
+		cb.Execute(func() (interface{}, error) {
 			return "ok", nil
 		})
 	}
@@ -142,7 +142,6 @@ func TestCircuitBreaker_ReturnsResultWhenClosed(t *testing.T) {
 	result, err := cb.Execute(func() (interface{}, error) {
 		return "expected-value", nil
 	})
-
 	if err != nil {
 		t.Fatalf("did not expect error: %v", err)
 	}

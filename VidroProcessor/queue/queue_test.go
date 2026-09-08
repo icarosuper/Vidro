@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"video-processor/config"
-
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
+
+	"video-processor/config"
 )
 
 var errBoom = errors.New("boom")

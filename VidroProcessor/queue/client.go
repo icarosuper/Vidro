@@ -2,12 +2,14 @@ package queue
 
 import (
 	"context"
+	"fmt"
 	"time"
-	"video-processor/config"
-	"video-processor/internal/circuitbreaker"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
+
+	"video-processor/config"
+	"video-processor/internal/circuitbreaker"
 )
 
 var (
@@ -44,7 +46,9 @@ func deadLetterQueueName() string {
 // Uses BRPOPLPUSH to atomically move the job to the processing queue.
 func ConsumeMessage(ctx context.Context) (*Message, error) {
 	result, err := circuitbreaker.Redis.Execute(func() (interface{}, error) {
-		videoID, err := client.BRPopLPush(ctx, cfg.ProcessingRequestQueue, processingQueueName(), 0).Result()
+		// BRPOPLPUSH is deliberate, not legacy: see docs/agents/design-decisions.md #1.
+		// BLMOVE is the modern spelling but needs Redis 6.2+, which nothing here guarantees.
+		videoID, err := client.BRPopLPush(ctx, cfg.ProcessingRequestQueue, processingQueueName(), 0).Result() //nolint:staticcheck
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +57,11 @@ func ConsumeMessage(ctx context.Context) (*Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	return result.(*Message), nil
+	message, isMessage := result.(*Message)
+	if !isMessage {
+		return nil, fmt.Errorf("circuit breaker returned %T, expected *Message", result)
+	}
+	return message, nil
 }
 
 // AcknowledgeMessage removes the job from the processing queue after completion (success or failure).

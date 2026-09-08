@@ -21,7 +21,7 @@ type ThumbnailConfig struct {
 func GenerateThumbnails(ctx context.Context, inputPath, outputDir string) error {
 	config := ThumbnailConfig{Count: 5, Width: 320, Height: 180}
 
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create thumbnails directory: %w", err)
 	}
 

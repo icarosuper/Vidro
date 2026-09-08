@@ -23,7 +23,7 @@ func GenerateTestVideo(t *testing.T, duration int) string {
 	// Generate test video with FFmpeg
 	// testsrc: generates a visual test pattern
 	// sine: generates test audio
-	cmd := exec.Command("ffmpeg",
+	cmd := exec.CommandContext(t.Context(), "ffmpeg",
 		"-f", "lavfi",
 		"-i", "testsrc=duration=5:size=640x480:rate=30",
 		"-f", "lavfi",
@@ -54,7 +54,7 @@ func CreateInvalidFile(t *testing.T) string {
 	invalidPath := filepath.Join(tempDir, "invalid.mp4")
 
 	// Create file with invalid content
-	if err := os.WriteFile(invalidPath, []byte("not a valid video"), 0644); err != nil {
+	if err := os.WriteFile(invalidPath, []byte("not a valid video"), 0o644); err != nil {
 		t.Fatalf("Failed to create invalid file: %v", err)
 	}
 

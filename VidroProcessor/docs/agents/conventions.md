@@ -9,7 +9,7 @@ This file is Go-specific.
 
 ## Formatting
 
-- Standard `gofmt` / `go vet`. No custom linter. CI fails on unformatted files (`gofmt -l` must be empty), so run `gofmt -w .` before committing.
+- **`golangci-lint` is the gate**: `.golangci.yml` turns the rules below into build failures — `errorlint` (`%w`, never `%v`), `nilerr`, `forbidigo` (`os.Getenv` only in `config/config.go`, `time.Now` out of the pipeline steps), `depguard` (zerolog in the worker, a pipeline step never importing MinIO/Redis), `godox` (FIXME/HACK/XXX banned, **TODO allowed**), `noctx`, `bodyclose`. Run `golangci-lint fmt && golangci-lint run` before committing; the formatters are `gofumpt` + `goimports` (stricter than `gofmt`), and CI runs the same config. `contextcheck` is deliberately off — see the open TODO about the context not crossing `queue`/`minio`.
 - Package names: lower-case, short (`queue`, `minio`, `metrics`, `processor`).
 
 ## Logging

@@ -1,0 +1,122 @@
+# Cada linter aqui é uma regra que já estava escrita em docs/agents/conventions.md e que
+# passou a ser build vermelho. Prosa num .md o agente pode não ler; isto ele não escapa.
+# Padrão importado do mamut-api (ver ../docs/padroes-a-importar.md, item 1).
+version: "2"
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+linters:
+  default: standard
+  enable:
+    # conventions.md: fmt.Errorf("context: %w", err), nunca %v
+    - errorlint
+    # "erro não-crítico é engolido de propósito" — o nilerr pega o `return nil` com err
+    # vivo que NÃO foi de propósito
+    - nilerr
+    # config só em config/config.go; relógio injetado (regra da raiz, item 11)
+    - forbidigo
+    # fronteiras arquiteturais: zerolog no worker, passo de pipeline sem I/O externo
+    - depguard
+    # FIXME/HACK/XXX barrados, TODO liberado — ver settings
+    - godox
+    # toda chamada externa carrega contexto e fecha o corpo
+    - noctx
+    - bodyclose
+    # baratos e sem discussão
+    - copyloopvar
+    - intrange
+    - unconvert
+    - durationcheck
+    - errname
+    - usestdlibvars
+    - nolintlint
+  settings:
+    errcheck:
+      check-type-assertions: true
+      exclude-functions:
+        # Close em leitura/escrita já concluída: o erro não muda decisão nenhuma, e
+        # verificar em defer só empurra `_ =` para todo lugar.
+        - (io.Closer).Close
+        - (*os.File).Close
+        - (*github.com/minio/minio-go/v7.Object).Close
+    forbidigo:
+      analyze-types: true
+      forbid:
+        - pattern: "^os\\.Getenv$"
+          msg: "env var só em config/config.go, com notEmpty/envDefault — ver conventions.md"
+        - pattern: "^time\\.Now$"
+          msg: "tempo é injetado, não lido no meio do método (CLAUDE.md da raiz)"
+    godox:
+      # TODO é liberado de propósito: trabalho planejado marcado na linha do código não
+      # drifta como item de doc externa — e "só deixar um TODO" é uma das três opções da
+      # regra de "código ruim no caminho" do CLAUDE.md da raiz. FIXME/HACK/XXX seguem
+      # barrados: sinalizam código errado que subiu assim, e isso precisa de justificativa.
+      keywords:
+        - FIXME
+        - HACK
+        - XXX
+    nolintlint:
+      # require-specific: um `//nolint` sem linter desliga tudo naquela linha.
+      # allow-unused: directive que não suprime nada é sinal de que o código mudou.
+      # require-explanation fica desligado: os directives de teste do repo são todos o
+      # mesmo caso ("o erro não interessa aqui"), e exigir motivo em cada um só gera ruído.
+      require-explanation: false
+      require-specific: true
+      allow-unused: false
+    depguard:
+      rules:
+        log-estruturado-no-worker:
+          list-mode: lax
+          files:
+            - "$all"
+            - "!**/config/config.go"
+          deny:
+            - pkg: log
+              desc: "o worker loga com zerolog (github.com/rs/zerolog/log); o stdlib log só em config/config.go, que roda antes do logger existir"
+        passo-de-pipeline-nao-fala-com-o-mundo:
+          files:
+            - "**/internal/processor/processor-steps/**"
+          deny:
+            - pkg: video-processor/minio
+              desc: "passo de pipeline recebe caminho de arquivo; MinIO é do main.go, atrás de circuit breaker"
+            - pkg: video-processor/queue
+              desc: "passo de pipeline não conhece fila; quem orquestra é o main.go"
+            - pkg: github.com/redis/go-redis
+              desc: "passo de pipeline não fala com Redis; a fila mora em queue/, atrás de circuit breaker"
+            - pkg: github.com/minio/minio-go
+              desc: "passo de pipeline não fala com MinIO; o storage mora em minio/, atrás de circuit breaker"
+  exclusions:
+    rules:
+      # O relógio: proibido onde a decisão mora, liberado onde o tempo entra no sistema
+      # (state da fila, métricas, medição de duração de passo).
+      - path-except: internal/processor/processor-steps/
+        linters:
+          - forbidigo
+        text: "time\\.Now"
+      - path: _test\.go
+        linters:
+          - errcheck
+          - bodyclose
+          - noctx
+          - errorlint
+          - forbidigo
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    gofumpt:
+      module-path: video-processor
+    goimports:
+      # std / terceiros / video-processor — os três grupos que o código já usava.
+      # O gci faria o mesmo, mas briga com o gofumpt sobre o mesmo arquivo: os dois se
+      # desfazem em `golangci-lint fmt` e o lint nunca fica verde.
+      local-prefixes:
+        - video-processor

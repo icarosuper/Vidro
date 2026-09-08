@@ -60,7 +60,8 @@ func AnalyzeContent(ctx context.Context, inputPath string) (*VideoMetadata, erro
 	metadata := &VideoMetadata{}
 
 	for _, stream := range probeData.Streams {
-		if stream.CodecType == "video" {
+		switch stream.CodecType {
+		case "video":
 			metadata.Width = stream.Width
 			metadata.Height = stream.Height
 			metadata.VideoCodec = stream.CodecName
@@ -72,7 +73,7 @@ func AnalyzeContent(ctx context.Context, inputPath string) (*VideoMetadata, erro
 					metadata.FPS = numerator / denominator
 				}
 			}
-		} else if stream.CodecType == "audio" {
+		case "audio":
 			metadata.AudioCodec = stream.CodecName
 		}
 	}

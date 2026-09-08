@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	oteltrace "go.opentelemetry.io/otel/trace"
 
-	"video-processor/internal/processor/processor-steps"
+	processor_steps "video-processor/internal/processor/processor-steps"
 	"video-processor/internal/telemetry"
 	"video-processor/metrics"
 )
@@ -141,7 +141,7 @@ func ProcessVideo(ctx context.Context, inputPath, outputPath string, opts Option
 	videoBaseName = videoBaseName[:len(videoBaseName)-len(filepath.Ext(videoBaseName))]
 
 	tempDir := filepath.Join(baseDir, videoBaseName+"_temp")
-	if err := os.MkdirAll(tempDir, 0755); err != nil {
+	if err := os.MkdirAll(tempDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create temp directory: %w", err)
 	}
 

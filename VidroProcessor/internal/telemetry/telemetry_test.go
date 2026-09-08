@@ -24,7 +24,7 @@ func TestInit_EmptyEndpoint_Noop(t *testing.T) {
 }
 
 func TestInit_EmptyEndpoint_InstallsNoop(t *testing.T) {
-	Init(context.Background(), "test-service", "") //nolint:errcheck
+	Init(context.Background(), "test-service", "")
 
 	provider := otel.GetTracerProvider()
 	if _, ok := provider.(noop.TracerProvider); !ok {
@@ -33,7 +33,7 @@ func TestInit_EmptyEndpoint_InstallsNoop(t *testing.T) {
 }
 
 func TestTracer_ReturnsNonNil(t *testing.T) {
-	Init(context.Background(), "test-service", "") //nolint:errcheck
+	Init(context.Background(), "test-service", "")
 
 	tracer := Tracer()
 	if tracer == nil {
@@ -42,7 +42,7 @@ func TestTracer_ReturnsNonNil(t *testing.T) {
 }
 
 func TestTracer_CreatesSpan(t *testing.T) {
-	Init(context.Background(), "test-service", "") //nolint:errcheck
+	Init(context.Background(), "test-service", "")
 
 	tracer := Tracer()
 	ctx, span := tracer.Start(context.Background(), "test-span")
@@ -73,6 +73,6 @@ func TestInit_InvalidEndpoint_ReturnsError(t *testing.T) {
 		return
 	}
 	if shutdown != nil {
-		shutdown(context.Background()) //nolint:errcheck
+		shutdown(context.Background())
 	}
 }

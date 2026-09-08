@@ -628,6 +628,38 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
       `isOwner` do `CommentList` era sempre falso e ninguém via os botões de editar/apagar
       no próprio comentário. Era exatamente o tipo de erro que o portão existe para pegar.
 
+- [x] ~~**Nenhum linter no `VidroProcessor`**~~ **RESOLVIDO** *(2026-09-07)*. `.golangci.yml`
+      com 15 linters, cada um sendo uma regra que já estava escrita em prosa no
+      `conventions.md`: `errorlint` (`%w`), `nilerr`, `forbidigo` (`os.Getenv` só no
+      `config/config.go`, `time.Now` fora dos passos), `depguard` (zerolog no worker; passo de
+      pipeline não importa MinIO/Redis), `godox` (FIXME/HACK/XXX barrados, **TODO liberado**),
+      `noctx`, `bodyclose`, `nolintlint` + os baratos. Formatters `gofumpt` + `goimports`.
+      O passo **Lint** do `processor.yml` substituiu os passos de `gofmt` e `go vet`.
+      **Custou 74 achados**, todos zerados. Os que eram bug de verdade e não estilo:
+      - `queue/client.go` fazia `result.(*Message)` sem checar — asserção crua no retorno
+        `any` do circuit breaker, ou seja, panic no worker se o tipo mudasse.
+      - 5 `fmt.Errorf(... %v, err)` em `main.go` quebravam o `errors.Is` de quem chamasse, e
+        um `err != context.Canceled` no loop do worker falharia com erro embrulhado.
+      - `streaming.go:258` descartava a saída da primeira tentativa NVENC (`ineffassign`).
+      - `main.go` engolia o erro de `shutdownTracing` no `defer`; agora loga.
+      O resto foi mecânico: 16 de formatação, 13 `//nolint:errcheck` que ficaram redundantes
+      em teste, 5 `intrange`, `os.Remove`/`w.Write` com `_ =` explícito, `exec.Command` →
+      `CommandContext(t.Context())` no helper de teste e `http.NewRequestWithContext` no
+      webhook (com o motivo de ser `context.Background()` escrito no código).
+      Único `//nolint` novo: `BRPopLPush` (SA1019), que é decisão documentada (#1).
+
+- [ ] **O `context` do job não atravessa `queue/` e `minio/`** — achado pelos 16 avisos de
+      `contextcheck`, que por isso ficou **desligado** no `.golangci.yml`.
+      As funções públicas dos dois pacotes (`GetJobState`, `SetJobFailed`, `HealthCheck`,
+      `GetQueueSize`, `DownloadVideo`, `UploadVideo`, `UploadDirectory`, `ArchiveRawVideo`,
+      `PublishSuccessMessage`...) não aceitam `context.Context` e usam `context.Background()`
+      por dentro. Consequência real: quando o orçamento do job estoura ou o worker recebe
+      `SIGTERM`, o cancelamento **não chega** ao Redis nem ao MinIO — o download de 500 MB
+      segue até o fim, e o teto de 30s do shutdown gracioso (design-decisions #12) conta com
+      operações que não sabem que devem parar.
+      É refactor de assinatura pública dos dois pacotes (+ call sites no `main.go`), não
+      limpeza de lint. Quando estiver feito, religar o `contextcheck`.
+
 - [ ] `VidroProcessor/minio/client.go:34` — `const token = "" // TODO: Ver se precisa
       adicionar esse token`. **É o único marcador TODO/FIXME/HACK/BUG em todo o
       código dos três repos** (varredura em `.cs`, `.ts`, `.tsx`, `.go`, `.json`,
@@ -646,10 +678,9 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 5. ✅ ~~Ligar busca + ThemeToggle~~ (P3) — feito em 2026-09-07, junto com devtools fora de
    produção, `gofmt` no CI do Processor, o teste template da API deletado e os três portões do
    front no CI (**lint → typecheck → test → build**, com `noUncheckedIndexedAccess` ligado).
-5.1. **Fila combinada em 2026-09-07:** ✅ ~~fixture de contrato do webhook~~ e
-   ✅ ~~testes do `processor.go`~~ (os dois que valiam mais, feitos primeiro) → falta
-   `.golangci.yml` no Processor → `errorComponent`/`notFoundComponent` + `isError` → Header
-   responsivo.
+5.1. **Fila combinada em 2026-09-07:** ✅ ~~fixture de contrato do webhook~~,
+   ✅ ~~testes do `processor.go`~~ e ✅ ~~`.golangci.yml` no Processor~~ → falta
+   `errorComponent`/`notFoundComponent` + `isError` → Header responsivo.
    Tipos gerados do OpenAPI vêm depois da fixture: mais valor, mais trabalho.
 6. SEO + idioma (P3). **SEO não é acabamento:** exige `head` por rota nas 11 rotas e decidir o
    idioma antes (`<html lang="pt-BR">` com a UI em inglês) — é trabalho médio.

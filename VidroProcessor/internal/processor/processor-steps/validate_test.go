@@ -36,7 +36,7 @@ func TestValidateVideo_EmptyFile(t *testing.T) {
 	tempDir := t.TempDir()
 	emptyPath := filepath.Join(tempDir, "empty.mp4")
 
-	if err := os.WriteFile(emptyPath, []byte{}, 0644); err != nil {
+	if err := os.WriteFile(emptyPath, []byte{}, 0o644); err != nil {
 		t.Fatalf("Failed to create empty file: %v", err)
 	}
 

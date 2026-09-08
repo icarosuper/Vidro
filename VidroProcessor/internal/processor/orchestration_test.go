@@ -246,7 +246,7 @@ func TestRunStep_RecordsTheStepDuration(t *testing.T) {
 	stepName := fmt.Sprintf("metrics-probe-%d", time.Now().UnixNano())
 
 	before := testutil.CollectAndCount(metrics.ProcessingStepDuration)
-	runStep(context.Background(), stepName, time.Minute, succeeds) //nolint:errcheck
+	runStep(context.Background(), stepName, time.Minute, succeeds)
 	after := testutil.CollectAndCount(metrics.ProcessingStepDuration)
 
 	if after <= before {
@@ -263,7 +263,7 @@ func TestProcessVideo_InvalidInputFailsAtValidation(t *testing.T) {
 
 	tempDir := t.TempDir()
 	invalidPath := tempDir + "/invalid.mp4"
-	if err := os.WriteFile(invalidPath, []byte("not a valid video"), 0644); err != nil {
+	if err := os.WriteFile(invalidPath, []byte("not a valid video"), 0o644); err != nil {
 		t.Fatalf("failed to write the invalid file: %v", err)
 	}
 

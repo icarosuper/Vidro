@@ -26,10 +26,24 @@ de AST, teste. É aí que está o ganho.
 
 ## Go — VidroProcessor
 
-### 1. `.golangci.yml` (do mamut-api) — maior ganho isolado
+### ~~1. `.golangci.yml` (do mamut-api) — maior ganho isolado~~ ✅ *(2026-09-07)*
 
-`VidroProcessor/docs/agents/conventions.md` diz textualmente *"Standard `gofmt` / `go vet`.
-No custom linter."* O CI roda `go build`, `go vet`, `go test`. O mamut-api tem um
+`VidroProcessor/.golangci.yml` existe, com 15 linters, e o passo **Lint** do
+`.github/workflows/processor.yml` substituiu os passos separados de `gofmt` e `go vet`.
+Custou **74 achados** e uma decisão por achado (detalhe no `TODO.md`, "Sujeira pequena").
+Dois desvios do mamut-api, ambos deliberados:
+
+- **`contextcheck` ficou de fora**: os 16 achados dele são todos o mesmo problema real —
+  `queue/` e `minio/` não aceitam `context` e usam `context.Background()` por dentro, então
+  o cancelamento do job não chega ao Redis nem ao MinIO. Isso é refactor de assinatura
+  pública dos dois pacotes, não limpeza de lint; virou item próprio no `TODO.md`.
+- **`gci` ficou de fora**: briga com o `gofumpt` sobre o mesmo arquivo (um desfaz o outro em
+  `golangci-lint fmt`, e o `run` nunca fica verde). `goimports` com
+  `local-prefixes: video-processor` dá os mesmos três grupos.
+
+*(texto original abaixo)*
+
+O CI rodava `go build`, `go vet`, `go test`. O mamut-api tem um
 `.golangci.yml` de ~250 linhas onde cada linter **é** uma regra de `conventions.md` que
 virou build vermelho.
 
@@ -259,20 +273,25 @@ travada. Agora está.
 
 ## Ordem sugerida
 
-1. **`.golangci.yml` no Processor** (item 1) — maior ganho, zero decisão de produto
+1. ✅ ~~**`.golangci.yml` no Processor**~~ (item 1) — feito em 2026-09-07 (74 achados, todos
+   resolvidos; `contextcheck` e `gci` ficaram de fora com motivo)
 2. ✅ ~~**Regra do fail-fast vs. anomalia+ACK escrita**~~ (item 10) — feito em 2026-09-07
 3. ✅ ~~**`typecheck` no front**~~ (item 15) — feito em 2026-09-07 (custou 23 correções, não
    uma linha)
 4. **Seção de logging no `conventions.md` da API** (item 7) — a única seção que falta comparada aos outros dois serviços
 5. **Teste de contrato Go↔C# por AST** (item 3) — o que justifica o monorepo existir
 
-O resto (itens 2, 4, 5, 6, 8, 9, 11, 12, 13, 14, 17) não tem dependência entre si e pode entrar
-conforme se mexe na área correspondente. **Fechados:** 10, 15, 16, 18.
+O resto (itens 4, 5, 6, 8, 9, 11, 12, 13, 14, 17) não tem dependência entre si e pode entrar
+conforme se mexe na área correspondente. **Fechados:** 1, 10, 15, 16, 18. O item 2 perdeu
+metade do escopo: um dos dois candidatos a checker de AST deixou de existir.
 
 ---
 
 ## Já resolvido
 
+- **2026-09-07** — item 1 (`.golangci.yml`) ligado no Processor, com `contextcheck` e `gci`
+  fora por motivo documentado; metade do item 2 (checker de AST dos dois orquestradores)
+  deixou de ser necessária — os dois passaram a ler uma lista só.
 - **2026-09-07** — item 18 (`noUncheckedIndexedAccess`) ligado; item 16 (biome) fechado, com o
   formatter ligado e a regra de ternário da raiz relaxada para permitir uma linha.
 - **2026-09-07** — item 10 (fail-fast vs. anomalia+ACK) escrito no `conventions.md` da API.

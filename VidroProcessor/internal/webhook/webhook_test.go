@@ -20,7 +20,7 @@ func init() {
 func TestNotify_Success(t *testing.T) {
 	var received Payload
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewDecoder(r.Body).Decode(&received) //nolint:errcheck
+		json.NewDecoder(r.Body).Decode(&received)
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
@@ -45,7 +45,7 @@ func TestNotify_ContentTypeJSON(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	Notify(srv.URL, "", Payload{VideoID: "v1", Success: true}) //nolint:errcheck
+	Notify(srv.URL, "", Payload{VideoID: "v1", Success: true})
 
 	if contentType != "application/json" {
 		t.Fatalf("expected Content-Type 'application/json', got '%s'", contentType)
@@ -90,7 +90,7 @@ func TestNotify_NoSecret_NoHeader(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	Notify(srv.URL, "", Payload{VideoID: "v1", Success: true}) //nolint:errcheck
+	Notify(srv.URL, "", Payload{VideoID: "v1", Success: true})
 
 	if signature != "" {
 		t.Fatalf("should not send X-Webhook-Signature without secret, got: '%s'", signature)

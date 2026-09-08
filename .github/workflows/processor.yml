@@ -34,11 +34,14 @@ jobs:
       - name: Build
         run: go build ./...
 
-      - name: Format check
-        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
-
-      - name: Vet
-        run: go vet ./...
+      # golangci-lint carrega o .golangci.yml do VidroProcessor: substitui os passos
+      # separados de gofmt e go vet (govet está no conjunto `standard`, e os formatters
+      # gofumpt/goimports são mais estritos que o gofmt).
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.13
+          working-directory: VidroProcessor
 
       # Integration tests use testcontainers; Docker is available on the runner.
       - name: Test

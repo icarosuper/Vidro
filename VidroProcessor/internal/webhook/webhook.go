@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -57,7 +58,11 @@ func Notify(callbackURL, secret string, payload Payload) error {
 }
 
 func send(url, secret string, body []byte) error {
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	// context.Background() and not the job context on purpose: the webhook is sent from a
+	// defer, after the job is over, and often while the job context is already canceled —
+	// inheriting it would drop the notification the API is waiting for. The 10s
+	// httpClient.Timeout is what bounds this call.
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

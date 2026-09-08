@@ -244,9 +244,10 @@ FFmpeg is not available - skipping test
 
 ## CI/CD
 
-`.github/workflows/ci.yml` runs on push to `master` and on every PR: `go build`, `go vet`
-and `go test ./... -cover -timeout 15m`, with ffmpeg installed so the pipeline-step tests
-don't skip themselves.
+`.github/workflows/processor.yml` (monorepo root, filtered by path) runs on push to `master`
+and on every PR: `go build`, `golangci-lint` and `go test ./... -cover -timeout 15m`, with
+ffmpeg installed so the pipeline-step tests don't skip themselves. The lint step replaced the
+separate `gofmt` and `go vet` steps — both are inside the golangci-lint config now.
 
 ---
 
