@@ -20,7 +20,9 @@ aí os dois lados mudam juntos, no mesmo commit, e isso é o comportamento certo
 escopo. Fora esse caso, faltou algo no outro serviço — informe o usuário antes de mexer.
 
 **Contrato compartilhado** (nomes de fila Redis, caminhos no MinIO, formato do webhook): mude os
-dois lados **no mesmo commit**. É a razão principal de isto ser um monorepo — os dois P0 do
+dois lados **no mesmo commit**. O payload do webhook `video-processed` é o único trecho já travado
+por teste: os golden de [`contracts/`](contracts/README.md) são lidos pelo worker e pela API, então
+mudar um campo é editar o golden e os dois lados juntos — o resto do contrato ainda é disciplina. É a razão principal de isto ser um monorepo — os dois P0 do
 `TODO.md` foram divergências de contrato que ninguém viu por meses. Ver
 `VidroProcessor/docs/agents/design-decisions.md`.
 

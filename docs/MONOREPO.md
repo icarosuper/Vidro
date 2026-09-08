@@ -147,8 +147,11 @@ O maior ganho não é build, é **contrato**. Duas coisas que hoje são manuais 
   mentem", 4 rotas erradas no `features-index.md`) é esse problema se manifestando. A API já tem
   `MapOpenApi()` no `Program.cs` — hoje só em Development, o que basta para gerar tipos em dev/CI com
   `openapi-typescript` e falhar o CI quando front e API divergirem.
-- **API ↔ Processor — teste de contrato.** Nome de fila, paths do MinIO e payload do webhook agora
-  mudam num commit só; falta o teste que roda contra os dois lados de uma vez. Seria a rede que
-  pegaria o BUG-1 no ato.
+- **API ↔ Processor — teste de contrato.** ✅ *(2026-09-07, parcial)* O payload do webhook
+  `video-processed` virou golden versionado em [`contracts/`](../contracts/README.md), testado dos
+  dois lados: o worker prova que serializa exatamente aquilo, a API prova que aceita exatamente
+  aquilo. É a rede que pegaria o BUG-1 no ato. **Falta o resto do contrato** — nome da fila
+  (`JobQueueSettings:QueueName` ↔ `PROCESSING_REQUEST_QUEUE`), `callback_url` no `JobState` e o
+  layout de paths no MinIO continuam só documentados.
 
 Nenhum dos dois precisa de ferramenta de monorepo. Precisavam do monorepo.

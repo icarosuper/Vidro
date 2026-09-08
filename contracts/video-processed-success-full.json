@@ -1,0 +1,20 @@
+{
+  "videoId": "11111111-1111-1111-1111-111111111111",
+  "success": true,
+  "processedPath": "processed/11111111-1111-1111-1111-111111111111_processed",
+  "previewPath": "preview/11111111-1111-1111-1111-111111111111_preview.mp4",
+  "hlsPath": "hls/11111111-1111-1111-1111-111111111111",
+  "audioPath": "audio/11111111-1111-1111-1111-111111111111.mp3",
+  "thumbnailPaths": [
+    "thumbnails/11111111-1111-1111-1111-111111111111/thumb_001.jpg",
+    "thumbnails/11111111-1111-1111-1111-111111111111/thumb_002.jpg",
+    "thumbnails/11111111-1111-1111-1111-111111111111/thumb_003.jpg",
+    "thumbnails/11111111-1111-1111-1111-111111111111/thumb_004.jpg",
+    "thumbnails/11111111-1111-1111-1111-111111111111/thumb_005.jpg"
+  ],
+  "fileSizeBytes": 10000000,
+  "durationSeconds": 120.5,
+  "width": 1920,
+  "height": 1080,
+  "codec": "h264"
+}

@@ -407,9 +407,11 @@ func buildJobArtifacts(videoID, processedID string, result *processor.Processing
 	return artifacts
 }
 
-// notifyWebhook sends the job completion notification to the callbackURL in the background.
-// Delivery errors are only logged — they do not affect the job result.
-func notifyWebhook(callbackURL, secret, videoID string, state *queue.JobState) {
+// buildWebhookPayload maps the job state to the `video-processed` webhook body.
+// The shape is a contract with the API: see contracts/video-processed-*.json, which both
+// sides test against. Optional artifacts and the whole metadata block may be absent —
+// a non-critical step failing still reports success.
+func buildWebhookPayload(videoID string, state *queue.JobState) webhook.Payload {
 	success := state.Status == queue.JobStatusDone
 
 	payload := webhook.Payload{
@@ -444,6 +446,14 @@ func notifyWebhook(callbackURL, secret, videoID string, state *queue.JobState) {
 		payload.Height = &height
 		payload.Codec = state.Metadata.VideoCodec
 	}
+
+	return payload
+}
+
+// notifyWebhook sends the job completion notification to the callbackURL in the background.
+// Delivery errors are only logged — they do not affect the job result.
+func notifyWebhook(callbackURL, secret, videoID string, state *queue.JobState) {
+	payload := buildWebhookPayload(videoID, state)
 
 	if err := webhook.Notify(callbackURL, secret, payload); err != nil {
 		log.Warn().Err(err).Str("videoID", videoID).Str("callbackURL", callbackURL).Msg("Failed to send webhook")

@@ -354,17 +354,20 @@ migração destrava".
       `EnumValue { id, value }` — o tipo gerado descreve o envelope, e o `apiClient` é quem
       desembrulha. Planejar a camada fina antes de trocar os tipos escritos à mão.
 
-- [ ] **Fixture de contrato compartilhada entre Processor e API para o webhook.**
-      `VideoProcessedTests` (feito no BUG-1) já cobre payload de sucesso parcial — mas o JSON do
-      teste foi **escrito à mão do lado da API**, e nada o amarra ao que o worker realmente
-      emite (`VidroProcessor/internal/webhook/webhook.go:17-30`, struct `Payload`, camelCase,
-      `omitempty` em tudo menos `videoId`/`success`).
-      Versão preguiçosa que já resolve: um JSON golden versionado, o worker testa que **serializa
-      exatamente aquilo** e a API testa que **aceita exatamente aquilo**. Divergência quebra um dos
-      dois lados no mesmo CI. Antes do monorepo isso exigia publicar um pacote; agora é um arquivo.
-      Cobrir os três casos que o BUG-1 provou serem reais: sucesso completo, sucesso sem nenhum
-      artefato opcional e sem bloco de metadata, e sucesso sem `processedPath` (→ `Failed`).
-      O mesmo vale para o resto do contrato, hoje só documentado: nome da fila
+- [x] ~~**Fixture de contrato compartilhada entre Processor e API para o webhook.**~~
+      **RESOLVIDO** *(2026-09-07)*. Quatro golden em `contracts/` (`video-processed-*.json`),
+      lidos pelos dois lados: `VidroProcessor/webhook_contract_test.go` prova que
+      `buildWebhookPayload` serializa **exatamente** aquilo, e `VideoProcessedTests.cs` faz POST
+      assinado do **mesmo arquivo** no endpoint real. Casos: sucesso completo, sucesso sem nenhum
+      artefato opcional e sem bloco de metadata, sucesso sem `processedPath` (→ `Failed`) e falha
+      permanente. O `videoId` é um placeholder que cada lado troca pelo id do seu teste.
+      Os payloads escritos à mão no teste da API foram deletados — os 6 testes que usavam
+      `BuildSuccessPayload` agora exercitam o contrato de verdade.
+      No caminho, `notifyWebhook` teve o mapeamento `JobState` → `Payload` extraído para
+      `buildWebhookPayload` (o resto era envio, não dava para testar sem servidor).
+      **Verificado por mutação dos dois lados:** renomear o `json:` tag de `previewPath` quebra o
+      teste Go; renomear `processedPath` no golden quebra o teste C#.
+      **Falta o resto do contrato, hoje só documentado:** nome da fila
       (`JobQueueSettings:QueueName` ↔ `PROCESSING_REQUEST_QUEUE`), `callback_url` no `JobState`,
       e o layout de paths no MinIO.
 

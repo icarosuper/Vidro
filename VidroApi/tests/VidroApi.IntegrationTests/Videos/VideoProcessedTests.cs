@@ -121,12 +121,7 @@ public class VideoProcessedTests(ApiFactory factory) : IClassFixture<ApiFactory>
     {
         var (_, videoId) = await CreateProcessingVideo();
 
-        var payload = JsonSerializer.Serialize(new
-        {
-            videoId,
-            success = true,
-            processedPath = $"processed/{videoId}_processed"
-        });
+        var payload = WebhookContract.Payload(WebhookContract.VideoProcessedSuccessMinimal, videoId);
 
         var response = await SendRawWebhookAsync(payload, WebhookSecret);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -138,12 +133,31 @@ public class VideoProcessedTests(ApiFactory factory) : IClassFixture<ApiFactory>
         data.GetProperty("thumbnailUrls").GetArrayLength().Should().Be(0);
     }
 
+    // The full contract: every artifact and the whole metadata block present.
+    [Fact]
+    public async Task VideoProcessed_WithFullContractPayload_VideoBecomesReadyWithArtifacts()
+    {
+        var (_, videoId) = await CreateProcessingVideo();
+
+        var payload = WebhookContract.Payload(WebhookContract.VideoProcessedSuccessFull, videoId);
+
+        var response = await SendRawWebhookAsync(payload, WebhookSecret);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var getResponse = await _client.GetAsync($"/v1/videos/{videoId}");
+        var body = await getResponse.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        var data = body.GetProperty("data");
+        data.GetProperty("status").GetProperty("value").GetString().Should().Be("Ready");
+        data.GetProperty("thumbnailUrls").GetArrayLength().Should().Be(5);
+        data.GetProperty("videoUrl").GetString().Should().NotBeNullOrWhiteSpace();
+    }
+
     [Fact]
     public async Task VideoProcessed_WithSuccess_ButNoProcessedPath_VideoBecomesFailed()
     {
         var (_, videoId) = await CreateProcessingVideo();
 
-        var payload = JsonSerializer.Serialize(new { videoId, success = true });
+        var payload = WebhookContract.Payload(WebhookContract.VideoProcessedSuccessWithoutProcessedPath, videoId);
 
         var response = await SendRawWebhookAsync(payload, WebhookSecret);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -170,29 +184,13 @@ public class VideoProcessedTests(ApiFactory factory) : IClassFixture<ApiFactory>
         return await SendRawWebhookAsync(payload, secret);
     }
 
+    // Both bodies come from the goldens the worker is tested against, not from JSON typed
+    // here: see contracts/README.md.
     private static string BuildSuccessPayload(Guid videoId) =>
-        JsonSerializer.Serialize(new
-        {
-            videoId,
-            success = true,
-            processedPath = $"processed/{videoId}_processed",
-            previewPath = $"preview/{videoId}_preview.mp4",
-            hlsPath = $"hls/{videoId}/",
-            audioPath = $"audio/{videoId}.mp3",
-            thumbnailPaths = new[] { $"thumbnails/{videoId}/thumb1.jpg" },
-            fileSizeBytes = 10_000_000L,
-            durationSeconds = 120.5,
-            width = 1920,
-            height = 1080,
-            codec = "h264"
-        });
+        WebhookContract.Payload(WebhookContract.VideoProcessedSuccessFull, videoId);
 
     private static string BuildFailurePayload(Guid videoId) =>
-        JsonSerializer.Serialize(new
-        {
-            videoId,
-            success = false
-        });
+        WebhookContract.Payload(WebhookContract.VideoProcessedFailure, videoId);
 
     private static string ComputeHmacSignature(byte[] payload, string secret)
     {

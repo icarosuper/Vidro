@@ -25,6 +25,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Webhook contract goldens shared with VidroProcessor: see contracts/README.md -->
+    <Content Include="..\..\..\contracts\video-processed-*.json"
+             Link="contracts\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\VidroApi.Api\VidroApi.Api.csproj" />
     <ProjectReference Include="..\..\src\VidroApi.Infrastructure\VidroApi.Infrastructure.csproj" />
   </ItemGroup>

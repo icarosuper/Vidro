@@ -2,17 +2,23 @@
 
 ## Current Coverage
 
+Measured with `go test ./... -cover` on 2026-09-07, with ffmpeg installed — without it the
+pipeline-step tests skip themselves and the number reads lower.
+
 | Package | Coverage | Type |
 |---|---|---|
-| `internal/processor/processor-steps` | 63.7% | Unit |
-| `metrics` | ~100% | Unit |
-| `internal/circuitbreaker` | ~100% | Unit |
-| `internal/webhook` | ~100% | Unit |
-| `internal/telemetry` | ~100% | Unit |
+| `internal/webhook` | 96.8% | Unit |
+| `internal/telemetry` | 91.3% | Unit |
+| `internal/processor/processor-steps` | 67.6% | Unit |
 | `queue` | 60.3% | Unit |
+| `internal/circuitbreaker` | 33.3% | Unit |
+| `internal/processor` | 11.1% | Unit (`JobBudget` + worker count only) |
+| `main` | 11.1% | Unit (webhook contract only) |
+| `minio` | 4.4% | Unit |
+| `metrics` | — (no statements) | Unit |
 | `test/integration` | — | Integration |
 
-**No tests**: `main`, `config`, `minio`
+**No tests**: `config`
 
 ---
 
@@ -122,6 +128,15 @@ on the one-minute ticker.
 - `TestNotify_ServerUnavailable`
 - `TestPayload_JSONSerialization`
 
+### `webhook_contract_test.go` (package `main`)
+- `TestBuildWebhookPayload_MatchesContractGoldens` — one sub-test per golden in
+  `../contracts/`: success with every artifact, success with no optional artifact and no
+  metadata block, success without `processedPath`, permanent failure.
+  The goldens are shared with VidroApi, which POSTs the same files at its own webhook
+  endpoint (`VideoProcessedTests.cs`): a renamed field turns both sides red in the same CI
+  run. See `../contracts/README.md`.
+  **Verified by mutation**: renaming the `json:` tag of `previewPath` fails the test.
+
 ### `internal/telemetry/telemetry_test.go`
 - `TestInit_EmptyEndpoint_Noop`
 - `TestInit_EmptyEndpoint_InstallsNoop`
@@ -190,7 +205,8 @@ FFmpeg is not available - skipping test
 
 - `config.LoadConfig()` — incl. behavior without `.env`
 - `minio.DownloadVideo()` and `UploadVideo()`
-- `main.processNextMessage()` — worker orchestration
+- `main.processNextMessage()` — worker orchestration (`buildWebhookPayload` is covered by
+  `webhook_contract_test.go`)
 - `internal/processor/processor.go` — step orchestration, critical vs non-critical
   classification, per-step timeouts (only `JobBudget` is covered, in `timeout_test.go`)
 - `queue`: `InitRedisClient` (`log.Fatal`), `StartRecovery`'s ticker loop, `HealthCheck`,
@@ -207,5 +223,5 @@ don't skip themselves.
 
 ---
 
-**Last Updated**: 2026-08-30
-**Current Coverage**: 67.6% (processor-steps), 60.3% (queue), ~100% (metrics, circuitbreaker, webhook, telemetry)
+**Last Updated**: 2026-09-07
+**Current Coverage**: see the table at the top — measured, not estimated

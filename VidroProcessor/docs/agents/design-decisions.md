@@ -110,6 +110,7 @@ A new entry takes the **next number** (highest today is **#12**) plus one line h
 - **Why**: VidroApi (producer) is .NET service whose JSON serialiser produces camelCase. Matching contract here avoids custom converter on API side.
 - **HMAC signature is optional**: `WEBHOOK_SECRET` empty = no signing. Off in local dev, must be set in prod.
 - **Delivery is background-only**: webhook failures logged but never fail job. API can always recover state from `ProcessingFinishedQueue` or by polling `job:<id>`.
+- **The contract is pinned by goldens, not by prose**: `../contracts/video-processed-*.json` (monorepo root) are tested from both sides — `webhook_contract_test.go` proves `buildWebhookPayload` serialises exactly them, `VideoProcessedTests.cs` proves the API accepts exactly them. Renaming a field means editing the golden, which turns both services red in the same CI run. Both P0 bugs in `../../../TODO.md` were divergences on this boundary; the goldens are the net that would have caught them.
 
 ### 11. Single bucket, path-based namespacing
 
