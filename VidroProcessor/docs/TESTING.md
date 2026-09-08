@@ -12,7 +12,7 @@ pipeline-step tests skip themselves and the number reads lower.
 | `internal/processor/processor-steps` | 67.6% | Unit |
 | `queue` | 60.3% | Unit |
 | `internal/circuitbreaker` | 33.3% | Unit |
-| `internal/processor` | 11.1% | Unit (`JobBudget` + worker count only) |
+| `internal/processor` | 78.0% | Unit |
 | `main` | 11.1% | Unit (webhook contract only) |
 | `minio` | 4.4% | Unit |
 | `metrics` | — (no statements) | Unit |
@@ -137,6 +137,32 @@ on the one-minute ticker.
   run. See `../contracts/README.md`.
   **Verified by mutation**: renaming the `json:` tag of `previewPath` fails the test.
 
+### `internal/processor/orchestration_test.go`
+The orchestrator is a policy, not a transformation — these run with fake steps, no FFmpeg:
+- `TestNonCriticalSteps_AreTheFourPostTranscodeSteps` — the list is thumbnails, audio, preview,
+  streaming, in order, and `nonCriticalStepCount` matches its length
+- `TestNonCriticalSteps_TimeoutsFollowTheScale` — every step timeout goes through `Options.step`,
+  so `PROCESSING_TIMEOUT_SCALE` cannot stop applying to one of them
+- `TestRunNonCriticalStepsSequential_FailingStepDoesNotStopTheRest`
+- `TestRunNonCriticalStepsParallel_FailingStepDoesNotCancelSiblings` — the reason this is a
+  `WaitGroup` and not an `errgroup`
+- `TestRunNonCriticalStepsParallel_RespectsMaxParallel` — the per-job FFmpeg ceiling (P-PERF4)
+- `TestRunStep_ReturnsTheStepError`, `TestRunStep_AppliesTheStepTimeout`,
+  `TestRunStep_ParentCancellationReachesTheStep`
+- `TestRunStep_RecordsTheStepDuration` — the per-step metric P-PERF6 will read
+- `TestProcessVideo_InvalidInputFailsAtValidation` — critical step aborts the job and no
+  post-transcode step runs (needs `ffprobe`, skips without it)
+
+**Verified by mutation**: `continue` → `return` in the sequential orchestrator, an unbounded
+semaphore in the parallel one, dropping `opts.step()` from one timeout, renaming a step, and
+removing the `ProcessingStepDuration` observation each fail a different test.
+
+### `internal/processor/timeout_test.go`
+- `TestJobBudgetExceedsStepTimeouts`, `TestTimeoutScale`
+
+### `internal/processor/workers_test.go`
+- `DefaultWorkerCount` — the invariant is `workers × parallel steps ≤ cores`
+
 ### `internal/telemetry/telemetry_test.go`
 - `TestInit_EmptyEndpoint_Noop`
 - `TestInit_EmptyEndpoint_InstallsNoop`
@@ -207,8 +233,9 @@ FFmpeg is not available - skipping test
 - `minio.DownloadVideo()` and `UploadVideo()`
 - `main.processNextMessage()` — worker orchestration (`buildWebhookPayload` is covered by
   `webhook_contract_test.go`)
-- `internal/processor/processor.go` — step orchestration, critical vs non-critical
-  classification, per-step timeouts (only `JobBudget` is covered, in `timeout_test.go`)
+- `internal/processor/processor.go` — the FFmpeg happy path of `ProcessVideo` (steps 2 and 3
+  onwards with a real video). The orchestration policy around it is covered by
+  `orchestration_test.go`
 - `queue`: `InitRedisClient` (`log.Fatal`), `StartRecovery`'s ticker loop, `HealthCheck`,
   `GetQueueSize`, `SetJobProcessing`/`SetJobDone` — the remaining 39.7%
 - Transcoding + throughput benchmarks

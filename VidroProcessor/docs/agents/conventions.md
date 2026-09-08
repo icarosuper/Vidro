@@ -38,8 +38,8 @@ This file is Go-specific.
 Most important rule in `internal/processor`:
 
 - **Critical** (validate, transcode): return error → `ProcessVideo` aborts, job marked failed/retried.
-- **Non-critical** (analyze, thumbnails, audio, preview, streaming): log `Warn`, return error — orchestrator (`runNonCriticalStepsSequential` / `runNonCriticalStepsParallel`) swallows. `ProcessingResult` path set only on success; upload code skips missing artifacts.
-- New step: decide category upfront, wire into orchestrator. Never let non-critical step fail pipeline.
+- **Non-critical** (analyze, thumbnails, audio, preview, streaming): log `Warn`, return error — orchestrator (`runNonCriticalStepsSequential` / `runNonCriticalStepsParallel`, both fed by the `nonCriticalSteps` list) swallows. `ProcessingResult` path set only on success; upload code skips missing artifacts.
+- New step: decide category upfront, add it to `nonCriticalSteps`. Never let non-critical step fail pipeline.
 
 ## Configuration
 
@@ -74,7 +74,7 @@ Most important rule in `internal/processor`:
 
 ## File layout
 
-- New pipeline steps: `internal/processor/processor-steps/<name>.go` + `<name>_test.go`. Register in `processor.go` (both orchestrators).
+- New pipeline steps: `internal/processor/processor-steps/<name>.go` + `<name>_test.go`. Register in the `nonCriticalSteps` list in `processor.go` — both orchestrators read it.
 - New external-service clients: own top-level package (`queue`, `minio`, ...), not under `internal/`.
 - Shared internal helpers (webhook, circuitbreaker, telemetry): `internal/`.
 
@@ -98,9 +98,12 @@ hand, and a step wired into only some of them fails silently or hangs.
    `ffmpeg`/`ffprobe` is missing (`GenerateTestVideo` from `test_helpers.go`).
 3. Add a `stepTimeout<Name>` constant in `processor.go`. It is scaled by `Options.step()` — never
    read a raw duration inside the step.
-4. Register the step in **both** orchestrators: `runNonCriticalStepsSequential` **and**
-   `runNonCriticalStepsParallel`. A step wired into only one runs only under one value of
-   `PARALLEL_NON_CRITICAL_STEPS`.
+4. Register the step in the `nonCriticalSteps` list — **one** place, read by both
+   `runNonCriticalStepsSequential` and `runNonCriticalStepsParallel`, so a step can no longer be
+   wired into only one of them. Until 2026-09-07 the two orchestrators carried their own copy of
+   the list, and a step wired into only one ran only under one value of
+   `PARALLEL_NON_CRITICAL_STEPS`. `orchestration_test.go` asserts the list is exactly the four
+   post-transcode steps, in order.
 5. Run it through `runStep` so it gets its `step/<name>` span and error recording. No direct
    `telemetry.Tracer().Start` inside a step.
 6. Wrap every MinIO/Redis call in the matching circuit breaker.

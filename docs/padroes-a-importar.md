@@ -68,10 +68,13 @@ vez de mais um parágrafo de doc.**
 
 Dois candidatos no Vidro, ambos falhas silenciosas que a própria doc já admite:
 
-- `VidroProcessor/docs/agents/conventions.md`, checklist de pipeline step, passo 4:
-  *"Register the step in **both** orchestrators [...] A step wired into only one runs only
-  under one value of `PARALLEL_NON_CRITICAL_STEPS`."* Um AST que compara as duas listas
-  (`runNonCriticalStepsSequential` e `runNonCriticalStepsParallel`) fecha isso.
+- ~~`VidroProcessor/docs/agents/conventions.md`, checklist de pipeline step, passo 4:
+  *"Register the step in **both** orchestrators [...]"*~~ **Não precisa mais de AST**
+  *(2026-09-07)*: os dois orquestradores passaram a ler **uma lista só**
+  (`nonCriticalSteps` em `processor.go`), então a divergência deixou de ser possível — e
+  `orchestration_test.go` afirma que a lista é exatamente os quatro passos, na ordem.
+  Lição para os outros candidatos: **antes de escrever o checker, veja se a duplicação que
+  ele vigiaria dá para apagar.**
 - `VidroApi/docs/agents/conventions.md`, checklist de feature slice, passo 2: *"A wrong
   signature does not fail the build — the route simply never exists, and the symptom is a
   404 in a test."*

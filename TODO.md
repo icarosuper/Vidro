@@ -256,9 +256,25 @@ falha → 3 retries → DLQ. Um vídeo perfeitamente bom nunca processa.
 
 Os 7 steps do pipeline têm todos `_test.go`, o que faz parecer bem coberto. Mas:
 
-- [ ] **`internal/processor/processor.go` (253 linhas) — zero testes.**
-      É o orquestrador: classificação de step crítico vs não-crítico, timeouts por
-      step, política de cancelamento.
+- [x] ~~**`internal/processor/processor.go` (253 linhas) — zero testes.**~~ **RESOLVIDO**
+      *(2026-09-07)*. 10 testes em `internal/processor/orchestration_test.go`, cobertura do
+      pacote **11.1% → 78.0%**, rodando em 0,1s com passo falso — sem FFmpeg.
+      Cobertos: a lista de passos não-críticos (os quatro, na ordem, com
+      `nonCriticalStepCount` casando), timeout de cada passo passando por `Options.step`,
+      falha de passo não-crítico que **não** para os seguintes (sequencial) nem cancela os
+      irmãos (paralelo — a razão de ser `WaitGroup` e não `errgroup`), o teto de FFmpeg por job
+      do P-PERF4, `runStep` (erro, timeout, cancelamento do pai, métrica por passo) e passo
+      crítico abortando o job (`ProcessVideo` com arquivo inválido; pula sem `ffprobe`).
+      **Custou um refactor que valia por si:** os dois orquestradores tinham **cópias
+      separadas** da lista dos passos 4–7 — o risco que o `conventions.md` avisava em prosa
+      ("register the step in **both** orchestrators") e que o `docs/padroes-a-importar.md`
+      (item 2) queria resolver com um checker de AST. Agora existe uma lista só
+      (`nonCriticalSteps`), lida pelos dois: o checker de AST deixou de ser necessário.
+      Dep nova só de teste: `prometheus/client_golang/prometheus/testutil` (subpacote de dep
+      que já estava lá; trouxe `kylelemons/godebug` como indireta).
+      **Verificado por mutação (5×):** `continue`→`return` no sequencial, semáforo sem teto no
+      paralelo, `opts.step()` removido de um timeout, passo renomeado e observação da métrica
+      removida — cada um quebra um teste diferente.
 - [x] ~~**`queue/` (283 linhas, `client.go` + `job.go`) — zero testes unitários.**~~
       **RESOLVIDO** — `VidroProcessor` `8d1b98d`. 12 testes em `queue/queue_test.go`,
       cobertura 0% → **60.3%**, rodando em 8ms.
@@ -630,10 +646,10 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 5. ✅ ~~Ligar busca + ThemeToggle~~ (P3) — feito em 2026-09-07, junto com devtools fora de
    produção, `gofmt` no CI do Processor, o teste template da API deletado e os três portões do
    front no CI (**lint → typecheck → test → build**, com `noUncheckedIndexedAccess` ligado).
-5.1. **Fila combinada em 2026-09-07, em ordem:** Header responsivo (piorou com a busca e o
-   toggle) → `errorComponent`/`notFoundComponent` + `isError` → `.golangci.yml` no Processor →
-   testes do `processor.go` → fixture de contrato do webhook. Os três primeiros são baratos; os
-   dois últimos são os que valem mais.
+5.1. **Fila combinada em 2026-09-07:** ✅ ~~fixture de contrato do webhook~~ e
+   ✅ ~~testes do `processor.go`~~ (os dois que valiam mais, feitos primeiro) → falta
+   `.golangci.yml` no Processor → `errorComponent`/`notFoundComponent` + `isError` → Header
+   responsivo.
    Tipos gerados do OpenAPI vêm depois da fixture: mais valor, mais trabalho.
 6. SEO + idioma (P3). **SEO não é acabamento:** exige `head` por rota nas 11 rotas e decidir o
    idioma antes (`<html lang="pt-BR">` com a UI em inglês) — é trabalho médio.

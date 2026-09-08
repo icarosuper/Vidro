@@ -177,120 +177,126 @@ func ProcessVideo(ctx context.Context, inputPath, outputPath string, opts Option
 
 	transcodedPath := outputPath
 
-	if !opts.ParallelNonCriticalSteps {
-		runNonCriticalStepsSequential(ctx, inputPath, transcodedPath, tempDir, result, opts)
+	steps := nonCriticalSteps(inputPath, transcodedPath, tempDir, result, opts)
+	if opts.ParallelNonCriticalSteps {
+		runNonCriticalStepsParallel(ctx, steps, clampParallelSteps(opts.MaxParallelPostTranscodeSteps))
 	} else {
-		runNonCriticalStepsParallel(ctx, inputPath, transcodedPath, tempDir, result, opts)
+		runNonCriticalStepsSequential(ctx, steps)
 	}
 
 	log.Info().Msg("Processing pipeline completed successfully")
 	return result, nil
 }
 
-func runNonCriticalStepsSequential(ctx context.Context, inputPath, transcodedPath, tempDir string, result *ProcessingResult, opts Options) {
-	log.Info().Msg("Step 4/7: Generating thumbnails")
+// nonCriticalStep is one of the post-transcode steps (4-7). It may fail without failing
+// the job — see design-decisions.md #3. Both orchestrators consume this same list, so a
+// step cannot be wired into only one of them.
+type nonCriticalStep struct {
+	name      string
+	startMsg  string
+	failMsg   string
+	timeout   time.Duration
+	run       func(stepCtx context.Context) error
+	onSuccess func()
+}
+
+// nonCriticalSteps builds steps 4-7 in pipeline order, timeouts already scaled.
+// Adding a step here wires it into the sequential and the parallel orchestrator at once.
+func nonCriticalSteps(inputPath, transcodedPath, tempDir string, result *ProcessingResult, opts Options) []nonCriticalStep {
 	thumbnailsDir := filepath.Join(tempDir, "thumbnails")
-	if err := runStep(ctx, "thumbnails", opts.step(stepTimeoutThumbnails), func(stepCtx context.Context) error {
-		return processor_steps.GenerateThumbnails(stepCtx, transcodedPath, thumbnailsDir)
-	}); err != nil {
-		log.Warn().Err(err).Msg("Failed to generate thumbnails")
-	} else {
-		result.ThumbnailsDir = thumbnailsDir
-	}
-
-	log.Info().Msg("Step 5/7: Extracting audio")
 	audioPath := filepath.Join(tempDir, "audio.mp3")
-	if err := runStep(ctx, "audio", opts.step(stepTimeoutAudio), func(stepCtx context.Context) error {
-		return processor_steps.ExtractAudio(stepCtx, transcodedPath, audioPath)
-	}); err != nil {
-		log.Warn().Err(err).Msg("Audio extraction failed")
-	} else {
-		result.AudioPath = audioPath
-	}
-
-	log.Info().Msg("Step 6/7: Generating preview")
 	previewPath := filepath.Join(tempDir, "preview.mp4")
-	if err := runStep(ctx, "preview", opts.step(stepTimeoutPreview), func(stepCtx context.Context) error {
-		return processor_steps.GeneratePreview(stepCtx, transcodedPath, previewPath)
-	}); err != nil {
-		log.Warn().Err(err).Msg("Preview generation failed")
-	} else {
-		result.PreviewPath = previewPath
-	}
-
-	log.Info().Msg("Step 7/7: Segmenting for streaming")
 	streamingDir := filepath.Join(tempDir, "streaming")
-	if err := runStep(ctx, "streaming", opts.step(stepTimeoutStreaming), func(stepCtx context.Context) error {
-		return processor_steps.SegmentForStreamingWithOptions(stepCtx, inputPath, streamingDir, processor_steps.HLSOptions{
-			SingleCommand: opts.HLSSingleCommand,
-			Fallback:      opts.HLSSingleCommandFallback,
-			VideoEncoder:  opts.VideoEncoder,
-			NVENCPreset:   opts.NVENCPreset,
-		})
-	}); err != nil {
-		log.Warn().Err(err).Msg("Streaming segmentation failed")
-	} else {
-		result.StreamingDir = streamingDir
+
+	return []nonCriticalStep{
+		{
+			name:     "thumbnails",
+			startMsg: "Step 4/7: Generating thumbnails",
+			failMsg:  "Failed to generate thumbnails",
+			timeout:  opts.step(stepTimeoutThumbnails),
+			run: func(stepCtx context.Context) error {
+				return processor_steps.GenerateThumbnails(stepCtx, transcodedPath, thumbnailsDir)
+			},
+			onSuccess: func() { result.ThumbnailsDir = thumbnailsDir },
+		},
+		{
+			name:     "audio",
+			startMsg: "Step 5/7: Extracting audio",
+			failMsg:  "Audio extraction failed",
+			timeout:  opts.step(stepTimeoutAudio),
+			run: func(stepCtx context.Context) error {
+				return processor_steps.ExtractAudio(stepCtx, transcodedPath, audioPath)
+			},
+			onSuccess: func() { result.AudioPath = audioPath },
+		},
+		{
+			name:     "preview",
+			startMsg: "Step 6/7: Generating preview",
+			failMsg:  "Preview generation failed",
+			timeout:  opts.step(stepTimeoutPreview),
+			run: func(stepCtx context.Context) error {
+				return processor_steps.GeneratePreview(stepCtx, transcodedPath, previewPath)
+			},
+			onSuccess: func() { result.PreviewPath = previewPath },
+		},
+		{
+			name:     "streaming",
+			startMsg: "Step 7/7: Segmenting for streaming",
+			failMsg:  "Streaming segmentation failed",
+			timeout:  opts.step(stepTimeoutStreaming),
+			run: func(stepCtx context.Context) error {
+				return processor_steps.SegmentForStreamingWithOptions(stepCtx, inputPath, streamingDir, processor_steps.HLSOptions{
+					SingleCommand: opts.HLSSingleCommand,
+					Fallback:      opts.HLSSingleCommandFallback,
+					VideoEncoder:  opts.VideoEncoder,
+					NVENCPreset:   opts.NVENCPreset,
+				})
+			},
+			onSuccess: func() { result.StreamingDir = streamingDir },
+		},
 	}
 }
 
-func runNonCriticalStepsParallel(ctx context.Context, inputPath, transcodedPath, tempDir string, result *ProcessingResult, opts Options) {
-	maxParallel := clampParallelSteps(opts.MaxParallelPostTranscodeSteps)
+// runNonCriticalStepsSequential runs steps 4-7 one at a time. A failing step is logged and
+// skipped, never fatal — the job still reports success without that artifact.
+func runNonCriticalStepsSequential(ctx context.Context, steps []nonCriticalStep) {
+	for _, step := range steps {
+		log.Info().Msg(step.startMsg)
+		if err := runStep(ctx, step.name, step.timeout, step.run); err != nil {
+			log.Warn().Err(err).Msg(step.failMsg)
+			continue
+		}
+		step.onSuccess()
+	}
+}
 
+// runNonCriticalStepsParallel runs steps 4-7 with at most maxParallel FFmpeg processes at
+// a time, the per-job ceiling from P-PERF4.
+//
+// A WaitGroup and not an errgroup: a non-critical step that fails must not cancel its
+// siblings, and cancelling the group on the first error is exactly what errgroup does.
+func runNonCriticalStepsParallel(ctx context.Context, steps []nonCriticalStep, maxParallel int) {
 	sem := make(chan struct{}, maxParallel)
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	run := func(name, startMsg, failMsg string, timeout time.Duration, fn func(context.Context) error, onSuccess func()) {
+	for _, step := range steps {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			log.Info().Msg(startMsg)
-			if err := runStep(ctx, name, timeout, fn); err != nil {
-				log.Warn().Err(err).Msg(failMsg)
+			log.Info().Msg(step.startMsg)
+			if err := runStep(ctx, step.name, step.timeout, step.run); err != nil {
+				log.Warn().Err(err).Msg(step.failMsg)
 				return
 			}
 			mu.Lock()
-			onSuccess()
+			step.onSuccess()
 			mu.Unlock()
 		}()
 	}
-
-	thumbnailsDir := filepath.Join(tempDir, "thumbnails")
-	run("thumbnails", "Step 4/7: Generating thumbnails", "Failed to generate thumbnails", opts.step(stepTimeoutThumbnails), func(stepCtx context.Context) error {
-		return processor_steps.GenerateThumbnails(stepCtx, transcodedPath, thumbnailsDir)
-	}, func() {
-		result.ThumbnailsDir = thumbnailsDir
-	})
-
-	audioPath := filepath.Join(tempDir, "audio.mp3")
-	run("audio", "Step 5/7: Extracting audio", "Audio extraction failed", opts.step(stepTimeoutAudio), func(stepCtx context.Context) error {
-		return processor_steps.ExtractAudio(stepCtx, transcodedPath, audioPath)
-	}, func() {
-		result.AudioPath = audioPath
-	})
-
-	previewPath := filepath.Join(tempDir, "preview.mp4")
-	run("preview", "Step 6/7: Generating preview", "Preview generation failed", opts.step(stepTimeoutPreview), func(stepCtx context.Context) error {
-		return processor_steps.GeneratePreview(stepCtx, transcodedPath, previewPath)
-	}, func() {
-		result.PreviewPath = previewPath
-	})
-
-	streamingDir := filepath.Join(tempDir, "streaming")
-	run("streaming", "Step 7/7: Segmenting for streaming", "Streaming segmentation failed", opts.step(stepTimeoutStreaming), func(stepCtx context.Context) error {
-		return processor_steps.SegmentForStreamingWithOptions(stepCtx, inputPath, streamingDir, processor_steps.HLSOptions{
-			SingleCommand: opts.HLSSingleCommand,
-			Fallback:      opts.HLSSingleCommandFallback,
-			VideoEncoder:  opts.VideoEncoder,
-			NVENCPreset:   opts.NVENCPreset,
-		})
-	}, func() {
-		result.StreamingDir = streamingDir
-	})
 
 	wg.Wait()
 }

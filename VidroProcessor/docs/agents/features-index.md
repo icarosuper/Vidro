@@ -47,7 +47,7 @@ Support:
 - `internal/processor/processor-steps/video_encoder.go` — `ResolveVideoEncoder` (probes `ffmpeg -encoders` for `h264_nvenc`) + `NormalizeNVENCPreset` (p1–p7).
 - `internal/processor/processor-steps/test_helpers.go` — `GenerateTestVideo`; tests skip if `ffmpeg` missing.
 
-Steps 4–7 run parallel by default (`runNonCriticalStepsParallel`, bounded by `MaxParallelPostTranscodeSteps`). Set `PARALLEL_NON_CRITICAL_STEPS=false` for sequential.
+Steps 4–7 run parallel by default (`runNonCriticalStepsParallel`, bounded by `MaxParallelPostTranscodeSteps`). Set `PARALLEL_NON_CRITICAL_STEPS=false` for sequential. Both orchestrators run the same `nonCriticalSteps` list — that is where a new post-transcode step goes.
 
 ## Object storage (MinIO)
 
