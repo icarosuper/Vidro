@@ -29,6 +29,10 @@ Requires VidroApi running at `http://localhost:5000` (set via `VITE_API_URL`). T
 stack instead — API, worker, infra and this front in containers — run `docker compose up -d --build`
 from the monorepo root.
 
+In containers the entry point is `serve.js`, not `dist/server/server.js`: the server bundle only
+renders SSR, so `serve.js` serves `dist/client` first and delegates everything else to it. Running
+the bundle directly answers HTML to `/assets/*.css`, and the page shows up unstyled.
+
 ## Commands
 
 ```bash

@@ -16,7 +16,8 @@ WORKDIR /app
 # The server bundle keeps its dependencies external (h3, etc.), so it needs node_modules.
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY serve.js ./serve.js
 EXPOSE 3000
 ENV PORT=3000
-# dist/server/server.js default-exports a { fetch } handler; bun serves it directly.
-CMD ["bun", "dist/server/server.js"]
+# serve.js wraps the SSR handler with static serving for dist/client.
+CMD ["bun", "serve.js"]
