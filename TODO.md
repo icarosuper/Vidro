@@ -427,9 +427,25 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
       `<title>Vidro</title>`, sem `description`, sem OG, sem Twitter card.
       Compartilhar link de vídeo não gera preview. Com SSR já funcionando, é jogar
       fora o motivo de ter SSR.
-- [ ] **Nenhum `errorComponent` ou `notFoundComponent` em nenhuma rota.** URL
-      inválida ou erro de loader = tela quebrada sem caminho de volta.
-- [ ] `index.tsx` (home) e `dashboard.tsx` tratam `isPending` mas não `isError`.
+- [x] ~~**Nenhum `errorComponent` ou `notFoundComponent` em nenhuma rota.**~~ **RESOLVIDO**
+      *(2026-09-07)*. Em vez de 11 rotas, **um lugar**: `src/router.tsx` registra
+      `defaultErrorComponent` e `defaultNotFoundComponent` (`components/RouteFallback.tsx`), que
+      toda rota herda — uma rota só declara os seus quando consegue fazer melhor. O fallback de
+      erro tem "Try again" (`router.invalidate()`) + link para a home, e mostra `error.message`
+      só em `import.meta.env.DEV`.
+      **Verificado rodando:** `/a/b/c/d` devolve a tela de "Page not found" já no SSR. O
+      fallback de *erro* não dá para conferir por `curl`: um throw no render durante SSR faz o
+      React trocar para render no cliente (`Switched to client rendering because the server
+      rendering errored`), então quem renderiza a tela é o browser.
+      **Achado no caminho:** `/rota-que-nao-existe` **não** é 404 — casa com `/$username`, que
+      renderiza "rota-que-nao-existe's channels". Rota de um segmento sempre vai cair no
+      `$username`; 404 de usuário inexistente é o `isError` daquela rota, não o do router.
+- [x] ~~`index.tsx` (home) e `dashboard.tsx` tratam `isPending` mas não `isError`.~~
+      **RESOLVIDO** *(2026-09-07)*. Home: `FeedSection` e `TrendingSection` com mensagem própria.
+      Dashboard: **era mentira na cara do usuário** — com a query falhando, `isPending` fica
+      falso e `playlists.length === 0`, então aparecia "No personal playlists yet." em vez de
+      erro. Agora `playlistsFailed` tem branch própria e o empty state exige `!playlistsFailed`
+      (via `hasNoPlaylists`/`hasPlaylists`, nomeados em vez de compostos inline).
 - [x] ~~**Devtools vão para produção**~~ **RESOLVIDO** *(2026-09-07)* — `<TanStackDevtools>`
       agora atrás de `import.meta.env.DEV` em `__root.tsx`.
 - [ ] **A11y rasa** — só ~10 arquivos têm qualquer `aria-*`/`alt`/`sr-only`.
@@ -679,8 +695,8 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
    produção, `gofmt` no CI do Processor, o teste template da API deletado e os três portões do
    front no CI (**lint → typecheck → test → build**, com `noUncheckedIndexedAccess` ligado).
 5.1. **Fila combinada em 2026-09-07:** ✅ ~~fixture de contrato do webhook~~,
-   ✅ ~~testes do `processor.go`~~ e ✅ ~~`.golangci.yml` no Processor~~ → falta
-   `errorComponent`/`notFoundComponent` + `isError` → Header responsivo.
+   ✅ ~~testes do `processor.go`~~, ✅ ~~`.golangci.yml` no Processor~~ e
+   ✅ ~~`errorComponent`/`notFoundComponent` + `isError`~~ → falta Header responsivo.
    Tipos gerados do OpenAPI vêm depois da fixture: mais valor, mais trabalho.
 6. SEO + idioma (P3). **SEO não é acabamento:** exige `head` por rota nas 11 rotas e decidir o
    idioma antes (`<html lang="pt-BR">` com a UI em inglês) — é trabalho médio.

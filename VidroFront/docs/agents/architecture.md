@@ -105,6 +105,17 @@ export function useVideo(videoId: string) {
 
 `__root.tsx` resolve token inicial no servidor via `getInitialToken()`, passa pelo router context → rotas SSR autenticadas sem waterfall.
 
+### Fallback de erro e de rota inexistente
+
+`src/router.tsx` registra `defaultErrorComponent` e `defaultNotFoundComponent`
+(`components/RouteFallback.tsx`), então **toda** rota herda os dois — URL inválida, `notFound()`
+ou throw em loader/render caem numa tela com caminho de volta em vez de tela branca. Uma rota só
+declara os seus quando consegue fazer melhor.
+
+Isso cobre erro de **rota**. Erro de **query** continua sendo do componente: trate `isError` do
+`useQuery` na própria tela (o padrão do repo é um parágrafo `text-muted-foreground` centrado), porque
+o fallback do router não vê uma query que falhou depois da rota já ter renderizado.
+
 ## Formatos de resposta da API
 
 Documentados em `src/shared/types.ts`:

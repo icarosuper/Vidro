@@ -1,5 +1,9 @@
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
+import {
+  RouteErrorFallback,
+  RouteNotFoundFallback,
+} from './components/RouteFallback'
 import { getContext } from './integrations/tanstack-query/root-provider'
 import { routeTree } from './routeTree.gen'
 
@@ -12,6 +16,9 @@ export function getRouter() {
     scrollRestoration: true,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
+    // Every route inherits these, so a route only declares its own when it can do better.
+    defaultErrorComponent: RouteErrorFallback,
+    defaultNotFoundComponent: RouteNotFoundFallback,
   })
 
   setupRouterSsrQueryIntegration({ router, queryClient: context.queryClient })

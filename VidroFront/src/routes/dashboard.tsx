@@ -35,6 +35,7 @@ function DashboardPage() {
   const {
     data: playlistsData,
     isPending: playlistsPending,
+    isError: playlistsFailed,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -44,6 +45,9 @@ function DashboardPage() {
   const deletePlaylist = useDeletePlaylist()
 
   const playlists = playlistsData?.pages.flatMap((page) => page.items) ?? []
+  const hasNoPlaylists =
+    !playlistsPending && !playlistsFailed && playlists.length === 0
+  const hasPlaylists = !playlistsPending && playlists.length > 0
 
   return (
     <main className="page-container py-8 space-y-8">
@@ -54,9 +58,7 @@ function DashboardPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             My playlists
-            {!playlistsPending &&
-              playlists.length > 0 &&
-              ` (${playlists.length}${hasNextPage ? '+' : ''})`}
+            {hasPlaylists && ` (${playlists.length}${hasNextPage ? '+' : ''})`}
           </h2>
           <Button
             variant="ghost"
@@ -86,13 +88,19 @@ function DashboardPage() {
           </div>
         )}
 
-        {!playlistsPending && playlists.length === 0 && (
+        {playlistsFailed && (
+          <p className="py-8 text-center text-muted-foreground">
+            Could not load your playlists. Try again.
+          </p>
+        )}
+
+        {hasNoPlaylists && (
           <p className="py-8 text-center text-muted-foreground">
             No personal playlists yet.
           </p>
         )}
 
-        {!playlistsPending && playlists.length > 0 && (
+        {hasPlaylists && (
           <>
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               {playlists.map((playlist) => (

@@ -16,10 +16,27 @@ export const Route = createFileRoute('/')({
 })
 
 function FeedSection() {
-  const { data, isPending, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useFeed(true)
+  const {
+    data,
+    isPending,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useFeed(true)
 
   const feedVideos = data?.pages.flatMap((page) => page.videos) ?? []
+
+  if (isError) {
+    return (
+      <section>
+        <h2 className="mb-4 text-xl font-semibold">Your Feed</h2>
+        <p className="py-8 text-center text-muted-foreground">
+          Could not load your feed. Try again.
+        </p>
+      </section>
+    )
+  }
 
   return (
     <section>
@@ -41,13 +58,19 @@ function FeedSection() {
 }
 
 function TrendingSection() {
-  const { data, isPending } = useTrending()
+  const { data, isPending, isError } = useTrending()
   const videos = data?.videos ?? []
 
   return (
     <section>
       <h2 className="mb-4 text-xl font-semibold">Trending</h2>
-      <VideoGrid videos={videos} isLoading={isPending} />
+      {isError ? (
+        <p className="py-8 text-center text-muted-foreground">
+          Could not load trending videos. Try again.
+        </p>
+      ) : (
+        <VideoGrid videos={videos} isLoading={isPending} />
+      )}
     </section>
   )
 }
