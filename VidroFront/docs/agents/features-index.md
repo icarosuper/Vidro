@@ -166,5 +166,5 @@ Trending, feed, busca, detalhe, reações, upload (create + presigned + status p
 | tipos base | `src/shared/types.ts` | `ApiSuccess`, `ApiError`, `ValidationError`, `EnumValue`, `CursorPage`, `PagedResult`, `API_ERROR_CODES`, `VideoStatus`, `VideoVisibility`, `ReactionType` + `ReactionTypeValue` (o tipo do valor; o const é só valor), `PlaylistVisibility`, `PlaylistScope`, `CommentSortOrder` |
 | erros | `src/shared/lib/error-messages.ts` | Map `code → mensagem user-facing` |
 | toast | `src/shared/lib/toast-error.ts` | `toastApiError(error)` |
-| components globais | `src/components/` | `Header` (busca + `ThemeToggle`), `ThemeToggle` (light → dark → auto, persistido em `localStorage`), `RouteFallback` (`RouteErrorFallback` + `RouteNotFoundFallback`, registrados como default do router), `TimeAgo`, `ui/*` (shadcn) |
+| components globais | `src/components/` | `Header` (busca + `ThemeToggle`; responsivo por CSS — rótulo `sr-only` até `lg`, busca na segunda linha abaixo de `sm`), `ThemeToggle` (light → dark → auto, persistido em `localStorage`), `RouteFallback` (`RouteErrorFallback` + `RouteNotFoundFallback`, registrados como default do router), `TimeAgo`, `ui/*` (shadcn) |
 | integração | `src/integrations/tanstack-query/` | `QueryClient` + devtools |

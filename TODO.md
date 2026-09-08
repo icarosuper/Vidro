@@ -412,13 +412,26 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
 
 ### Acabamento
 
-- [ ] **Header não é responsivo** — 4 botões com rótulo de texto num flex row, zero
-      breakpoints no arquivo. Estoura no mobile. (O app todo tem ~20 usos de
-      breakpoint, quase todos `grid-cols`.)
-      **Piorou em 2026-09-07:** entraram o campo de busca (`<search>` com `Input` + botão) e o
-      `ThemeToggle`, então são 4 botões + toggle + campo na mesma linha sem breakpoint. O campo
-      leva `min-w-0 flex-1 max-w-md` para encolher em vez de empurrar, o que atenua e não
-      resolve. A busca era a lacuna nº1 de UX — se não cabe no celular, foi tapada pela metade.
+- [x] ~~**Header não é responsivo**~~ **RESOLVIDO** *(2026-09-07)*. Só CSS, sem drawer nem
+      componente novo: (a) rótulo de texto vira `sr-only` até **lg** — `sr-only`, não `hidden`,
+      para o nome acessível continuar no leitor de tela — e o `Dashboard`, que era só texto,
+      ganhou ícone (`LayoutDashboard`); (b) abaixo de **sm** a busca sai da primeira linha e
+      ocupa a segunda inteira (`flex-wrap` + `basis-full` + `order-last`), com o header em
+      `min-h-14 py-2` em vez de `h-14`.
+      **Medido no browser** (agent-browser, header autenticado, o caso mais cheio) — a lição do
+      `docs/padroes-a-importar.md` item 17 é exatamente esta, layout quebrado não falha teste de
+      conteúdo:
+      | largura | overflow | altura do header | largura da busca |
+      |---|---|---|---|
+      | 320 | não | 89px | 288px |
+      | 375 | não | 89px | 343px |
+      | 640 | não | 57px | 313px |
+      | 1024 | não | 57px | 402px (rótulos aparecem) |
+      | 1280 | não | 57px | 448px |
+      **A primeira tentativa passava e estava errada:** só escondendo rótulo a partir de `sm`
+      não havia overflow em lugar nenhum, mas a busca sobrava com **17px** em 320px e **18px**
+      em 640px — cabia porque o campo era esmagado. É por isso que a asserção é a largura da
+      busca, não só `scrollWidth <= clientWidth`.
 - [ ] **`<html lang="pt-BR">` com a UI toda em inglês** (`src/routes/__root.tsx:76`),
       datas com `toLocaleDateString('en-US')` (`watch.$videoId.tsx:38`), e o Header
       mistura "Upload"/"Dashboard"/"Sign out" com **"Meu Perfil"**. Escolher um
@@ -694,9 +707,11 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 5. ✅ ~~Ligar busca + ThemeToggle~~ (P3) — feito em 2026-09-07, junto com devtools fora de
    produção, `gofmt` no CI do Processor, o teste template da API deletado e os três portões do
    front no CI (**lint → typecheck → test → build**, com `noUncheckedIndexedAccess` ligado).
-5.1. **Fila combinada em 2026-09-07:** ✅ ~~fixture de contrato do webhook~~,
-   ✅ ~~testes do `processor.go`~~, ✅ ~~`.golangci.yml` no Processor~~ e
-   ✅ ~~`errorComponent`/`notFoundComponent` + `isError`~~ → falta Header responsivo.
+5.1. ✅ **Fila combinada de 2026-09-07 fechada inteira:** fixture de contrato do webhook,
+   testes do `processor.go`, `.golangci.yml` no Processor,
+   `errorComponent`/`notFoundComponent` + `isError`, e Header responsivo.
+   **Próximo daqui:** tipos gerados do OpenAPI (mais valor, mais trabalho) e o `context` que não
+   atravessa `queue`/`minio` (ver "Sujeira pequena").
    Tipos gerados do OpenAPI vêm depois da fixture: mais valor, mais trabalho.
 6. SEO + idioma (P3). **SEO não é acabamento:** exige `head` por rota nas 11 rotas e decidir o
    idioma antes (`<html lang="pt-BR">` com a UI em inglês) — é trabalho médio.

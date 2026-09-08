@@ -1,5 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { LogOut, Search, Upload, User } from 'lucide-react'
+import { LayoutDashboard, LogOut, Search, Upload, User } from 'lucide-react'
 import ThemeToggle from '#/components/ThemeToggle'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
@@ -23,8 +23,10 @@ function SearchBox() {
     navigate({ to: '/search', search: { q: typedQuery } })
   }
 
+  // Abaixo de sm a busca ganha a segunda linha inteira: disputando a primeira ela sobrava
+  // com 17px de largura em 320px, o que é o mesmo que não ter busca.
   return (
-    <search className="mx-4 flex min-w-0 max-w-md flex-1">
+    <search className="order-last mx-0 flex w-full min-w-0 basis-full sm:order-none sm:mx-4 sm:w-auto sm:max-w-md sm:basis-auto sm:flex-1">
       <form onSubmit={handleSubmit} className="flex w-full items-center gap-1">
         <Input
           name="q"
@@ -52,26 +54,30 @@ export function Header() {
 
   return (
     <header className="border-b border-border bg-background">
-      <div className="page-container flex h-14 items-center justify-between">
+      <div className="page-container flex min-h-14 flex-wrap items-center justify-between gap-1 py-2 sm:h-14 sm:flex-nowrap sm:py-0">
         <Link to="/" className="text-lg font-bold text-foreground no-underline">
           Vidro
         </Link>
 
         <SearchBox />
 
-        <div className="flex items-center gap-2">
+        {/* Até lg cada botão fica só com o ícone: o rótulo vira `sr-only`, não `hidden`,
+            para o nome acessível continuar existindo no leitor de tela. Quatro rótulos de
+            texto só cabem junto com a busca a partir de lg. */}
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1 lg:gap-2">
           <ThemeToggle />
           {isAuthenticated ? (
             <>
               <Link to="/upload">
                 <Button variant="ghost" size="sm" className="gap-2">
                   <Upload className="h-4 w-4" />
-                  <span>Upload</span>
+                  <span className="sr-only lg:not-sr-only">Upload</span>
                 </Button>
               </Link>
               <Link to="/dashboard">
-                <Button variant="ghost" size="sm">
-                  <span>Dashboard</span>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <LayoutDashboard className="h-4 w-4" />
+                  <span className="sr-only lg:not-sr-only">Dashboard</span>
                 </Button>
               </Link>
               <Link to="/settings">
@@ -82,7 +88,7 @@ export function Header() {
                       <User className="h-3 w-3" />
                     </AvatarFallback>
                   </Avatar>
-                  <span>Meu Perfil</span>
+                  <span className="sr-only lg:not-sr-only">Meu Perfil</span>
                 </Button>
               </Link>
               <Button
@@ -92,7 +98,7 @@ export function Header() {
                 disabled={signOut.isPending}
               >
                 <LogOut className="h-4 w-4" />
-                <span className="ml-1">Sign out</span>
+                <span className="sr-only lg:not-sr-only lg:ml-1">Sign out</span>
               </Button>
             </>
           ) : (
