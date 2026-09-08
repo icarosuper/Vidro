@@ -13,16 +13,18 @@ Processor virou o P6 daqui; `workflow.md` do Front, o `docker-compose.yml` do Pr
 regras repetidas nos três `CLAUDE.md` foram removidos; README da raiz criado).
 *(2026-09-07)* busca ligada de ponta a ponta, `ThemeToggle` no Header, devtools fora de
 produção, `typecheck` no CI do front (com os 23 erros de tipo pré-existentes zerados),
-`gofmt` checado no CI do Processor, o teste template da API deletado e o **P-PERF5**
+`gofmt` checado no CI do Processor, o teste template da API deletado, o **P-PERF5**
 (default de `WORKER_COUNT` derivado dos cores ÷ processos FFmpeg por job), a **regra de
-fail-fast vs. anomalia+ACK** escrita no `conventions.md` da API e o **lint do Biome ligado no
-CI do front** (com o formatter desligado de propósito — ver "Sujeira pequena").
+fail-fast vs. anomalia+ACK** escrita no `conventions.md` da API, o **Biome ligado no CI do
+front** (lint + formatter, com a regra de ternário da raiz relaxada para permitir uma linha)
+e o **`noUncheckedIndexedAccess`**. O workflow do front hoje roda **lint → typecheck → test →
+build**, os quatro verdes.
 Itens marcados `[x]` trazem o commit e o que ficou no lugar.
 
 **Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
-API 100% marcado, Processor ~95%). O que falta não é feature — é (a) os três
-nunca rodarem juntos, (b) documentação que mente, (c) lacunas de teste na lógica
-de confiabilidade, (d) acabamento de UX.
+API 100% marcado, Processor ~95%). O que falta não é feature — é ~~(a) os três nunca rodarem
+juntos~~ *(resolvido em 2026-08-29: compose único na raiz, E2E verificado)*, (b) documentação
+que mente, (c) lacunas de teste na lógica de confiabilidade, (d) acabamento de UX.
 
 ---
 
@@ -303,7 +305,8 @@ Os 7 steps do pipeline têm todos `_test.go`, o que faz parecer bem coberto. Mas
 
 ### VidroFront — cobertura de fachada
 
-- [ ] 23 testes em 4 arquivos, **todos da camada de API com fetch mockado**.
+- [ ] 25 testes em 5 arquivos *(recontado em 2026-09-07)*, **todos da camada de API com
+      fetch mockado**.
       Para 35 componentes e 11 rotas há **0 testes de renderização**.
       `@testing-library/react`, `@testing-library/dom` e `jsdom` estão instalados
       e nunca usados.
@@ -313,7 +316,8 @@ Os 7 steps do pipeline têm todos `_test.go`, o que faz parecer bem coberto. Mas
 
 ### VidroApi — bom, só limpar
 
-- [ ] Excelente no geral: 287 `[Fact]`/`[Theory]`, 43 arquivos de integração para
+- [ ] Excelente no geral: 294 `[Fact]`/`[Theory]` *(recontado em 2026-09-07; 327 testes
+      rodando, 82 unit + 245 integração)*, 43 arquivos de integração para
       43 features (≈1:1 por endpoint, com testcontainers). Nada a fazer além de:
 - [x] ~~Deletar `tests/VidroApi.UnitTests/UnitTest1.cs`~~ — template vazio do
       `dotnet new`, um `[Fact]` de corpo vazio que sempre passa. **RESOLVIDO** *(2026-09-07)*.
@@ -392,6 +396,10 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
 - [ ] **Header não é responsivo** — 4 botões com rótulo de texto num flex row, zero
       breakpoints no arquivo. Estoura no mobile. (O app todo tem ~20 usos de
       breakpoint, quase todos `grid-cols`.)
+      **Piorou em 2026-09-07:** entraram o campo de busca (`<search>` com `Input` + botão) e o
+      `ThemeToggle`, então são 4 botões + toggle + campo na mesma linha sem breakpoint. O campo
+      leva `min-w-0 flex-1 max-w-md` para encolher em vez de empurrar, o que atenua e não
+      resolve. A busca era a lacuna nº1 de UX — se não cabe no celular, foi tapada pela metade.
 - [ ] **`<html lang="pt-BR">` com a UI toda em inglês** (`src/routes/__root.tsx:76`),
       datas com `toLocaleDateString('en-US')` (`watch.$videoId.tsx:38`), e o Header
       mistura "Upload"/"Dashboard"/"Sign out" com **"Meu Perfil"**. Escolher um
@@ -405,8 +413,10 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
 - [ ] `index.tsx` (home) e `dashboard.tsx` tratam `isPending` mas não `isError`.
 - [x] ~~**Devtools vão para produção**~~ **RESOLVIDO** *(2026-09-07)* — `<TanStackDevtools>`
       agora atrás de `import.meta.env.DEV` em `__root.tsx`.
-- [ ] **A11y rasa** — só 10 arquivos têm qualquer `aria-*`/`alt`/`sr-only`, e o
-      Header não tem nenhum.
+- [ ] **A11y rasa** — só ~10 arquivos têm qualquer `aria-*`/`alt`/`sr-only`.
+      *(2026-09-07: o Header deixou de ser o pior caso — `SearchBox` e `ThemeToggle` têm
+      `aria-label`, e a busca usa o elemento nativo `<search>`. O resto do app continua raso, e
+      o `<video>` sem `<track>` virou item de P5.)*
 
 ---
 
@@ -615,13 +625,15 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 4. ✅ ~~Testes de `queue/`~~ (2026-08-30). Falta `processor.go` (P2) — 253 linhas, zero
    testes fora do `JobBudget`.
 5. ✅ ~~Ligar busca + ThemeToggle~~ (P3) — feito em 2026-09-07, junto com devtools fora de
-   produção, `typecheck` no CI do front, `gofmt` no CI do Processor e o teste template da
-   API deletado.
-5.1. Fixture de contrato do webhook (P2) — é a rede que teria pego o BUG-1 no ato, e agora
-   custa um arquivo. Tipos gerados do OpenAPI vêm depois: mais valor, mais trabalho.
-6. SEO + error boundaries (P3). **SEO não é acabamento:** exige `head` por rota nas 11 rotas
-   e decidir o idioma antes (`<html lang="pt-BR">` com a UI em inglês) — é trabalho médio,
-   não da mesma leva que os error boundaries.
+   produção, `gofmt` no CI do Processor, o teste template da API deletado e os três portões do
+   front no CI (**lint → typecheck → test → build**, com `noUncheckedIndexedAccess` ligado).
+5.1. **Fila combinada em 2026-09-07, em ordem:** Header responsivo (piorou com a busca e o
+   toggle) → `errorComponent`/`notFoundComponent` + `isError` → `.golangci.yml` no Processor →
+   testes do `processor.go` → fixture de contrato do webhook. Os três primeiros são baratos; os
+   dois últimos são os que valem mais.
+   Tipos gerados do OpenAPI vêm depois da fixture: mais valor, mais trabalho.
+6. SEO + idioma (P3). **SEO não é acabamento:** exige `head` por rota nas 11 rotas e decidir o
+   idioma antes (`<html lang="pt-BR">` com a UI em inglês) — é trabalho médio.
 7. README raiz + doc do fluxo ponta a ponta (P4).
 8. Histórico/notificações (P5).
 9. Performance do pipeline (P6) — ✅ ~~P-PERF1 a P-PERF4~~ (já estavam no código; marcados

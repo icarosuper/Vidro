@@ -263,8 +263,8 @@ travada. Agora está.
 4. **Seção de logging no `conventions.md` da API** (item 7) — a única seção que falta comparada aos outros dois serviços
 5. **Teste de contrato Go↔C# por AST** (item 3) — o que justifica o monorepo existir
 
-O resto (itens 2, 4, 5, 6, 8, 9, 11, 12, 13, 14, 16, 17, 18) não tem dependência entre si e
-pode entrar conforme se mexe na área correspondente.
+O resto (itens 2, 4, 5, 6, 8, 9, 11, 12, 13, 14, 17) não tem dependência entre si e pode entrar
+conforme se mexe na área correspondente. **Fechados:** 10, 15, 16, 18.
 
 ---
 
