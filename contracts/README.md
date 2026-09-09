@@ -1,8 +1,12 @@
 # Contratos entre serviços
 
-JSON golden do contrato que atravessa `VidroProcessor` → `VidroApi`. Os dois lados testam **o
-mesmo arquivo**: o worker prova que *serializa exatamente isto*, a API prova que *aceita
-exatamente isto*. Se um lado divergir, o CI do outro quebra.
+JSON golden dos contratos que atravessam serviços. Os dois lados de cada contrato testam **o
+mesmo arquivo**: se um divergir, o CI do outro quebra.
+
+| Golden | Atravessa |
+|---|---|
+| `video-processed-*.json` | `VidroProcessor` → `VidroApi` (payload do webhook) |
+| `enums.json` | `VidroApi` → `VidroFront` (os seis enums espelhados à mão) |
 
 Existe porque os dois P0 do [`TODO.md`](../TODO.md) foram divergência de contrato entre o
 webhook Go e o handler C#, e ninguém viu por meses. Antes do monorepo isso exigiria publicar um
@@ -25,5 +29,40 @@ Quem testa:
 - `VidroProcessor/webhook_contract_test.go` — `buildWebhookPayload` a partir de um `queue.JobState`.
 - `VidroApi/tests/VidroApi.IntegrationTests/Videos/VideoProcessedTests.cs` — POST assinado no endpoint real.
 
-**Mudar um campo é mudar os dois lados no mesmo commit** (regra do `CLAUDE.md` da raiz). O golden
-é pretty-printed para diff legível; o corpo real vai compacto, o que é o mesmo JSON.
+## `enums.json` — os seis enums que o front espelha à mão
+
+Atravessa `VidroApi` → `VidroFront`. A API serializa esses enums como **inteiro**, e o front os
+redigita em `src/shared/types.ts`: nada no sistema de tipos liga os dois lados, então renomear ou
+renumerar um membro chegaria ao browser como valor silenciosamente errado. `ReactionType` começa
+em **1**, não em 0 — é exatamente o tipo de detalhe que um refactor leva junto sem ninguém notar.
+
+| Enum | Onde mora no backend |
+|---|---|
+| `VideoStatus`, `VideoVisibility`, `ReactionType`, `PlaylistVisibility`, `PlaylistScope` | `VidroApi/src/VidroApi.Domain/Enums/` |
+| `CommentSortOrder` | dentro do slice, `Features/Comments/ListComments.cs` |
+
+Quem testa:
+
+- `VidroApi/tests/VidroApi.IntegrationTests/Contracts/EnumContractTests.cs` — reflexão sobre os
+  seis tipos. Não usa `IClassFixture<ApiFactory>`, então **não sobe container**; está nesse
+  projeto só porque é o que referencia `VidroApi.Api`, onde vive o `CommentSortOrder`.
+- `VidroFront/src/tests/enum-contract.test.ts` — os seis `as const` de `shared/types.ts`.
+
+Os dois testes também falham se o golden descrever um enum que o lado deles não espelha mais —
+entrada de golden sem ninguém atrás é contrato que ninguém confere.
+
+**Por que não vem do OpenAPI:** viria, se o documento descrevesse os enums. Não descreve — ver
+[`VidroApi/openapi/README.md`](../VidroApi/openapi/README.md). O `openapi/v1.json` trava a
+superfície de URL; este golden trava os enums.
+
+---
+
+## Regras que valem para os dois
+
+**Mudar um campo é mudar os dois lados no mesmo commit** (regra do `CLAUDE.md` da raiz).
+
+Os três workflows disparam em mudança de `contracts/**` (filtro de path de cada um) — senão um
+golden poderia mudar sem CI nenhum conferir.
+
+Os goldens são pretty-printed para diff legível. No caso do webhook, o corpo real vai compacto,
+o que é o mesmo JSON.

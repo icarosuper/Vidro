@@ -5,10 +5,12 @@ on:
     branches: [master]
     paths:
       - "VidroFront/**"
+      - "contracts/**"
       - ".github/workflows/front.yml"
   pull_request:
     paths:
       - "VidroFront/**"
+      - "contracts/**"
       - ".github/workflows/front.yml"
 
 defaults:

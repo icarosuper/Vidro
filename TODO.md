@@ -350,7 +350,7 @@ Os dois P0 desta lista foram divergência de contrato entre serviços. Enquanto 
 não havia onde colocar a rede que os pegaria. Agora há. Ver `docs/MONOREPO.md`, seção "O que a
 migração destrava".
 
-- [ ] **Gerar os tipos do front a partir do OpenAPI da API.**
+- [~] **Gerar os tipos do front a partir do OpenAPI da API.** *(parcial — ver o bloco no fim do item)*
       `VidroFront/src/shared/types.ts:64-69` espelha **na mão** seis enums do backend
       (`VideoStatus`, `VideoVisibility`, `ReactionType`, `PlaylistVisibility`, `PlaylistScope`,
       `CommentSortOrder`), e as shapes de request/response de cada feature são redigitadas em
@@ -369,6 +369,45 @@ migração destrava".
       **Não é drop-in:** a API envelopa tudo em `{ data: T }` e devolve enum como
       `EnumValue { id, value }` — o tipo gerado descreve o envelope, e o `apiClient` é quem
       desembrulha. Planejar a camada fina antes de trocar os tipos escritos à mão.
+
+      > **PARCIALMENTE RESOLVIDO** *(2026-09-09)* — e o achado é que **o item, como estava escrito,
+      > não era alcançável**: montei a geração e o documento não descreve o que interessa.
+      >
+      > `Microsoft.Extensions.ApiDescription.Server` gera o documento no build, e ele sai assim:
+      >
+      > | | resultado |
+      > |---|---|
+      > | rotas / métodos / parâmetros | **43 de 43**, corretos |
+      > | operações com schema de **resposta** | **0 de 43** — os handlers devolvem `IResult`, sem `TypedResults`/`.Produces<T>()` |
+      > | schemas de request | 16 operações → **1 schema só**, chamado `Request` (o record aninhado de cada slice colide) |
+      > | os seis enums | `VideoVisibility` e `CommentSortOrder` viram `{"type":"integer"}` **sem valores**; os outros quatro nem aparecem |
+      >
+      > Gerar `.d.ts` disso hoje **não pegaria o drift que motiva o item**. Então o item virou dois
+      > portões, cada um fechando um drift real:
+      >
+      > 1. **`contracts/enums.json`** — golden dos seis enums, mesmo padrão do webhook, lido pelos
+      >    dois lados: `VidroApi/tests/.../Contracts/EnumContractTests.cs` (reflexão; sem container,
+      >    não usa `IClassFixture<ApiFactory>`) e `VidroFront/src/tests/enum-contract.test.ts`.
+      >    Os dois também falham se o golden listar enum que aquele lado não espelha mais.
+      >    **Verificado por mutação:** trocar `"Like": 1` por `0` no golden deixa os dois vermelhos.
+      > 2. **`VidroApi/openapi/v1.json` versionado** + passo no `api.yml` que regenera e falha no
+      >    diff. Trava as 43 rotas — a classe do P0.1 ("4 rotas erradas no `features-index`").
+      >    **Verificado por mutação:** renomear `/v1/feed` para `/v1/feeeed` produz diff.
+      >
+      > Custos e pegadinhas, todos documentados em `VidroApi/openapi/README.md` e em
+      > **design-decisions #11** da API:
+      > a geração fica atrás de `-p:GenerateOpenApiDocument=true` (boota o host; build de todo dia
+      > não paga isso); precisa de `ASPNETCORE_ENVIRONMENT=Development` porque `AddInfrastructure`
+      > monta o client do MinIO na hora e o endpoint só existe no `appsettings.Development.json`;
+      > e o `Program.cs` **pula a migration** quando o processo é o `GetDocument.Insider`, porque
+      > gerar contrato não pode exigir Postgres de pé.
+      > De quebra: os três workflows passaram a disparar em `contracts/**` — sem isso o golden
+      > (o novo **e** os do webhook, que já estavam nessa situação) podia mudar sem CI nenhum ver.
+      >
+      > **O que continua aberto** para o item fechar de verdade: a API declarar as respostas
+      > (`TypedResults`/`.Produces<T>()` nas 43 features), schema ID por feature para resolver a
+      > colisão de `Request`, e um transformer para os enums saírem com valores. Só então
+      > `openapi-typescript` + a camada fina do envelope `{ data: T }` fazem sentido.
 
 - [x] ~~**Fixture de contrato compartilhada entre Processor e API para o webhook.**~~
       **RESOLVIDO** *(2026-09-07)*. Quatro golden em `contracts/` (`video-processed-*.json`),

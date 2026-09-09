@@ -38,6 +38,10 @@ dotnet test tests/VidroApi.UnitTests --filter "FullyQualifiedName~ClassName"
 # Single test method
 dotnet test tests/VidroApi.UnitTests --filter "FullyQualifiedName~ClassName.MethodName"
 
+# Regenerate the versioned OpenAPI document (CI fails on a stale openapi/v1.json).
+# The env var and the property are both required — see openapi/README.md.
+ASPNETCORE_ENVIRONMENT=Development dotnet build src/VidroApi.Api -p:GenerateOpenApiDocument=true
+
 # EF Core migrations (always specify both projects)
 # Migration names must follow the pattern: PascalCaseDescriptionMigration (e.g. AddCommentsFeatureMigration, ChangeUsernameMaxLengthMigration)
 dotnet ef migrations add <DescriptionMigration> --project src/VidroApi.Infrastructure --startup-project src/VidroApi.Api --output-dir Persistence/Migrations

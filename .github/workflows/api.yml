@@ -9,10 +9,12 @@ on:
     branches: [master]
     paths:
       - "VidroApi/**"
+      - "contracts/**"
       - ".github/workflows/api.yml"
   pull_request:
     paths:
       - "VidroApi/**"
+      - "contracts/**"
       - ".github/workflows/api.yml"
 
 defaults:
@@ -37,6 +39,18 @@ jobs:
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
+
+      # O documento é versionado porque é o contrato de URL que o VidroFront consome.
+      # Regenerar e diffar é o que impede uma rota mudar sem ninguém ver — a classe de bug
+      # do P0.1 ("4 rotas erradas no features-index"). Precisa de ASPNETCORE_ENVIRONMENT
+      # porque a geração boota o host; ver VidroApi/openapi/README.md.
+      - name: Check the OpenAPI document is up to date
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+        run: |
+          dotnet build src/VidroApi.Api --configuration Release -p:GenerateOpenApiDocument=true
+          git diff --exit-code openapi/v1.json \
+            || { echo "::error::openapi/v1.json esta desatualizado. Rode: ASPNETCORE_ENVIRONMENT=Development dotnet build src/VidroApi.Api -p:GenerateOpenApiDocument=true"; exit 1; }
 
       - name: Run unit tests
         run: dotnet test tests/VidroApi.UnitTests --no-build --configuration Release --logger "console;verbosity=normal"

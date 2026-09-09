@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -79,8 +80,17 @@ if (app.Environment.IsDevelopment())
 // image is the whole deploy. Note this makes the schema change before the old instance
 // stops, so migrations must stay backward-compatible with the running version, and two
 // instances booting at once both try to migrate (EF takes a lock, the loser waits).
-using (var scope = app.Services.CreateScope())
+// The build-time OpenAPI generator (`dotnet-getdocument`) boots this host to read the routes,
+// in a process with no database. Generating the contract must not require one, so anything with
+// a side effect opts out of that run — see openapi/README.md.
+var isOpenApiDocumentGeneration =
+    Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
+
+if (!isOpenApiDocumentGeneration)
+{
+    using var scope = app.Services.CreateScope();
     await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+}
 
 // CorrelationId must come first so the ID is in scope for all subsequent logs,
 // including Serilog's own request log entry.

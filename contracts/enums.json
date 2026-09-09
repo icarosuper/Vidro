@@ -1,0 +1,8 @@
+{
+  "VideoStatus": { "PendingUpload": 0, "Processing": 1, "Ready": 2, "Failed": 3 },
+  "VideoVisibility": { "Public": 0, "Unlisted": 1, "Private": 2 },
+  "ReactionType": { "Like": 1, "Dislike": 2 },
+  "PlaylistVisibility": { "Public": 0, "Private": 1 },
+  "PlaylistScope": { "User": 0, "Channel": 1 },
+  "CommentSortOrder": { "Recent": 0, "Popular": 1 }
+}

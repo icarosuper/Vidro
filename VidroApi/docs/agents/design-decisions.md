@@ -17,8 +17,9 @@ decision by **anchor**, never by line number — `[design-decisions.md #7](desig
 - [**#8** — `DeleteBehavior.Cascade` is the global default](#8-deletebehaviorcascade-is-the-global-default)
 - [**#9** — MinIO cleanup goes through `PendingStorageCleanup`](#9-minio-cleanup-goes-through-pendingstoragecleanup)
 - [**#10** — Single presigned PUT URL for upload](#10-single-presigned-put-url-for-upload)
+- [**#11** — The OpenAPI document is generated at build and versioned](#11-the-openapi-document-is-generated-at-build-and-versioned)
 
-A new entry takes the **next number** (highest today is **#10**) plus one line here in the index.
+A new entry takes the **next number** (highest today is **#11**) plus one line here in the index.
 Never renumber an existing entry — references elsewhere point at its anchor.
 
 ---
@@ -130,3 +131,24 @@ either orphaned objects or rows pointing at objects that no longer exist.
 ### 10. Single presigned PUT URL for upload
 
 Multipart upload is planned, not implemented. See `docs/plans/` for the future work.
+
+### 11. The OpenAPI document is generated at build and versioned
+
+`VidroApi.Api.csproj`, `Program.cs`, `openapi/v1.json`, `.github/workflows/api.yml`.
+
+- **Why**: `openapi/v1.json` is the URL surface VidroFront consumes. Committing it and having CI
+  regenerate-and-diff turns a route change into something a reviewer sees. The P0.1 entry in
+  `TODO.md` was four wrong routes in `features-index.md` that nothing could catch.
+- **Behind a property** (`-p:GenerateOpenApiDocument=true`): generation boots the host, so an
+  everyday `dotnet build` must not pay for it.
+- **Needs `ASPNETCORE_ENVIRONMENT=Development`**: `AddInfrastructure` builds the MinIO client
+  eagerly from config, and the endpoint only exists in `appsettings.Development.json`. Nothing
+  connects — the endpoint just has to parse.
+- **The migration opts out**: `Program.cs` skips `MigrateAsync` when the entry assembly is
+  `GetDocument.Insider`. Generating the contract cannot require a live Postgres. Any future
+  startup side effect has to opt out the same way.
+- **Its limits are real and documented** in [`openapi/README.md`](../../openapi/README.md):
+  the document describes the 43 routes and **no response schema at all**, because the handlers
+  return untyped `IResult`. The six enums the front mirrors are pinned by
+  `contracts/enums.json` instead, not by this file.
+

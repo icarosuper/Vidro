@@ -111,6 +111,18 @@ aceita o header de entrada (`CorrelationIdMiddleware`), devolve no response e ca
 - `crypto.randomUUID` é `undefined` em browser fora de contexto seguro (http em host que não é
   localhost); por isso há fallback — é id de correlação, não token de segurança.
 
+### Enums espelhados do backend
+
+`shared/types.ts` redigita seis enums da API (`VideoStatus`, `VideoVisibility`, `ReactionType`,
+`PlaylistVisibility`, `PlaylistScope`, `CommentSortOrder`) porque a API os serializa como
+**inteiro**. Não invente valor novo e não mude número aqui: o contrato é
+[`contracts/enums.json`](../../../contracts/README.md) na raiz do monorepo, e
+`src/tests/enum-contract.test.ts` falha se este arquivo divergir dele — assim como o teste do
+lado da API. Mudar um membro é mudar o golden e os dois lados no mesmo commit.
+
+O `openapi/v1.json` da API **não** serve para isso: ele descreve as rotas e nenhuma resposta.
+Ver `VidroApi/openapi/README.md`.
+
 ## Estratégia de renderização
 
 | Rota | Estratégia | Notas |

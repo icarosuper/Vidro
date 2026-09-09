@@ -5,10 +5,12 @@ on:
     branches: [master]
     paths:
       - "VidroProcessor/**"
+      - "contracts/**"
       - ".github/workflows/processor.yml"
   pull_request:
     paths:
       - "VidroProcessor/**"
+      - "contracts/**"
       - ".github/workflows/processor.yml"
 
 defaults:

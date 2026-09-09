@@ -29,6 +29,10 @@
     <Content Include="..\..\..\contracts\video-processed-*.json"
              Link="contracts\%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest" />
+    <!-- Enum contract golden shared with VidroFront: see contracts/README.md -->
+    <Content Include="..\..\..\contracts\enums.json"
+             Link="contracts\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

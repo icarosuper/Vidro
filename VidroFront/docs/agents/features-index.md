@@ -164,7 +164,7 @@ Trending, feed, busca, detalhe, reações, upload (create + presigned + status p
 | api client | `src/shared/lib/api-client.ts` | `apiClient`, `ApiClientError` (com `correlationId`), `setRenewTokenCallback` |
 | correlation id | `src/shared/lib/correlation-id.ts` | `CORRELATION_ID_HEADER`, `newCorrelationId()` — um id por requisição, mandado em `X-Correlation-ID` |
 | token store | `src/shared/lib/token-store.ts` | `tokenStore` (get/set/clear/subscribe) |
-| tipos base | `src/shared/types.ts` | `ApiSuccess`, `ApiError`, `ValidationError`, `EnumValue`, `CursorPage`, `PagedResult`, `API_ERROR_CODES`, `VideoStatus`, `VideoVisibility`, `ReactionType` + `ReactionTypeValue` (o tipo do valor; o const é só valor), `PlaylistVisibility`, `PlaylistScope`, `CommentSortOrder` |
+| tipos base | `src/shared/types.ts` | `ApiSuccess`, `ApiError`, `ValidationError`, `EnumValue`, `CursorPage`, `PagedResult`, `API_ERROR_CODES`, `VideoStatus`, `VideoVisibility`, `ReactionType` + `ReactionTypeValue` (o tipo do valor; o const é só valor), `PlaylistVisibility`, `PlaylistScope`, `CommentSortOrder`. **Os seis enums são travados por `contracts/enums.json`** — mudar um valor aqui sem mudar o golden quebra o CI dos dois lados |
 | erros | `src/shared/lib/error-messages.ts` | Map `code → mensagem user-facing` |
 | toast | `src/shared/lib/toast-error.ts` | `toastApiError(error)` |
 | components globais | `src/components/` | `Header` (busca + `ThemeToggle`; responsivo por CSS — rótulo `sr-only` até `lg`, busca na segunda linha abaixo de `sm`), `ThemeToggle` (light → dark → auto, persistido em `localStorage`), `RouteFallback` (`RouteErrorFallback` + `RouteNotFoundFallback`, registrados como default do router), `TimeAgo`, `ui/*` (shadcn) |

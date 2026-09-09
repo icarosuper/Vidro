@@ -5,6 +5,16 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
+
+    <!-- Documento OpenAPI versionado em openapi/v1.json: trava a superfície de URL da API,
+         que o VidroFront consome. Fica atrás de uma propriedade porque a geração boota o host,
+         e isso exige config (ver openapi/README.md) — build normal não paga esse preço.
+         Gerar: ASPNETCORE_ENVIRONMENT=Development dotnet build src/VidroApi.Api -p:GenerateOpenApiDocument=true
+         O default do pacote é `true`, então desligar exige dizer `false` — omitir não basta. -->
+    <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
+    <OpenApiGenerateDocumentsOnBuild Condition="'$(GenerateOpenApiDocument)' == 'true'">true</OpenApiGenerateDocumentsOnBuild>
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/../../openapi</OpenApiDocumentsDirectory>
+    <OpenApiGenerateDocumentsOptions>--file-name v1</OpenApiGenerateDocumentsOptions>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +26,10 @@
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.4" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
