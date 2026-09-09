@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	oteltrace "go.opentelemetry.io/otel/trace"
@@ -148,7 +148,7 @@ func ProcessVideo(ctx context.Context, inputPath, outputPath string, opts Option
 	result := &ProcessingResult{TempDir: tempDir}
 
 	// 1. Validation
-	log.Info().Msg("Step 1/7: Validating video")
+	zerolog.Ctx(ctx).Info().Msg("Step 1/7: Validating video")
 	if err := runStep(ctx, "validate", opts.step(stepTimeoutValidate), func(stepCtx context.Context) error {
 		return processor_steps.ValidateVideo(stepCtx, inputPath)
 	}); err != nil {
@@ -156,11 +156,11 @@ func ProcessVideo(ctx context.Context, inputPath, outputPath string, opts Option
 	}
 
 	// 2. Content analysis
-	log.Info().Msg("Step 2/7: Analyzing content")
+	zerolog.Ctx(ctx).Info().Msg("Step 2/7: Analyzing content")
 	_ = runStep(ctx, "analyze", opts.step(stepTimeoutAnalyze), func(stepCtx context.Context) error {
 		metadata, err := processor_steps.AnalyzeContent(stepCtx, inputPath)
 		if err != nil {
-			log.Warn().Err(err).Msg("Content analysis failed")
+			zerolog.Ctx(ctx).Warn().Err(err).Msg("Content analysis failed")
 			return err
 		}
 		result.Metadata = metadata
@@ -168,7 +168,7 @@ func ProcessVideo(ctx context.Context, inputPath, outputPath string, opts Option
 	})
 
 	// 3. Transcoding (critical step)
-	log.Info().Msg("Step 3/7: Transcoding video")
+	zerolog.Ctx(ctx).Info().Msg("Step 3/7: Transcoding video")
 	if err := runStep(ctx, "transcode", opts.step(stepTimeoutTranscode), func(stepCtx context.Context) error {
 		return processor_steps.TranscodeVideo(stepCtx, inputPath, outputPath, opts.VideoEncoder, opts.NVENCPreset)
 	}); err != nil {
@@ -184,7 +184,7 @@ func ProcessVideo(ctx context.Context, inputPath, outputPath string, opts Option
 		runNonCriticalStepsSequential(ctx, steps)
 	}
 
-	log.Info().Msg("Processing pipeline completed successfully")
+	zerolog.Ctx(ctx).Info().Msg("Processing pipeline completed successfully")
 	return result, nil
 }
 
@@ -261,9 +261,9 @@ func nonCriticalSteps(inputPath, transcodedPath, tempDir string, result *Process
 // skipped, never fatal — the job still reports success without that artifact.
 func runNonCriticalStepsSequential(ctx context.Context, steps []nonCriticalStep) {
 	for _, step := range steps {
-		log.Info().Msg(step.startMsg)
+		zerolog.Ctx(ctx).Info().Msg(step.startMsg)
 		if err := runStep(ctx, step.name, step.timeout, step.run); err != nil {
-			log.Warn().Err(err).Msg(step.failMsg)
+			zerolog.Ctx(ctx).Warn().Err(err).Msg(step.failMsg)
 			continue
 		}
 		step.onSuccess()
@@ -287,9 +287,9 @@ func runNonCriticalStepsParallel(ctx context.Context, steps []nonCriticalStep, m
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			log.Info().Msg(step.startMsg)
+			zerolog.Ctx(ctx).Info().Msg(step.startMsg)
 			if err := runStep(ctx, step.name, step.timeout, step.run); err != nil {
-				log.Warn().Err(err).Msg(step.failMsg)
+				zerolog.Ctx(ctx).Warn().Err(err).Msg(step.failMsg)
 				return
 			}
 			mu.Lock()

@@ -149,18 +149,27 @@ for: 1m
 
 ## Structured Logs
 
-Use **Zerolog** ConsoleWriter (human-readable) by default. For prod with centralized collection (Loki, ELK), replace in `main.go`:
+**Zerolog**, with the format chosen by the destination — no flag to set. `logWriter()` in
+`main.go` returns the human-readable `ConsoleWriter` when stderr is a terminal, and raw JSON
+otherwise. Running the worker from a shell gives colorized lines; under `docker compose` the
+output is JSON, which is what lets Promtail/Loki filter by field instead of by substring.
 
-```go
-// Switch from ConsoleWriter to JSON output
-log.Logger = zerolog.New(os.Stderr).With().Timestamp().Logger()
-```
+**Every log line of a job carries these fields**, including the pipeline steps: the job logger
+is built once in `processNextMessage` and injected into the context, and the steps read it back
+with `zerolog.Ctx(ctx)` — see `docs/agents/conventions.md`, "Logging".
 
-**Context fields in logs**:
-- `workerID` — worker ID
+- `workerID` — worker that took the job
 - `videoID` — video being processed
-- `duration_seconds` — processing time
+- `duration_seconds` — processing time (success line only)
 - `object` — MinIO object path
+
+Filtering one video in Loki (Grafana → Explore). The `container` label comes from Promtail's
+Docker discovery (`promtail/config.yml`), so the value is the compose container name
+(`vidro-worker-1` by default) — the regex avoids depending on the project prefix:
+
+```logql
+{container=~".*worker.*"} | json | videoID="<videoId>"
+```
 
 ---
 

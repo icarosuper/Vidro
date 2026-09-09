@@ -14,12 +14,33 @@ This file is Go-specific.
 
 ## Logging
 
-- Use `zerolog` via `github.com/rs/zerolog/log`. No stdlib `log` in worker code (exception: `config/config.go` startup).
-- Prefer structured fields:
+- Use `zerolog`. No stdlib `log` in worker code (exception: `config/config.go` startup).
+- **Inside a job, log through the context, never the global logger.** `processNextMessage`
+  (`main.go`) builds the job logger once and injects it with `jobLogger.WithContext(ctx)`;
+  everything downstream reads it back, so `videoID` and `workerID` land on every line without
+  being threaded through any signature:
 
   ```go
-  log.Info().Str("videoID", videoID).Int("workerID", id).Msg("Processing video")
+  // main.go — the frame, once per job
+  jobLogger := log.With().Int("workerID", workerID).Str("videoID", videoID).Logger()
+  ctx = jobLogger.WithContext(ctx)
+
+  // pipeline steps — anywhere a ctx is in scope
+  zerolog.Ctx(ctx).Info().Msg("Step 3/7: Transcoding video")
   ```
+
+  This is what the runbook's `grep <videoId>` relies on
+  ([`../docs/troubleshooting-stuck-video.md`](../../../docs/troubleshooting-stuck-video.md), step 4):
+  with `WORKER_COUNT > 1`, a bare `Step 3/7` line from two concurrent jobs is indistinguishable.
+  `main.go` sets `zerolog.DefaultContextLogger`, so a call site reached without an injected
+  logger still logs instead of going silent.
+- The global `github.com/rs/zerolog/log` is for **startup and out-of-job** code only:
+  `ResolveVideoEncoder`, the HTTP/health handlers, the recovery ticker.
+- Prefer structured fields over interpolation: `Str`/`Int`/`Err`, never `fmt.Sprintf` into `Msg`.
+- **Output format is decided by the destination, not by a flag**: `logWriter()` in `main.go`
+  returns zerolog's `ConsoleWriter` when stderr is a terminal and raw JSON otherwise. Under
+  Docker the output has to stay JSON — Promtail ships it to Loki, and a colorized console line
+  is only filterable by substring there.
 
 - Log levels:
   - `Info` — lifecycle events, step boundaries.

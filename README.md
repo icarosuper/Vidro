@@ -61,6 +61,7 @@ Falhou no meio? O runbook é [`docs/troubleshooting-stuck-video.md`](docs/troubl
 | [`TODO.md`](TODO.md) | Backlog dos três serviços, com referência de arquivo/linha |
 | [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md) | Vídeo preso em `Processing` — atravessa API, Redis, worker e MinIO |
 | [`docs/padroes-a-importar.md`](docs/padroes-a-importar.md) | Regras e ferramentas de outros repos que valem para cá, com a ordem sugerida |
+| [`docs/observabilidade.md`](docs/observabilidade.md) | O que existe de log, métrica e trace nos três serviços, os furos e a ordem de fechá-los |
 
 Cada serviço tem o próprio `CLAUDE.md` e `docs/agents/` com o que é específico dele.
 

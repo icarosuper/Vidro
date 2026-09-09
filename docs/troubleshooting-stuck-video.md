@@ -92,10 +92,18 @@ docker compose exec redis redis-cli LRANGE video_queue:dead 0 -1
 
 ## Step 4 — Read the worker log for that video
 
-Every pipeline log line carries `videoID`.
+Every pipeline log line carries `videoID` and `workerID` — the worker builds the job logger once
+and injects it into the context, so the step lines carry it too, not just the job frame.
 
 ```bash
 docker compose logs worker | grep <videoId>
+```
+
+Outside a terminal the worker logs JSON, so in Grafana → Explore the same read is a field query
+instead of a substring match — the only version that stays reliable with `WORKER_COUNT > 1`:
+
+```logql
+{container=~".*worker.*"} | json | videoID="<videoId>"
 ```
 
 Read it against the pipeline: `validate → analyze → transcode → thumbnails → audio → preview → streaming`.

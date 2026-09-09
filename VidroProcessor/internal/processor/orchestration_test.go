@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/rs/zerolog"
 
 	"video-processor/metrics"
 )
@@ -280,5 +282,43 @@ func TestProcessVideo_InvalidInputFailsAtValidation(t *testing.T) {
 	}
 	if result.ThumbnailsDir != "" || result.AudioPath != "" || result.PreviewPath != "" || result.StreamingDir != "" {
 		t.Errorf("no step after validation should have run, got: %+v", result)
+	}
+}
+
+// The runbook (docs/troubleshooting-stuck-video.md) tells the operator to filter logs by
+// videoID, so every pipeline line has to carry it — not only the worker frame in main.go.
+// The step orchestrators log through zerolog.Ctx(ctx), which is what makes that true.
+func TestOrchestrators_LogLinesCarryTheJobFields(t *testing.T) {
+	var mu sync.Mutex
+	var started, succeeded []string
+
+	orchestrators := map[string]func(context.Context, []nonCriticalStep){
+		"sequential": runNonCriticalStepsSequential,
+		"parallel": func(ctx context.Context, steps []nonCriticalStep) {
+			runNonCriticalStepsParallel(ctx, steps, 1)
+		},
+	}
+
+	for name, run := range orchestrators {
+		t.Run(name, func(t *testing.T) {
+			var out bytes.Buffer
+			logger := zerolog.New(&out).With().Str("videoID", "vid-42").Logger()
+			ctx := logger.WithContext(context.Background())
+
+			run(ctx, []nonCriticalStep{
+				fakeStep("thumbnails", time.Second, succeeds, &mu, &started, &succeeded),
+				fakeStep("audio", time.Second, fails, &mu, &started, &succeeded),
+			})
+
+			lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+			if len(lines) != 3 {
+				t.Fatalf("expected 3 log lines (2 starts + 1 failure), got %d: %q", len(lines), out.String())
+			}
+			for _, line := range lines {
+				if !strings.Contains(line, `"videoID":"vid-42"`) {
+					t.Errorf("log line without videoID: %s", line)
+				}
+			}
+		})
 	}
 }

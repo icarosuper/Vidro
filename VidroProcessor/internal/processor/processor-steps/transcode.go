@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 // TranscodeVideo converts the video to standardized formats (MP4, H.264, AAC).
@@ -16,7 +16,7 @@ func TranscodeVideo(ctx context.Context, inputPath, outputPath, encoder, nvencPr
 	case VideoEncoderNVENC:
 		preset := NormalizeNVENCPreset(nvencPreset)
 		if err := transcodeVideoNVENC(ctx, inputPath, outputPath, preset); err != nil {
-			log.Warn().Err(err).Msg("NVENC transcode failed, falling back to CPU (libx264)")
+			zerolog.Ctx(ctx).Warn().Err(err).Msg("NVENC transcode failed, falling back to CPU (libx264)")
 			return transcodeVideoCPU(ctx, inputPath, outputPath)
 		}
 		return nil
@@ -65,7 +65,7 @@ func transcodeVideoNVENC(ctx context.Context, inputPath, outputPath, preset stri
 	}
 	firstErr := fmt.Errorf("nvenc (cuda decode): %w, output: %s", err, string(out))
 
-	log.Warn().Err(firstErr).Msg("NVENC transcode with -hwaccel cuda failed, retrying without CUDA decode")
+	zerolog.Ctx(ctx).Warn().Err(firstErr).Msg("NVENC transcode with -hwaccel cuda failed, retrying without CUDA decode")
 
 	args = []string{
 		"-i", inputPath,

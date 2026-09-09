@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 // VideoMetadata contains metadata extracted from the video.
@@ -82,7 +82,7 @@ func AnalyzeContent(ctx context.Context, inputPath string) (*VideoMetadata, erro
 	metadata.Size, _ = strconv.ParseInt(probeData.Format.Size, 10, 64)
 	metadata.Bitrate, _ = strconv.ParseInt(probeData.Format.BitRate, 10, 64)
 
-	log.Info().
+	zerolog.Ctx(ctx).Info().
 		Float64("duration", metadata.Duration).
 		Int("width", metadata.Width).
 		Int("height", metadata.Height).

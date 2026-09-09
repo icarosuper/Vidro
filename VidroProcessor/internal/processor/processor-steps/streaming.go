@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 // hlsVariant defines a quality variant for adaptive streaming.
@@ -60,7 +60,7 @@ func SegmentForStreamingWithOptions(ctx context.Context, inputPath, outputDir st
 
 	err := segmentForStreamingBody(ctx, inputPath, outputDir, opts, encoder, preset)
 	if err != nil && encoder == VideoEncoderNVENC {
-		log.Warn().Err(err).Msg("HLS with NVENC failed, retrying with CPU (libx264)")
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("HLS with NVENC failed, retrying with CPU (libx264)")
 		return segmentForStreamingBody(ctx, inputPath, outputDir, opts, VideoEncoderCPU, preset)
 	}
 	return err
@@ -91,7 +91,7 @@ func segmentForStreamingBody(ctx context.Context, inputPath, outputDir string, o
 		if !opts.Fallback {
 			return err
 		}
-		log.Warn().Err(err).Msg("Single-command HLS failed, falling back to sequential mode")
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("Single-command HLS failed, falling back to sequential mode")
 	}
 
 	return segmentForStreamingSequential(ctx, inputPath, outputDir, selected, encoder, nvencPreset)
@@ -259,7 +259,7 @@ func transcodeHLSVariantNVENC(ctx context.Context, inputPath, varDir string, v h
 	if _, err := cmd.CombinedOutput(); err == nil {
 		return nil
 	} else {
-		log.Warn().Err(err).Str("variant", v.Name).Msg("HLS variant NVENC with CUDA decode failed, retrying without hwaccel")
+		zerolog.Ctx(ctx).Warn().Err(err).Str("variant", v.Name).Msg("HLS variant NVENC with CUDA decode failed, retrying without hwaccel")
 	}
 
 	args = []string{
