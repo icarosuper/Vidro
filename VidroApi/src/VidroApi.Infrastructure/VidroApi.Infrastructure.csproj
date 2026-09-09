@@ -8,6 +8,12 @@
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
+    <!-- Explícito de propósito. O provider do Npgsql pede `Relational` 10.0.4, e até aqui a
+         10.0.5 vinha só de carona no `EntityFrameworkCore.Design`, que é `PrivateAssets=all` e
+         portanto NÃO chega a quem referencia este projeto: os testes resolviam 10.0.4 e o resto
+         10.0.5, e a divergência só aparecia como MSB3277 em quem juntasse os dois grafos.
+         A versão tem que acompanhar a do `Microsoft.EntityFrameworkCore` acima. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
