@@ -1,9 +1,8 @@
 using System.Text.Json;
 using FluentAssertions;
-using VidroApi.Api.Features.Comments;
 using VidroApi.Domain.Enums;
 
-namespace VidroApi.IntegrationTests.Contracts;
+namespace VidroApi.UnitTests.Contracts;
 
 /// <summary>
 /// VidroFront mirrors these six enums by hand (<c>VidroFront/src/shared/types.ts</c>) because the
@@ -15,11 +14,6 @@ namespace VidroApi.IntegrationTests.Contracts;
 /// <c>VidroFront/src/tests/enum-contract.test.ts</c> proves the front matches the same file.
 /// Changing a member means changing the golden and both sides in the same commit —
 /// see contracts/README.md and the root CLAUDE.md.
-///
-/// It lives here, not in VidroApi.UnitTests, only because <c>CommentSortOrder</c> is declared
-/// inside the ListComments slice: this is the project that already references VidroApi.Api.
-/// There is no <c>IClassFixture&lt;ApiFactory&gt;</c>, so it starts no container and runs
-/// without Docker.
 /// </summary>
 public class EnumContractTests
 {
@@ -40,7 +34,7 @@ public class EnumContractTests
         { nameof(ReactionType), typeof(ReactionType) },
         { nameof(PlaylistVisibility), typeof(PlaylistVisibility) },
         { nameof(PlaylistScope), typeof(PlaylistScope) },
-        { nameof(ListComments.CommentSortOrder), typeof(ListComments.CommentSortOrder) },
+        { nameof(CommentSortOrder), typeof(CommentSortOrder) },
     };
 
     [Theory]

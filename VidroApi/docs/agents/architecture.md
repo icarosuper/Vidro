@@ -91,6 +91,24 @@ EF Core LINQ projections (`.Select(v => ...)`), use inline construction (`EnumVa
 Visibility = new EnumValue { Id = (int)v.Visibility, Value = v.Visibility.ToString() },
 ```
 
+### Where enums live, and why it matters
+
+**Every enum that crosses the API boundary goes in `Domain/Enums/`, with explicit numeric values**
+— never nested inside a feature slice, even when only one slice uses it. `CommentSortOrder` was
+nested in `ListComments` until 2026-09-09; the reason to move it is not tidiness:
+
+- VidroFront mirrors these enums **by hand** (it receives them as integers), and the golden that
+  pins them is [`contracts/enums.json`](../../../contracts/README.md). One flat place to look is
+  what makes "are these six still right?" answerable.
+- The contract test that reads that golden
+  (`tests/VidroApi.UnitTests/Contracts/EnumContractTests.cs`) only needs `VidroApi.Domain`. An
+  enum nested in a slice would force the test into a project that references `VidroApi.Api` —
+  which is how it started, and it dragged Docker-bound infrastructure along for a pure
+  reflection test.
+
+Explicit values (`Recent = 0`) because the wire format **is** the number: an implicit value is a
+contract decided by declaration order.
+
 ## Auth
 
 DIY JWT — no ASP.NET Core Identity. `TokenService` (Infrastructure): access tokens (15 min), refresh tokens (7 days). Refresh tokens stored in `RefreshTokens` table, rotated on use. Extract `UserId` via `ctx.User.GetUserId()` (`ClaimsPrincipal` extension).

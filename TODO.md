@@ -356,7 +356,8 @@ migração destrava".
       `CommentSortOrder`), e as shapes de request/response de cada feature são redigitadas em
       `features/*/types.ts`.
       **Conferi os seis: batem com o backend hoje** — cinco contra `VidroApi/src/VidroApi.Domain/Enums/`
-      e `CommentSortOrder` contra `Features/Comments/ListComments.cs:19`. O problema não é estarem
+      e `CommentSortOrder` contra `Features/Comments/ListComments.cs:19` *(o enum mudou para
+      `Domain/Enums/CommentSortOrder.cs` em 2026-09-09)*. O problema não é estarem
       errados, é **nada garantir que continuem certos**: `ReactionType` começa em `1`, não em `0`,
       e é exatamente o tipo de detalhe que um refactor no backend leva junto sem ninguém notar no
       front. O P0.1 ("4 rotas erradas no `features-index.md`") foi essa mesma classe de drift, só

@@ -16,8 +16,6 @@ namespace VidroApi.Api.Features.Comments;
 
 public static class ListComments
 {
-    public enum CommentSortOrder { Recent, Popular }
-
     public record Command : IRequest<Result<Response, Error>>
     {
         public Guid VideoId { get; init; }

@@ -131,6 +131,11 @@ into a named method, names that say *what*, three-line ternaries — live once i
    the message for good.
 6. Enums in the response are `EnumValue`, and inside an EF projection they are built inline
    (`EnumValue.From` does not translate to SQL).
+6.1. **A new enum goes in `Domain/Enums/`, with explicit numeric values** — never nested in the
+   slice, even when only that slice uses it. If VidroFront sees it, add it to
+   [`contracts/enums.json`](../../../contracts/README.md) and to the two contract tests in the
+   same commit. Why, and what nesting one costs:
+   [architecture.md](architecture.md#where-enums-live-and-why-it-matters).
 7. Entity or mapping changed → update the `IEntityTypeConfiguration`, add the composite index for
    any new 2+ column filter ([design-decisions #4](design-decisions.md#4-composite-indexes-are-declared-for-every-common-query-pattern)),
    and create the migration: `dotnet ef migrations add <PascalCaseDescriptionMigration> --project src/VidroApi.Infrastructure --startup-project src/VidroApi.Api --output-dir Persistence/Migrations`.

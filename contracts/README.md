@@ -36,16 +36,13 @@ redigita em `src/shared/types.ts`: nada no sistema de tipos liga os dois lados, 
 renumerar um membro chegaria ao browser como valor silenciosamente errado. `ReactionType` começa
 em **1**, não em 0 — é exatamente o tipo de detalhe que um refactor leva junto sem ninguém notar.
 
-| Enum | Onde mora no backend |
-|---|---|
-| `VideoStatus`, `VideoVisibility`, `ReactionType`, `PlaylistVisibility`, `PlaylistScope` | `VidroApi/src/VidroApi.Domain/Enums/` |
-| `CommentSortOrder` | dentro do slice, `Features/Comments/ListComments.cs` |
+Os seis moram em `VidroApi/src/VidroApi.Domain/Enums/`: `VideoStatus`, `VideoVisibility`,
+`ReactionType`, `PlaylistVisibility`, `PlaylistScope` e `CommentSortOrder`.
 
 Quem testa:
 
-- `VidroApi/tests/VidroApi.IntegrationTests/Contracts/EnumContractTests.cs` — reflexão sobre os
-  seis tipos. Não usa `IClassFixture<ApiFactory>`, então **não sobe container**; está nesse
-  projeto só porque é o que referencia `VidroApi.Api`, onde vive o `CommentSortOrder`.
+- `VidroApi/tests/VidroApi.UnitTests/Contracts/EnumContractTests.cs` — reflexão sobre os seis
+  tipos. Unit test: sem Docker, sem container, roda sempre.
 - `VidroFront/src/tests/enum-contract.test.ts` — os seis `as const` de `shared/types.ts`.
 
 Os dois testes também falham se o golden descrever um enum que o lado deles não espelha mais —
