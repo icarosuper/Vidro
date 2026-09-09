@@ -44,12 +44,12 @@ func listOf(t *testing.T, key string) []string {
 func TestSetJobFailed_IncrementsRetryCountAndPersists(t *testing.T) {
 	setupRedis(t)
 
-	if err := PublishJob("vid", ""); err != nil {
+	if err := PublishJob(t.Context(), "vid", ""); err != nil {
 		t.Fatalf("PublishJob: %v", err)
 	}
 
 	for attempt := 1; attempt <= 4; attempt++ {
-		state, err := SetJobFailed("vid", errBoom)
+		state, err := SetJobFailed(t.Context(), "vid", errBoom)
 		if err != nil {
 			t.Fatalf("SetJobFailed: %v", err)
 		}
@@ -64,7 +64,7 @@ func TestSetJobFailed_IncrementsRetryCountAndPersists(t *testing.T) {
 		}
 
 		// The counter has to survive the round-trip, not just live in the return value.
-		stored, err := GetJobState("vid")
+		stored, err := GetJobState(t.Context(), "vid")
 		if err != nil {
 			t.Fatalf("GetJobState: %v", err)
 		}
@@ -77,7 +77,7 @@ func TestSetJobFailed_IncrementsRetryCountAndPersists(t *testing.T) {
 func TestSetJobFailed_WithoutExistingState(t *testing.T) {
 	setupRedis(t)
 
-	state, err := SetJobFailed("ghost", errBoom)
+	state, err := SetJobFailed(t.Context(), "ghost", errBoom)
 	if err != nil {
 		t.Fatalf("SetJobFailed: %v", err)
 	}
@@ -112,14 +112,14 @@ func TestShouldRetry_Boundary(t *testing.T) {
 func TestPublishJob_QueuesAndRecordsPending(t *testing.T) {
 	setupRedis(t)
 
-	if err := PublishJob("vid", "http://api/hook"); err != nil {
+	if err := PublishJob(t.Context(), "vid", "http://api/hook"); err != nil {
 		t.Fatalf("PublishJob: %v", err)
 	}
 
 	if got := listOf(t, cfg.ProcessingRequestQueue); len(got) != 1 || got[0] != "vid" {
 		t.Fatalf("request queue = %v, want [vid]", got)
 	}
-	state, err := GetJobState("vid")
+	state, err := GetJobState(t.Context(), "vid")
 	if err != nil {
 		t.Fatalf("GetJobState: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestPublishJob_QueuesAndRecordsPending(t *testing.T) {
 func TestConsumeMessage_MovesJobToProcessing(t *testing.T) {
 	setupRedis(t)
 
-	if err := PublishJob("vid", ""); err != nil {
+	if err := PublishJob(t.Context(), "vid", ""); err != nil {
 		t.Fatalf("PublishJob: %v", err)
 	}
 
@@ -165,7 +165,7 @@ func TestAcknowledgeMessage_RemovesOneOccurrence(t *testing.T) {
 		}
 	}
 
-	if err := AcknowledgeMessage("vid"); err != nil {
+	if err := AcknowledgeMessage(t.Context(), "vid"); err != nil {
 		t.Fatalf("AcknowledgeMessage: %v", err)
 	}
 	if got := listOf(t, processingQueueName()); len(got) != 1 {
@@ -176,17 +176,17 @@ func TestAcknowledgeMessage_RemovesOneOccurrence(t *testing.T) {
 func TestRequeueJob_BackToRequestQueueAsPending(t *testing.T) {
 	setupRedis(t)
 
-	if _, err := SetJobFailed("vid", errBoom); err != nil {
+	if _, err := SetJobFailed(t.Context(), "vid", errBoom); err != nil {
 		t.Fatalf("SetJobFailed: %v", err)
 	}
-	if err := RequeueJob("vid"); err != nil {
+	if err := RequeueJob(t.Context(), "vid"); err != nil {
 		t.Fatalf("RequeueJob: %v", err)
 	}
 
 	if got := listOf(t, cfg.ProcessingRequestQueue); len(got) != 1 || got[0] != "vid" {
 		t.Fatalf("request queue = %v, want [vid]", got)
 	}
-	state, err := GetJobState("vid")
+	state, err := GetJobState(t.Context(), "vid")
 	if err != nil {
 		t.Fatalf("GetJobState: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestRequeueJob_BackToRequestQueueAsPending(t *testing.T) {
 func TestMoveToDLQ_LandsInDeadQueueOnly(t *testing.T) {
 	setupRedis(t)
 
-	if err := MoveToDLQ("vid"); err != nil {
+	if err := MoveToDLQ(t.Context(), "vid"); err != nil {
 		t.Fatalf("MoveToDLQ: %v", err)
 	}
 
@@ -216,7 +216,7 @@ func TestMoveToDLQ_LandsInDeadQueueOnly(t *testing.T) {
 func TestPublishSuccessMessage(t *testing.T) {
 	setupRedis(t)
 
-	if err := PublishSuccessMessage("vid"); err != nil {
+	if err := PublishSuccessMessage(t.Context(), "vid"); err != nil {
 		t.Fatalf("PublishSuccessMessage: %v", err)
 	}
 	if got := listOf(t, cfg.ProcessingFinishedQueue); len(got) != 1 || got[0] != "vid" {
@@ -233,11 +233,11 @@ func parkInProcessing(t *testing.T, videoID string, status JobStatus, retryCount
 	if err := client.LPush(context.Background(), processingQueueName(), videoID).Err(); err != nil {
 		t.Fatalf("LPush: %v", err)
 	}
-	if err := setJobState(videoID, JobState{Status: status, RetryCount: retryCount}); err != nil {
+	if err := setJobState(t.Context(), videoID, JobState{Status: status, RetryCount: retryCount}); err != nil {
 		t.Fatalf("setJobState: %v", err)
 	}
 	// setJobState stamps UpdatedAt with time.Now, so age it explicitly.
-	state, err := GetJobState(videoID)
+	state, err := GetJobState(t.Context(), videoID)
 	if err != nil {
 		t.Fatalf("GetJobState: %v", err)
 	}
@@ -255,7 +255,7 @@ func TestRecoverStuckJobs_RequeuesOrphan(t *testing.T) {
 	setupRedis(t)
 	parkInProcessing(t, "vid", JobStatusProcessing, 1, time.Hour)
 
-	recoverStuckJobs(30 * time.Minute)
+	recoverStuckJobs(t.Context(), 30*time.Minute)
 
 	if got := listOf(t, processingQueueName()); len(got) != 0 {
 		t.Fatalf("processing queue = %v, want empty", got)
@@ -263,7 +263,7 @@ func TestRecoverStuckJobs_RequeuesOrphan(t *testing.T) {
 	if got := listOf(t, cfg.ProcessingRequestQueue); len(got) != 1 || got[0] != "vid" {
 		t.Fatalf("request queue = %v, want [vid]", got)
 	}
-	state, err := GetJobState("vid")
+	state, err := GetJobState(t.Context(), "vid")
 	if err != nil {
 		t.Fatalf("GetJobState: %v", err)
 	}
@@ -282,7 +282,7 @@ func TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ(t *testing.T) {
 	setupRedis(t)
 	parkInProcessing(t, "vid", JobStatusProcessing, MaxJobRetries, time.Hour)
 
-	recoverStuckJobs(30 * time.Minute)
+	recoverStuckJobs(t.Context(), 30*time.Minute)
 
 	if got := listOf(t, deadLetterQueueName()); len(got) != 1 || got[0] != "vid" {
 		t.Fatalf("dead letter queue = %v, want [vid]", got)
@@ -293,7 +293,7 @@ func TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ(t *testing.T) {
 	if got := listOf(t, processingQueueName()); len(got) != 0 {
 		t.Fatalf("processing queue = %v, want empty", got)
 	}
-	state, err := GetJobState("vid")
+	state, err := GetJobState(t.Context(), "vid")
 	if err != nil {
 		t.Fatalf("GetJobState: %v", err)
 	}
@@ -332,7 +332,7 @@ func TestRecoverStuckJobs_LeavesHealthyAndUnknownJobsAlone(t *testing.T) {
 			setupRedis(t)
 			tc.setup(t)
 
-			recoverStuckJobs(30 * time.Minute)
+			recoverStuckJobs(t.Context(), 30*time.Minute)
 
 			if got := listOf(t, processingQueueName()); len(got) != 1 {
 				t.Fatalf("processing queue = %v, want [vid]: %s", got, tc.reason)
@@ -344,5 +344,59 @@ func TestRecoverStuckJobs_LeavesHealthyAndUnknownJobsAlone(t *testing.T) {
 				t.Fatalf("dead letter queue = %v, want empty: %s", got, tc.reason)
 			}
 		})
+	}
+}
+
+// --- cancellation reaches Redis ---------------------------------------------
+
+// The whole point of threading ctx through this package: when the job budget blows or the
+// worker gets SIGTERM, the cancellation has to reach Redis instead of the call running to
+// completion against context.Background(). One canceled context, every public entry point.
+func TestQueueOperations_StopOnCanceledContext(t *testing.T) {
+	setupRedis(t)
+
+	canceled, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	operations := map[string]func() error{
+		"PublishJob":            func() error { return PublishJob(canceled, "vid", "") },
+		"SetJobProcessing":      func() error { return SetJobProcessing(canceled, "vid") },
+		"SetJobDone":            func() error { return SetJobDone(canceled, "vid", JobArtifacts{}, nil) },
+		"SetJobFailed":          func() error { _, err := SetJobFailed(canceled, "vid", errBoom); return err },
+		"RequeueJob":            func() error { return RequeueJob(canceled, "vid") },
+		"MoveToDLQ":             func() error { return MoveToDLQ(canceled, "vid") },
+		"GetJobState":           func() error { _, err := GetJobState(canceled, "vid"); return err },
+		"AcknowledgeMessage":    func() error { return AcknowledgeMessage(canceled, "vid") },
+		"PublishSuccessMessage": func() error { return PublishSuccessMessage(canceled, "vid") },
+		"GetQueueSize":          func() error { _, err := GetQueueSize(canceled); return err },
+		"HealthCheck":           func() error { return HealthCheck(canceled) },
+	}
+
+	for name, operation := range operations {
+		t.Run(name, func(t *testing.T) {
+			err := operation()
+			if !errors.Is(err, context.Canceled) {
+				t.Errorf("expected context.Canceled, got %v", err)
+			}
+		})
+	}
+}
+
+// The counterpart of the test above: recovery reads the queue through the ticker's context,
+// so a shutdown stops it mid-sweep instead of finishing a scan nobody is waiting for.
+func TestRecoverStuckJobs_StopsOnCanceledContext(t *testing.T) {
+	setupRedis(t)
+
+	videoID := "vid"
+	parkInProcessing(t, videoID, JobStatusProcessing, 0, time.Hour)
+
+	canceled, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	recoverStuckJobs(canceled, 30*time.Minute)
+
+	// Nothing moved: the LRange that starts the sweep failed on the canceled context.
+	if got := listOf(t, processingQueueName()); len(got) != 1 {
+		t.Errorf("expected the job untouched in the processing queue, got %v", got)
 	}
 }

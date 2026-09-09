@@ -21,8 +21,9 @@ decision by **anchor**, never by line number — `[design-decisions.md #4](desig
 - [**#10** — Webhook contract uses camelCase to match the .NET API](#10-webhook-contract-uses-camelcase-to-match-the-net-api)
 - [**#11** — Single bucket, path-based namespacing](#11-single-bucket-path-based-namespacing)
 - [**#12** — Graceful shutdown with a hard 30-second ceiling](#12-graceful-shutdown-with-a-hard-30-second-ceiling)
+- [**#13** — Job context cancels the work; bookkeeping runs on a context that cannot be canceled](#13-job-context-cancels-the-work-bookkeeping-runs-on-a-context-that-cannot-be-canceled)
 
-A new entry takes the **next number** (highest today is **#12**) plus one line here in the index. Never renumber an existing entry — references elsewhere point at its anchor.
+A new entry takes the **next number** (highest today is **#13**) plus one line here in the index. Never renumber an existing entry — references elsewhere point at its anchor.
 
 ---
 
@@ -125,3 +126,29 @@ A new entry takes the **next number** (highest today is **#12**) plus one line h
 
 - **Why**: on `SIGTERM` want workers to finish current job if possible to avoid leaking in-flight work to DLQ. But stuck job must not block Kubernetes pod from terminating — force-exit after 30s.
 - **Tuning**: ceiling should match or undercut orchestrator's termination grace period. If you raise the whole-job budget (`PROCESSING_TIMEOUT_SCALE`/`JOB_TIMEOUT`), revisit whether 30s is still enough to drain clean-shutdown case.
+
+### 13. Job context cancels the work; bookkeeping runs on a context that cannot be canceled
+
+`main.go`, `queue/`, `minio/`.
+
+- **Why**: every public function in `queue/` and `minio/` takes a `context.Context` and passes it to
+  Redis/MinIO. They used to call `context.Background()` internally, so blowing the job budget or
+  receiving `SIGTERM` cancelled nothing: a 500 MB download ran to completion and the 30s
+  graceful-shutdown ceiling ([#12](#12-graceful-shutdown-with-a-hard-30-second-ceiling)) counted on
+  operations that had no idea they should stop.
+- **The catch that shapes the design**: closing a job out — `SetJobFailed`, `RequeueJob`,
+  `MoveToDLQ`, `AcknowledgeMessage`, `SetJobDone` — is exactly what still has to happen *after* the
+  cancellation. Running those on the canceled context would leave the job in the `:processing`
+  queue forever, which is worse than the bug being fixed. So `processNextMessage` builds a second
+  context with `context.WithoutCancel(ctx)` plus a 10s timeout (`bookkeepingTimeout`) and uses it
+  for every state write and the ack. `WithoutCancel` keeps the values — the job logger included —
+  and drops only the cancellation.
+- **The split, as a rule**: heavy I/O (download, transcode, uploads, success publish) rides
+  `processCtx` and *must* be cancellable. Bookkeeping rides `bookkeepingCtx` and *must not*.
+- **Exception**: `notifyWebhook` stays detached (`context.Background()` inside `webhook.send`),
+  bounded by the HTTP client's own 10s timeout. It usually runs from a defer with the job context
+  already canceled, and inheriting it would drop the notification the API is waiting for. The two
+  call sites carry `//nolint:contextcheck` naming this reason.
+- **Enforced**: `contextcheck` is on in `.golangci.yml`. It was off while the packages did not take
+  a context; leaving it off is what let 16 call sites drift.
+

@@ -93,15 +93,14 @@ func getObjectPath(videoType VideoType, objectID string) string {
 	return string(videoType) + "/" + objectID
 }
 
-func DownloadVideo(videoType VideoType, objectID, destPath string) error {
+func DownloadVideo(ctx context.Context, videoType VideoType, objectID, destPath string) error {
 	_, err := circuitbreaker.MinIO.Execute(func() (interface{}, error) {
-		return nil, downloadVideo(videoType, objectID, destPath)
+		return nil, downloadVideo(ctx, videoType, objectID, destPath)
 	})
 	return err
 }
 
-func downloadVideo(videoType VideoType, objectID, destPath string) error {
-	ctx := context.Background()
+func downloadVideo(ctx context.Context, videoType VideoType, objectID, destPath string) error {
 	objectPath := getObjectPath(videoType, objectID)
 
 	info, err := client.StatObject(ctx, cfg.MinioBucketName, objectPath, minio.StatObjectOptions{})
@@ -137,15 +136,14 @@ func downloadVideo(videoType VideoType, objectID, destPath string) error {
 	return nil
 }
 
-func UploadVideo(srcPath string, videoType VideoType, objectID string) error {
+func UploadVideo(ctx context.Context, srcPath string, videoType VideoType, objectID string) error {
 	_, err := circuitbreaker.MinIO.Execute(func() (interface{}, error) {
-		return nil, uploadVideo(srcPath, videoType, objectID)
+		return nil, uploadVideo(ctx, srcPath, videoType, objectID)
 	})
 	return err
 }
 
-func uploadVideo(srcPath string, videoType VideoType, objectID string) error {
-	ctx := context.Background()
+func uploadVideo(ctx context.Context, srcPath string, videoType VideoType, objectID string) error {
 	file, err := os.Open(srcPath)
 	if err != nil {
 		return fmt.Errorf("[minio] failed to open file for upload: %w", err)
@@ -167,15 +165,14 @@ func uploadVideo(srcPath string, videoType VideoType, objectID string) error {
 }
 
 // UploadFile uploads any file to a specific path in MinIO.
-func UploadFile(srcPath, objectPath string) error {
+func UploadFile(ctx context.Context, srcPath, objectPath string) error {
 	_, err := circuitbreaker.MinIO.Execute(func() (interface{}, error) {
-		return nil, uploadFile(srcPath, objectPath)
+		return nil, uploadFile(ctx, srcPath, objectPath)
 	})
 	return err
 }
 
-func uploadFile(srcPath, objectPath string) error {
-	ctx := context.Background()
+func uploadFile(ctx context.Context, srcPath, objectPath string) error {
 	file, err := os.Open(srcPath)
 	if err != nil {
 		return fmt.Errorf("[minio] failed to open file for upload: %w", err)
@@ -198,7 +195,7 @@ func uploadFile(srcPath, objectPath string) error {
 
 // UploadDirectory recursively uploads all files from srcDir to MinIO
 // with the given objectPrefix, preserving the subfolder structure.
-func UploadDirectory(srcDir, objectPrefix string) error {
+func UploadDirectory(ctx context.Context, srcDir, objectPrefix string) error {
 	entries, err := os.ReadDir(srcDir)
 	if err != nil {
 		return fmt.Errorf("[minio] failed to read directory %s: %w", srcDir, err)
@@ -207,12 +204,12 @@ func UploadDirectory(srcDir, objectPrefix string) error {
 		srcPath := filepath.Join(srcDir, entry.Name())
 		objectPath := objectPrefix + "/" + entry.Name()
 		if entry.IsDir() {
-			if err := UploadDirectory(srcPath, objectPath); err != nil {
+			if err := UploadDirectory(ctx, srcPath, objectPath); err != nil {
 				return err
 			}
 			continue
 		}
-		if err := UploadFile(srcPath, objectPath); err != nil {
+		if err := UploadFile(ctx, srcPath, objectPath); err != nil {
 			return err
 		}
 	}
@@ -238,15 +235,14 @@ func contentTypeByExt(ext string) string {
 
 // ArchiveRawVideo moves the raw from raw/videoID to raw-archived/videoID and deletes the original.
 // The object in raw-archived/ will be automatically deleted after rawArchivedLifecycleDays days.
-func ArchiveRawVideo(videoID string) error {
+func ArchiveRawVideo(ctx context.Context, videoID string) error {
 	_, err := circuitbreaker.MinIO.Execute(func() (interface{}, error) {
-		return nil, archiveRawVideo(videoID)
+		return nil, archiveRawVideo(ctx, videoID)
 	})
 	return err
 }
 
-func archiveRawVideo(videoID string) error {
-	ctx := context.Background()
+func archiveRawVideo(ctx context.Context, videoID string) error {
 	srcPath := getObjectPath(VideoTypeRaw, videoID)
 	dstPath := getObjectPath(VideoTypeRawArchived, videoID)
 
@@ -266,8 +262,7 @@ func archiveRawVideo(videoID string) error {
 }
 
 // HealthCheck checks whether the MinIO client is healthy.
-func HealthCheck() error {
-	ctx := context.Background()
+func HealthCheck(ctx context.Context) error {
 	_, err := client.BucketExists(ctx, cfg.MinioBucketName)
 	return err
 }

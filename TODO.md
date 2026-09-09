@@ -677,7 +677,7 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
       webhook (com o motivo de ser `context.Background()` escrito no código).
       Único `//nolint` novo: `BRPopLPush` (SA1019), que é decisão documentada (#1).
 
-- [ ] **O `context` do job não atravessa `queue/` e `minio/`** — achado pelos 16 avisos de
+- [x] ~~**O `context` do job não atravessa `queue/` e `minio/`**~~ — achado pelos 16 avisos de
       `contextcheck`, que por isso ficou **desligado** no `.golangci.yml`.
       As funções públicas dos dois pacotes (`GetJobState`, `SetJobFailed`, `HealthCheck`,
       `GetQueueSize`, `DownloadVideo`, `UploadVideo`, `UploadDirectory`, `ArchiveRawVideo`,
@@ -688,6 +688,33 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
       operações que não sabem que devem parar.
       É refactor de assinatura pública dos dois pacotes (+ call sites no `main.go`), não
       limpeza de lint. Quando estiver feito, religar o `contextcheck`.
+
+      > **RESOLVIDO** *(2026-09-09)*. As 11 funções públicas do `queue/` e as 6 do `minio/`
+      > recebem `context.Context` como primeiro parâmetro e o repassam ao Redis/MinIO;
+      > `contextcheck` está **ligado** no `.golangci.yml`, e dos 16 achados sobraram **2**, os
+      > dois `go notifyWebhook` — detachado de propósito, com `//nolint:contextcheck` nomeando o
+      > motivo (o webhook sai de um defer, quase sempre com o contexto do job já cancelado;
+      > quem limita é o timeout de 10s do próprio client HTTP).
+      >
+      > **A armadilha, e é a parte que importa:** fechar o job (`SetJobFailed`, `RequeueJob`,
+      > `MoveToDLQ`, `AcknowledgeMessage`, `SetJobDone`) é exatamente o que **tem** que acontecer
+      > *depois* do cancelamento. Rodar isso no contexto cancelado deixaria o vídeo preso em
+      > `:processing` para sempre — pior que o bug original. Então `processNextMessage` monta um
+      > segundo contexto com `context.WithoutCancel(ctx)` + 10s (`bookkeepingTimeout`) e usa esse
+      > para toda escrita de estado e para o ack. O I/O pesado (download, transcode, uploads,
+      > publish de sucesso) continua no `processCtx`, que **deve** ser cancelável.
+      > `WithoutCancel` preserva os valores — o logger do job junto — e derruba só o cancelamento.
+      > Regra registrada como **design-decisions #13**.
+      >
+      > Achado no caminho: o `//nolint:staticcheck` do `BRPopLPush` estava no fim da linha e, com
+      > o `contextcheck` ligado, o `nolintlint` passou a acusá-lo de "unused" **mesmo suprimindo
+      > o SA1019 de verdade** (conferido removendo o directive: o SA1019 volta). Mover o directive
+      > para a linha de cima resolve — e ficou mais legível.
+      >
+      > Testes: `TestQueueOperations_StopOnCanceledContext` (as 11 entradas públicas, uma
+      > por subteste) e `TestRecoverStuckJobs_StopsOnCanceledContext`. Cobertura do `queue`
+      > **60.3% → 75.8%**. **Verificado por mutação:** voltar o `client.Get` do `GetJobState`
+      > para `context.Background()` quebra o subteste de `GetJobState`.
 
 - [ ] `VidroProcessor/minio/client.go:34` — `const token = "" // TODO: Ver se precisa
       adicionar esse token`. **É o único marcador TODO/FIXME/HACK/BUG em todo o

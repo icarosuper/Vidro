@@ -28,6 +28,9 @@ linters:
     # toda chamada externa carrega contexto e fecha o corpo
     - noctx
     - bodyclose
+    - contextcheck
+    # o contexto do job tem que chegar ao Redis e ao MinIO: sem isso, estourar o
+    # orçamento ou receber SIGTERM não cancela um download de 500 MB
     # baratos e sem discussão
     - copyloopvar
     - intrange

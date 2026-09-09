@@ -59,43 +59,43 @@ func jobKey(videoID string) string {
 	return "job:" + videoID
 }
 
-func setJobState(videoID string, state JobState) error {
+func setJobState(ctx context.Context, videoID string, state JobState) error {
 	state.UpdatedAt = time.Now().Unix()
 	data, err := json.Marshal(state)
 	if err != nil {
 		return fmt.Errorf("failed to serialize job state: %w", err)
 	}
-	return client.Set(context.Background(), jobKey(videoID), string(data), jobTTL).Err()
+	return client.Set(ctx, jobKey(videoID), string(data), jobTTL).Err()
 }
 
 // PublishJob publishes a videoID to the queue and records the initial state as pending.
 // callbackURL is optional: if non-empty, the worker will notify this URL upon completion.
 // Should be called by the producer (API) when submitting a video for processing.
-func PublishJob(videoID, callbackURL string) error {
+func PublishJob(ctx context.Context, videoID, callbackURL string) error {
 	state := JobState{
 		Status:      JobStatusPending,
 		CallbackURL: callbackURL,
 		CreatedAt:   time.Now().Unix(),
 	}
-	if err := setJobState(videoID, state); err != nil {
+	if err := setJobState(ctx, videoID, state); err != nil {
 		return fmt.Errorf("failed to create job state: %w", err)
 	}
-	return client.LPush(context.Background(), cfg.ProcessingRequestQueue, videoID).Err()
+	return client.LPush(ctx, cfg.ProcessingRequestQueue, videoID).Err()
 }
 
 // SetJobProcessing updates the job state to processing.
-func SetJobProcessing(videoID string) error {
-	existing, _ := GetJobState(videoID)
+func SetJobProcessing(ctx context.Context, videoID string) error {
+	existing, _ := GetJobState(ctx, videoID)
 	if existing == nil {
 		existing = &JobState{CreatedAt: time.Now().Unix()}
 	}
 	existing.Status = JobStatusProcessing
-	return setJobState(videoID, *existing)
+	return setJobState(ctx, videoID, *existing)
 }
 
 // SetJobDone updates the job state to done with the generated artifacts and metadata.
-func SetJobDone(videoID string, artifacts JobArtifacts, metadata *VideoMetadata) error {
-	existing, _ := GetJobState(videoID)
+func SetJobDone(ctx context.Context, videoID string, artifacts JobArtifacts, metadata *VideoMetadata) error {
+	existing, _ := GetJobState(ctx, videoID)
 	if existing == nil {
 		existing = &JobState{CreatedAt: time.Now().Unix()}
 	}
@@ -103,20 +103,20 @@ func SetJobDone(videoID string, artifacts JobArtifacts, metadata *VideoMetadata)
 	existing.Artifacts = &artifacts
 	existing.Metadata = metadata
 	existing.Error = ""
-	return setJobState(videoID, *existing)
+	return setJobState(ctx, videoID, *existing)
 }
 
 // SetJobFailed updates the job state to failed, increments the retry counter,
 // and returns the updated state so the caller can decide between retry and DLQ.
-func SetJobFailed(videoID string, jobErr error) (*JobState, error) {
-	existing, _ := GetJobState(videoID)
+func SetJobFailed(ctx context.Context, videoID string, jobErr error) (*JobState, error) {
+	existing, _ := GetJobState(ctx, videoID)
 	if existing == nil {
 		existing = &JobState{CreatedAt: time.Now().Unix()}
 	}
 	existing.Status = JobStatusFailed
 	existing.Error = jobErr.Error()
 	existing.RetryCount++
-	if err := setJobState(videoID, *existing); err != nil {
+	if err := setJobState(ctx, videoID, *existing); err != nil {
 		return nil, err
 	}
 	return existing, nil
@@ -132,26 +132,26 @@ func (s *JobState) ShouldRetry() bool {
 
 // RequeueJob puts the job back in the main queue for reprocessing.
 // AcknowledgeMessage must still be called to remove it from the processing queue.
-func RequeueJob(videoID string) error {
-	existing, _ := GetJobState(videoID)
+func RequeueJob(ctx context.Context, videoID string) error {
+	existing, _ := GetJobState(ctx, videoID)
 	if existing != nil {
 		existing.Status = JobStatusPending
-		if err := setJobState(videoID, *existing); err != nil {
+		if err := setJobState(ctx, videoID, *existing); err != nil {
 			return fmt.Errorf("failed to update state for requeue: %w", err)
 		}
 	}
-	return client.LPush(context.Background(), cfg.ProcessingRequestQueue, videoID).Err()
+	return client.LPush(ctx, cfg.ProcessingRequestQueue, videoID).Err()
 }
 
 // MoveToDLQ moves the job to the dead letter queue after exhausting retries.
 // AcknowledgeMessage must still be called to remove it from the processing queue.
-func MoveToDLQ(videoID string) error {
-	return client.LPush(context.Background(), deadLetterQueueName(), videoID).Err()
+func MoveToDLQ(ctx context.Context, videoID string) error {
+	return client.LPush(ctx, deadLetterQueueName(), videoID).Err()
 }
 
 // GetJobState returns the current state of a job. Returns nil if the job does not exist.
-func GetJobState(videoID string) (*JobState, error) {
-	data, err := client.Get(context.Background(), jobKey(videoID)).Bytes()
+func GetJobState(ctx context.Context, videoID string) (*JobState, error) {
+	data, err := client.Get(ctx, jobKey(videoID)).Bytes()
 	if err != nil {
 		return nil, fmt.Errorf("job not found: %w", err)
 	}

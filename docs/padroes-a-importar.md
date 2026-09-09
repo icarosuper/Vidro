@@ -33,10 +33,12 @@ de AST, teste. É aí que está o ganho.
 Custou **74 achados** e uma decisão por achado (detalhe no `TODO.md`, "Sujeira pequena").
 Dois desvios do mamut-api, ambos deliberados:
 
-- **`contextcheck` ficou de fora**: os 16 achados dele são todos o mesmo problema real —
-  `queue/` e `minio/` não aceitam `context` e usam `context.Background()` por dentro, então
-  o cancelamento do job não chega ao Redis nem ao MinIO. Isso é refactor de assinatura
-  pública dos dois pacotes, não limpeza de lint; virou item próprio no `TODO.md`.
+- ~~**`contextcheck` ficou de fora**~~ ✅ *(ligado em 2026-09-09)*: os 16 achados dele eram
+  todos o mesmo problema real — `queue/` e `minio/` não aceitavam `context` e usavam
+  `context.Background()` por dentro, então o cancelamento do job não chegava ao Redis nem ao
+  MinIO. O refactor de assinatura foi feito e o linter está ligado; sobraram 2 achados, os dois
+  `go notifyWebhook`, detachados de propósito e com `//nolint` nomeando o motivo. Ver
+  `VidroProcessor/docs/agents/design-decisions.md` **#13**.
 - **`gci` ficou de fora**: briga com o `gofumpt` sobre o mesmo arquivo (um desfaz o outro em
   `golangci-lint fmt`, e o `run` nunca fica verde). `goimports` com
   `local-prefixes: video-processor` dá os mesmos três grupos.
@@ -274,7 +276,7 @@ travada. Agora está.
 ## Ordem sugerida
 
 1. ✅ ~~**`.golangci.yml` no Processor**~~ (item 1) — feito em 2026-09-07 (74 achados, todos
-   resolvidos; `contextcheck` e `gci` ficaram de fora com motivo)
+   resolvidos; `gci` ficou de fora com motivo, e o `contextcheck` entrou em 2026-09-09)
 2. ✅ ~~**Regra do fail-fast vs. anomalia+ACK escrita**~~ (item 10) — feito em 2026-09-07
 3. ✅ ~~**`typecheck` no front**~~ (item 15) — feito em 2026-09-07 (custou 23 correções, não
    uma linha)
@@ -289,6 +291,9 @@ metade do escopo: um dos dois candidatos a checker de AST deixou de existir.
 
 ## Já resolvido
 
+- **2026-09-09** — `contextcheck` ligado no Processor: `queue/` e `minio/` passaram a receber
+  `context.Context`, e o job cancelado (orçamento estourado ou `SIGTERM`) agora aborta o I/O em
+  voo. Ver design-decisions #13.
 - **2026-09-07** — item 1 (`.golangci.yml`) ligado no Processor, com `contextcheck` e `gci`
   fora por motivo documentado; metade do item 2 (checker de AST dos dois orquestradores)
   deixou de ser necessária — os dois passaram a ler uma lista só.

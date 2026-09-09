@@ -120,6 +120,8 @@ hls/<id>/<variant>/seg_NNN.ts
 - **Retry + DLQ** — auto retry with state persistence, DLQ after exhaustion. DLQ jobs not auto-retried; investigate and requeue manually.
 - **Per-step timeouts** prevent single bad video holding worker forever.
 - **Whole-job timeout** final backstop (`processCtx`), derived from the step timeouts by `processor.JobBudget` (18 min at scale 1) — never smaller than the pipeline. Tune with `PROCESSING_TIMEOUT_SCALE`.
+- **Cancellation actually reaches Redis and MinIO** — every public function of `queue/` and `minio/` takes a `context.Context`. Blowing the job budget or receiving `SIGTERM` aborts the download/upload in flight instead of running it to completion.
+- **Bookkeeping outlives the cancellation** — `SetJobFailed`, `RequeueJob`, `MoveToDLQ`, `AcknowledgeMessage` and `SetJobDone` run on `bookkeepingCtx` (`context.WithoutCancel` + 10s), because they are exactly what still has to happen after the job is cut short; on the canceled context the job would sit in `:processing` forever. See [design-decisions.md #13](design-decisions.md#13-job-context-cancels-the-work-bookkeeping-runs-on-a-context-that-cannot-be-canceled).
 
 ## Observability
 

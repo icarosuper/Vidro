@@ -48,7 +48,8 @@ func ConsumeMessage(ctx context.Context) (*Message, error) {
 	result, err := circuitbreaker.Redis.Execute(func() (interface{}, error) {
 		// BRPOPLPUSH is deliberate, not legacy: see docs/agents/design-decisions.md #1.
 		// BLMOVE is the modern spelling but needs Redis 6.2+, which nothing here guarantees.
-		videoID, err := client.BRPopLPush(ctx, cfg.ProcessingRequestQueue, processingQueueName(), 0).Result() //nolint:staticcheck
+		//nolint:staticcheck // SA1019: BLMove needs Redis 6.2+, which nothing here guarantees
+		videoID, err := client.BRPopLPush(ctx, cfg.ProcessingRequestQueue, processingQueueName(), 0).Result()
 		if err != nil {
 			return nil, err
 		}
@@ -65,16 +66,16 @@ func ConsumeMessage(ctx context.Context) (*Message, error) {
 }
 
 // AcknowledgeMessage removes the job from the processing queue after completion (success or failure).
-func AcknowledgeMessage(videoID string) error {
+func AcknowledgeMessage(ctx context.Context, videoID string) error {
 	_, err := circuitbreaker.Redis.Execute(func() (interface{}, error) {
-		return nil, client.LRem(context.Background(), processingQueueName(), 1, videoID).Err()
+		return nil, client.LRem(ctx, processingQueueName(), 1, videoID).Err()
 	})
 	return err
 }
 
-func PublishSuccessMessage(videoID string) error {
+func PublishSuccessMessage(ctx context.Context, videoID string) error {
 	_, err := circuitbreaker.Redis.Execute(func() (interface{}, error) {
-		return nil, client.LPush(context.Background(), cfg.ProcessingFinishedQueue, videoID).Err()
+		return nil, client.LPush(ctx, cfg.ProcessingFinishedQueue, videoID).Err()
 	})
 	return err
 }
@@ -90,13 +91,13 @@ func StartRecovery(ctx context.Context, stuckTimeout time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			recoverStuckJobs(stuckTimeout)
+			recoverStuckJobs(ctx, stuckTimeout)
 		}
 	}
 }
 
-func recoverStuckJobs(stuckTimeout time.Duration) {
-	videoIDs, err := client.LRange(context.Background(), processingQueueName(), 0, -1).Result()
+func recoverStuckJobs(ctx context.Context, stuckTimeout time.Duration) {
+	videoIDs, err := client.LRange(ctx, processingQueueName(), 0, -1).Result()
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to check processing queue for recovery")
 		return
@@ -104,7 +105,7 @@ func recoverStuckJobs(stuckTimeout time.Duration) {
 
 	threshold := time.Now().Add(-stuckTimeout).Unix()
 	for _, videoID := range videoIDs {
-		state, err := GetJobState(videoID)
+		state, err := GetJobState(ctx, videoID)
 		if err != nil || state == nil {
 			continue
 		}
@@ -121,36 +122,36 @@ func recoverStuckJobs(stuckTimeout time.Duration) {
 			log.Error().Str("videoID", videoID).Int("retry_count", state.RetryCount).Msg("Orphan job exhausted retries, moving to dead letter queue")
 			state.Status = JobStatusFailed
 			state.Error = "orphaned repeatedly: retries exhausted during recovery"
-			if err := setJobState(videoID, *state); err != nil {
+			if err := setJobState(ctx, videoID, *state); err != nil {
 				log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update state during recovery")
 				continue
 			}
-			if err := MoveToDLQ(videoID); err != nil {
+			if err := MoveToDLQ(ctx, videoID); err != nil {
 				log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to move orphan job to dead letter queue")
 				continue
 			}
-			client.LRem(context.Background(), processingQueueName(), 1, videoID)
+			client.LRem(ctx, processingQueueName(), 1, videoID)
 			continue
 		}
 
 		log.Warn().Str("videoID", videoID).Int("retry_count", state.RetryCount).Msg("Orphan job detected, re-queuing")
 
 		state.Status = JobStatusPending
-		if err := setJobState(videoID, *state); err != nil {
+		if err := setJobState(ctx, videoID, *state); err != nil {
 			log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update state during recovery")
 			continue
 		}
-		client.LRem(context.Background(), processingQueueName(), 1, videoID)
-		client.LPush(context.Background(), cfg.ProcessingRequestQueue, videoID)
+		client.LRem(ctx, processingQueueName(), 1, videoID)
+		client.LPush(ctx, cfg.ProcessingRequestQueue, videoID)
 	}
 }
 
 // GetQueueSize returns the number of jobs waiting in the request queue.
-func GetQueueSize() (int64, error) {
-	return client.LLen(context.Background(), cfg.ProcessingRequestQueue).Result()
+func GetQueueSize(ctx context.Context) (int64, error) {
+	return client.LLen(ctx, cfg.ProcessingRequestQueue).Result()
 }
 
 // HealthCheck checks whether the Redis client is healthy.
-func HealthCheck() error {
-	return client.Ping(context.Background()).Err()
+func HealthCheck(ctx context.Context) error {
+	return client.Ping(ctx).Err()
 }

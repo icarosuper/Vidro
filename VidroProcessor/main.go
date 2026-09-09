@@ -30,6 +30,10 @@ import (
 	"video-processor/queue"
 )
 
+// bookkeepingTimeout caps the Redis writes that close a job out. It is short on purpose:
+// these run after cancellation, inside the 30s graceful-shutdown window (design-decisions #12).
+const bookkeepingTimeout = 10 * time.Second
+
 // jobTimeout returns the whole-job budget: JOB_TIMEOUT when set, otherwise derived
 // from the step timeouts so the budget can never be smaller than the pipeline.
 func jobTimeout(cfg *config.Config) time.Duration {
@@ -118,7 +122,7 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if size, err := queue.GetQueueSize(); err == nil {
+				if size, err := queue.GetQueueSize(ctx); err == nil {
 					metrics.QueueSize.Set(float64(size))
 				}
 			}
@@ -197,14 +201,14 @@ func startHTTPServer(port string) {
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	// Check Redis
-	if err := queue.HealthCheck(); err != nil {
+	if err := queue.HealthCheck(r.Context()); err != nil {
 		log.Error().Err(err).Msg("Redis health check failed")
 		http.Error(w, "Redis unavailable", http.StatusServiceUnavailable)
 		return
 	}
 
 	// Check MinIO
-	if err := minio.HealthCheck(); err != nil {
+	if err := minio.HealthCheck(r.Context()); err != nil {
 		log.Error().Err(err).Msg("MinIO health check failed")
 		http.Error(w, "MinIO unavailable", http.StatusServiceUnavailable)
 		return
@@ -232,7 +236,15 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 	ctx = jobLogger.WithContext(ctx)
 	jobLogger.Info().Msg("Processing video")
 
-	if err := queue.SetJobProcessing(videoID); err != nil {
+	// Bookkeeping (job state, ack, DLQ) must outlive the job budget and SIGTERM: if the
+	// heavy work is canceled, these writes are exactly what has to still happen, or the job
+	// stays in the :processing queue forever. WithoutCancel keeps the values — the job
+	// logger included — and drops only the cancellation.
+	bookkeepingCtx, cancelBookkeeping := context.WithTimeout(
+		context.WithoutCancel(ctx), bookkeepingTimeout)
+	defer cancelBookkeeping()
+
+	if err := queue.SetJobProcessing(bookkeepingCtx, videoID); err != nil {
 		jobLogger.Warn().Err(err).Msg("Failed to update job state to processing")
 	}
 
@@ -256,29 +268,31 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 
 		defer func() {
 			if jobErr != nil {
-				state, err := queue.SetJobFailed(videoID, jobErr)
+				state, err := queue.SetJobFailed(bookkeepingCtx, videoID, jobErr)
 				if err != nil {
 					jobLogger.Warn().Err(err).Msg("Failed to update job state to failed")
 				}
 				if state != nil && state.ShouldRetry() {
-					if err := queue.RequeueJob(videoID); err != nil {
+					if err := queue.RequeueJob(bookkeepingCtx, videoID); err != nil {
 						jobLogger.Warn().Err(err).Msg("Failed to requeue job")
 					} else {
 						jobLogger.Warn().Int("attempt", state.RetryCount).Int("max", queue.MaxJobRetries).Msg("Job scheduled for retry")
 					}
 				} else {
-					if err := queue.MoveToDLQ(videoID); err != nil {
+					if err := queue.MoveToDLQ(bookkeepingCtx, videoID); err != nil {
 						jobLogger.Warn().Err(err).Msg("Failed to move job to dead letter queue")
 					} else {
 						jobLogger.Error().Str("error", jobErr.Error()).Msg("Job moved to dead letter queue after exhausting retries")
 						// Notify the API about the permanent failure (retries exhausted)
 						if state != nil && state.CallbackURL != "" {
+							//nolint:contextcheck // detached on purpose: the notification must survive the job
+							// context being canceled — bounded by the webhook client's own 10s timeout (webhook.send)
 							go notifyWebhook(state.CallbackURL, cfg.WebhookSecret, videoID, state)
 						}
 					}
 				}
 			}
-			if err := queue.AcknowledgeMessage(videoID); err != nil {
+			if err := queue.AcknowledgeMessage(bookkeepingCtx, videoID); err != nil {
 				jobLogger.Warn().Err(err).Msg("Failed to acknowledge job")
 			}
 		}()
@@ -295,7 +309,7 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 			_ = os.Remove(outputPath)
 		}()
 
-		if err := minio.DownloadVideo(minio.VideoTypeRaw, videoID, inputPath); err != nil {
+		if err := minio.DownloadVideo(processCtx, minio.VideoTypeRaw, videoID, inputPath); err != nil {
 			jobErr = fmt.Errorf("failed to download video: %w", err)
 			metrics.VideosProcessedTotal.WithLabelValues("error").Inc()
 			done <- jobErr
@@ -325,7 +339,7 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 		}
 
 		processedID := videoID + "_processed"
-		if err := minio.UploadVideo(outputPath, minio.VideoTypeProcessed, processedID); err != nil {
+		if err := minio.UploadVideo(processCtx, outputPath, minio.VideoTypeProcessed, processedID); err != nil {
 			jobErr = fmt.Errorf("failed to upload video: %w", err)
 			metrics.VideosProcessedTotal.WithLabelValues("error").Inc()
 			done <- jobErr
@@ -334,33 +348,33 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 
 		// Archive the original raw to raw-archived/ (auto-deleted after 30 days).
 		// Error is not fatal — the video is already processed and artifacts are in MinIO.
-		if err := minio.ArchiveRawVideo(videoID); err != nil {
+		if err := minio.ArchiveRawVideo(processCtx, videoID); err != nil {
 			jobLogger.Warn().Err(err).Msg("Failed to archive raw — will be retained in raw/")
 		}
 
 		// Upload optional artifacts generated by the pipeline
 		if result.ThumbnailsDir != "" {
-			if err := minio.UploadDirectory(result.ThumbnailsDir, "thumbnails/"+videoID); err != nil {
+			if err := minio.UploadDirectory(processCtx, result.ThumbnailsDir, "thumbnails/"+videoID); err != nil {
 				jobLogger.Warn().Err(err).Msg("Failed to upload thumbnails")
 			}
 		}
 		if result.AudioPath != "" {
-			if err := minio.UploadFile(result.AudioPath, "audio/"+videoID+".mp3"); err != nil {
+			if err := minio.UploadFile(processCtx, result.AudioPath, "audio/"+videoID+".mp3"); err != nil {
 				jobLogger.Warn().Err(err).Msg("Failed to upload audio")
 			}
 		}
 		if result.PreviewPath != "" {
-			if err := minio.UploadFile(result.PreviewPath, "preview/"+videoID+"_preview.mp4"); err != nil {
+			if err := minio.UploadFile(processCtx, result.PreviewPath, "preview/"+videoID+"_preview.mp4"); err != nil {
 				jobLogger.Warn().Err(err).Msg("Failed to upload preview")
 			}
 		}
 		if result.StreamingDir != "" {
-			if err := minio.UploadDirectory(result.StreamingDir, "hls/"+videoID); err != nil {
+			if err := minio.UploadDirectory(processCtx, result.StreamingDir, "hls/"+videoID); err != nil {
 				jobLogger.Warn().Err(err).Msg("Failed to upload HLS segments")
 			}
 		}
 
-		if err := queue.PublishSuccessMessage(processedID); err != nil {
+		if err := queue.PublishSuccessMessage(processCtx, processedID); err != nil {
 			jobErr = fmt.Errorf("failed to publish success message: %w", err)
 			metrics.VideosProcessedTotal.WithLabelValues("error").Inc()
 			done <- jobErr
@@ -370,12 +384,14 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 		// Record final state and success metrics
 		artifacts := buildJobArtifacts(videoID, processedID, result)
 		metadata := toJobMetadata(result)
-		if err := queue.SetJobDone(videoID, artifacts, metadata); err != nil {
+		if err := queue.SetJobDone(bookkeepingCtx, videoID, artifacts, metadata); err != nil {
 			jobLogger.Warn().Err(err).Msg("Failed to update job state to done")
 		}
 
 		// Notify the API about success
-		if state, err := queue.GetJobState(videoID); err == nil && state != nil && state.CallbackURL != "" {
+		if state, err := queue.GetJobState(bookkeepingCtx, videoID); err == nil && state != nil && state.CallbackURL != "" {
+			//nolint:contextcheck // detached on purpose: the notification must survive the job
+			// context being canceled — bounded by the webhook client's own 10s timeout (webhook.send)
 			go notifyWebhook(state.CallbackURL, cfg.WebhookSecret, videoID, state)
 		}
 

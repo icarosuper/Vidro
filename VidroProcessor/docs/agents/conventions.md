@@ -9,7 +9,7 @@ This file is Go-specific.
 
 ## Formatting
 
-- **`golangci-lint` is the gate**: `.golangci.yml` turns the rules below into build failures — `errorlint` (`%w`, never `%v`), `nilerr`, `forbidigo` (`os.Getenv` only in `config/config.go`, `time.Now` out of the pipeline steps), `depguard` (zerolog in the worker, a pipeline step never importing MinIO/Redis), `godox` (FIXME/HACK/XXX banned, **TODO allowed**), `noctx`, `bodyclose`. Run `golangci-lint fmt && golangci-lint run` before committing; the formatters are `gofumpt` + `goimports` (stricter than `gofmt`), and CI runs the same config. `contextcheck` is deliberately off — see the open TODO about the context not crossing `queue`/`minio`.
+- **`golangci-lint` is the gate**: `.golangci.yml` turns the rules below into build failures — `errorlint` (`%w`, never `%v`), `nilerr`, `forbidigo` (`os.Getenv` only in `config/config.go`, `time.Now` out of the pipeline steps), `depguard` (zerolog in the worker, a pipeline step never importing MinIO/Redis), `godox` (FIXME/HACK/XXX banned, **TODO allowed**), `noctx`, `bodyclose`. Run `golangci-lint fmt && golangci-lint run` before committing; the formatters are `gofumpt` + `goimports` (stricter than `gofmt`), and CI runs the same config. `contextcheck` is **on**: every public function of `queue/` and `minio/` takes a `context.Context` as its first parameter and hands it to Redis/MinIO — see [design-decisions.md #13](design-decisions.md#13-job-context-cancels-the-work-bookkeeping-runs-on-a-context-that-cannot-be-canceled) for the split between the cancellable job context and the bookkeeping one that survives it.
 - Package names: lower-case, short (`queue`, `minio`, `metrics`, `processor`).
 
 ## Logging

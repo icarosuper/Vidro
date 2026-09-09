@@ -10,7 +10,7 @@ pipeline-step tests skip themselves and the number reads lower.
 | `internal/webhook` | 96.8% | Unit |
 | `internal/telemetry` | 91.3% | Unit |
 | `internal/processor/processor-steps` | 67.6% | Unit |
-| `queue` | 60.3% | Unit |
+| `queue` | 75.8% | Unit |
 | `internal/circuitbreaker` | 33.3% | Unit |
 | `internal/processor` | 78.0% | Unit |
 | `main` | 11.1% | Unit (webhook contract only) |
@@ -116,6 +116,10 @@ on the one-minute ticker.
 - `TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ`
 - `TestRecoverStuckJobs_LeavesHealthyAndUnknownJobsAlone` — fresh job, finished job,
   job whose state expired
+- `TestQueueOperations_StopOnCanceledContext` — the 11 public entry points, one canceled
+  context each: proves the ctx reaches Redis instead of being swallowed for
+  `context.Background()` (see design-decisions #13)
+- `TestRecoverStuckJobs_StopsOnCanceledContext` — a shutdown stops the sweep mid-scan
 
 ### `internal/webhook/webhook_test.go`
 - `TestNotify_Success`
@@ -236,8 +240,10 @@ FFmpeg is not available - skipping test
 - `internal/processor/processor.go` — the FFmpeg happy path of `ProcessVideo` (steps 2 and 3
   onwards with a real video). The orchestration policy around it is covered by
   `orchestration_test.go`
-- `queue`: `InitRedisClient` (`log.Fatal`), `StartRecovery`'s ticker loop, `HealthCheck`,
-  `GetQueueSize`, `SetJobProcessing`/`SetJobDone` — the remaining 39.7%
+- `queue`: `InitRedisClient` (`log.Fatal`) and `StartRecovery`'s ticker loop — the remaining 24.2%
+- `main.go`'s split between `processCtx` and `bookkeepingCtx` (design-decisions #13): the rule is
+  only exercised end to end by `test/integration`, which needs Docker. The `queue`-side half of it
+  is covered by `TestQueueOperations_StopOnCanceledContext`
 - Transcoding + throughput benchmarks
 
 ---
