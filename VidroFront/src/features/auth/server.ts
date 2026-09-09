@@ -5,6 +5,10 @@ import {
   setCookie,
 } from '@tanstack/react-start/server'
 import { z } from 'zod'
+import {
+  CORRELATION_ID_HEADER,
+  newCorrelationId,
+} from '#/shared/lib/correlation-id'
 import type { AuthTokens } from './types'
 
 const REFRESH_TOKEN_COOKIE = 'vid_rt'
@@ -18,6 +22,7 @@ async function fetchAuthApi<T>(
 ): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    [CORRELATION_ID_HEADER]: newCorrelationId(),
   }
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`

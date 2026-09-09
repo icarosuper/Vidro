@@ -161,7 +161,8 @@ Trending, feed, busca, detalhe, reações, upload (create + presigned + status p
 
 | Módulo | Arquivo | Conteúdo |
 |---|---|---|
-| api client | `src/shared/lib/api-client.ts` | `apiClient`, `ApiClientError`, `setRenewTokenCallback` |
+| api client | `src/shared/lib/api-client.ts` | `apiClient`, `ApiClientError` (com `correlationId`), `setRenewTokenCallback` |
+| correlation id | `src/shared/lib/correlation-id.ts` | `CORRELATION_ID_HEADER`, `newCorrelationId()` — um id por requisição, mandado em `X-Correlation-ID` |
 | token store | `src/shared/lib/token-store.ts` | `tokenStore` (get/set/clear/subscribe) |
 | tipos base | `src/shared/types.ts` | `ApiSuccess`, `ApiError`, `ValidationError`, `EnumValue`, `CursorPage`, `PagedResult`, `API_ERROR_CODES`, `VideoStatus`, `VideoVisibility`, `ReactionType` + `ReactionTypeValue` (o tipo do valor; o const é só valor), `PlaylistVisibility`, `PlaylistScope`, `CommentSortOrder` |
 | erros | `src/shared/lib/error-messages.ts` | Map `code → mensagem user-facing` |

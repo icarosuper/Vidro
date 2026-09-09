@@ -1,3 +1,7 @@
+import {
+  CORRELATION_ID_HEADER,
+  newCorrelationId,
+} from '#/shared/lib/correlation-id'
 import type { Video } from './types'
 
 const API_URL = process.env.VITE_API_URL ?? 'http://localhost:5000'
@@ -8,6 +12,7 @@ export async function fetchVideoSsr(
 ): Promise<Video> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    [CORRELATION_ID_HEADER]: newCorrelationId(),
   }
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`

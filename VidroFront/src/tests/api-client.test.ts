@@ -149,3 +149,43 @@ describe('apiClient', () => {
     expect(result).toBeUndefined()
   })
 })
+
+describe('correlation id', () => {
+  it('manda um X-Correlation-ID diferente em cada requisição', async () => {
+    const { apiClient } = await import('#/shared/lib/api-client')
+    // Uma Response só pode ser lida uma vez — cada chamada precisa da sua.
+    mockFetch.mockResolvedValueOnce(mockResponse({ data: { id: '1' } }))
+    mockFetch.mockResolvedValueOnce(mockResponse({ data: { id: '2' } }))
+
+    await apiClient.get('/v1/test')
+    await apiClient.get('/v1/test')
+
+    const sentIds = mockFetch.mock.calls.map(
+      ([, init]) =>
+        (init.headers as Record<string, string>)['X-Correlation-ID'],
+    )
+    expect(sentIds).toHaveLength(2)
+    for (const id of sentIds) {
+      expect(id).toBeTruthy()
+    }
+    expect(sentIds[0]).not.toBe(sentIds[1])
+  })
+
+  it('guarda no erro o id que foi enviado, para o usuário citar no suporte', async () => {
+    const { apiClient, ApiClientError } = await import(
+      '#/shared/lib/api-client'
+    )
+    mockFetch.mockResolvedValueOnce(
+      mockResponse({ code: 'NOT_FOUND', message: 'Video not found' }, 404),
+    )
+
+    const error = await apiClient.get('/v1/videos/inexistente').catch((e) => e)
+
+    expect(error).toBeInstanceOf(ApiClientError)
+    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit]
+    const sentId = (init.headers as Record<string, string>)['X-Correlation-ID']
+    expect((error as InstanceType<typeof ApiClientError>).correlationId).toBe(
+      sentId,
+    )
+  })
+})

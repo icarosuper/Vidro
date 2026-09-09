@@ -1,4 +1,5 @@
 import type { ApiError } from '#/shared/types'
+import { CORRELATION_ID_HEADER, newCorrelationId } from './correlation-id'
 import { tokenStore } from './token-store'
 
 export class ApiClientError extends Error {
@@ -6,6 +7,8 @@ export class ApiClientError extends Error {
     public readonly code: string,
     public readonly message: string,
     public readonly status: number,
+    /** Id sent on the failed request — the one the user can quote to support. */
+    public readonly correlationId?: string,
   ) {
     super(message)
     this.name = 'ApiClientError'
@@ -34,8 +37,11 @@ async function request<T>(
 ): Promise<T> {
   const token = tokenStore.get()
 
+  const correlationId = newCorrelationId()
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    [CORRELATION_ID_HEADER]: correlationId,
   }
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
@@ -62,7 +68,12 @@ async function request<T>(
     } catch {
       tokenStore.clear()
       const data = (await response.json()) as ApiError
-      throw new ApiClientError(data.code, data.message, response.status)
+      throw new ApiClientError(
+        data.code,
+        data.message,
+        response.status,
+        correlationId,
+      )
     }
   }
 
@@ -70,7 +81,12 @@ async function request<T>(
 
   if (!response.ok) {
     const error = data as ApiError
-    throw new ApiClientError(error.code, error.message, response.status)
+    throw new ApiClientError(
+      error.code,
+      error.message,
+      response.status,
+      correlationId,
+    )
   }
 
   // Todas as respostas de sucesso têm formato { data: T }
@@ -85,7 +101,11 @@ async function uploadRequest<T>(
 ): Promise<T> {
   const token = tokenStore.get()
 
-  const headers: Record<string, string> = {}
+  const correlationId = newCorrelationId()
+
+  const headers: Record<string, string> = {
+    [CORRELATION_ID_HEADER]: correlationId,
+  }
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
   }
@@ -106,7 +126,12 @@ async function uploadRequest<T>(
 
   if (!response.ok) {
     const error = data as ApiError
-    throw new ApiClientError(error.code, error.message, response.status)
+    throw new ApiClientError(
+      error.code,
+      error.message,
+      response.status,
+      correlationId,
+    )
   }
 
   return (data as { data: T }).data

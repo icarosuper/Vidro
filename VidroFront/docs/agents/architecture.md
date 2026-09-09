@@ -39,6 +39,7 @@ src/
 │   ├── components/ui/     # shadcn/ui wrappers
 │   ├── lib/
 │   │   ├── api-client.ts  # fetch wrapper central + renewToken
+│   │   ├── correlation-id.ts # X-Correlation-ID por requisição
 │   │   ├── token-store.ts # access token em memória (client-only)
 │   │   ├── error-messages.ts
 │   │   └── toast-error.ts
@@ -88,10 +89,27 @@ export function useVideo(videoId: string) {
 ### Responsabilidades do `apiClient`
 
 - Adiciona `Authorization: Bearer <token>` automaticamente quando há token no `tokenStore`
+- Adiciona `X-Correlation-ID` (um por requisição, de `shared/lib/correlation-id.ts`)
 - Serializa body JSON; trata `204 No Content`
 - Em **401**: chama `renewTokenCallback` (configurada no `__root.tsx`), seta novo token, retry **uma vez**. Se retry falhar, limpa token e lança `ApiClientError`
-- Em erro, lança `ApiClientError { code, message, status }` — sempre use `toastApiError`
+- Em erro, lança `ApiClientError { code, message, status, correlationId }` — sempre use `toastApiError`
 - Desserializa envelope `{ data: T }`, retorna `T`
+
+### Correlation ID
+
+Toda chamada de saída leva `X-Correlation-ID`, gerado em `shared/lib/correlation-id.ts`. A API
+aceita o header de entrada (`CorrelationIdMiddleware`), devolve no response e carimba o valor em
+**toda linha de log daquela requisição** — então o id que o front gera é o que se procura no Loki.
+
+- `ApiClientError.correlationId` guarda o id da requisição que falhou.
+- `RouteErrorFallback` mostra esse id ("Reference for support") para o usuário citar. Ele lê a
+  propriedade pelo formato, **não** por `instanceof`: erro lançado em loader de SSR chega ao
+  browser serializado, sem a classe.
+- **As exceções da regra "sem `fetch` direto" também mandam o header** — os dois
+  `features/*/server.ts` chamam `newCorrelationId()` na mão. Upload presigned é a única saída sem
+  ele, de propósito: vai para o MinIO, não para a API, e a URL assinada não tolera header extra.
+- `crypto.randomUUID` é `undefined` em browser fora de contexto seguro (http em host que não é
+  localhost); por isso há fallback — é id de correlação, não token de segurança.
 
 ## Estratégia de renderização
 

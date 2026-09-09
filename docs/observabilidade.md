@@ -150,11 +150,28 @@ Console + GrafanaLoki está só em `appsettings.Development.json`. Em compose o 
 situação (lê o stdout do container), então o furo só aparece em deploy fora de Docker — mas aí a API
 não manda log a lugar nenhum.
 
-### F7 — O front é cego
+### ~~F7~~ ✅ — O front é cego *(resolvido em 2026-09-09)*
 
 `VidroFront/src/shared/lib/api-client.ts` monta `Content-Type` e `Authorization` e mais nada: não
 gera nem propaga `X-Correlation-ID`, apesar de a API **já aceitar o header de entrada**. O fallback
 de erro (commit `5537d16`) mostra a mensagem sem nenhum ID que o usuário possa citar no suporte.
+
+> **RESOLVIDO** — degrau 1. `shared/lib/correlation-id.ts` gera um id por requisição; o
+> `apiClient` manda em `X-Correlation-ID`, guarda em `ApiClientError.correlationId` e o
+> `RouteErrorFallback` mostra ("Reference for support"). **Mudança de um lado só:** a API já
+> aceitava o header e a política de CORS usa `AllowAnyHeader()`, então nada precisou mudar lá.
+> **Os dois `features/*/server.ts` entraram junto** — são o caminho de SSR, exatamente onde a
+> tela de erro aparece; deixar só o `apiClient` teria coberto o browser e não o loader.
+> Upload presigned fica de fora de propósito: vai para o MinIO, não para a API.
+> `crypto.randomUUID` é `undefined` fora de contexto seguro, então há fallback — um throw ali
+> derrubaria toda requisição, não uma linha de log.
+
+### F7.1 — o front ainda não *lê* o id de volta
+
+O `RouteErrorFallback` mostra o id que o **front gerou**, e a API o reusa, então na prática é o
+mesmo valor. O caminho não coberto é o response header (`Access-Control-Expose-Headers` não lista
+`X-Correlation-ID`): se um dia a API deixar de reusar o id de entrada, o front mostraria um valor
+que não existe em log nenhum. Enquanto o middleware reusar, não vale o diff.
 
 ---
 
@@ -182,11 +199,17 @@ verdade.
 > `troubleshooting-stuck-video.md` (passo 4, com a query LogQL), `conventions.md` (seção Logging,
 > com a regra de logar pelo contexto dentro do job) e `VidroProcessor/docs/OBSERVABILITY.md`.
 
-### Degrau 1 — o front gera o ID → fecha F7
+### ~~Degrau 1~~ ✅ — o front gera o ID → fechou F7 *(2026-09-09)*
 
 `crypto.randomUUID()` por requisição em `api-client.ts`, header `X-Correlation-ID`, guardar o último
 no `ApiClientError` e exibir na tela de erro. A API já respeita o header — é mudança de um lado só.
 Maior retorno por linha de diff do documento inteiro.
+
+> **FEITO.** Travado por dois testes em `VidroFront/src/tests/api-client.test.ts`: o header sai
+> **diferente em cada requisição**, e o id do `ApiClientError` é o mesmo que foi enviado.
+> **Verificado por mutação:** remover a linha do header do `apiClient` quebra os dois.
+> Docs atualizadas junto: `VidroFront/docs/agents/architecture.md` (responsabilidades do
+> `apiClient` + seção Correlation ID) e `features-index.md`.
 
 ### Degrau 2 — métricas da API → fecha F5
 
