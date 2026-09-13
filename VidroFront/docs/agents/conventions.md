@@ -118,6 +118,25 @@ duas coisas.
   const [url, init] = firstCall
   ```
 
+## Teste de componente
+
+Os testes de API mockam `fetch`; os de componente mockam o **módulo de hooks** da feature e
+renderizam com `@testing-library/react`. Assim o teste exercita a política de renderização (quem
+vê qual botão, o que aparece no erro) sem `QueryClientProvider`, sem servidor e sem `waitFor`.
+
+- **`// @vitest-environment jsdom`** na primeira linha do arquivo. O default continua `node`, que é
+  o que os testes de API querem.
+- **`cleanup()` no `afterEach`** — este repo não usa `globals` do Vitest, então a limpeza
+  automática do Testing Library não roda sozinha.
+- **O `vitest.config.ts` existe por um motivo:** o plugin do TanStack Start resolve o React pela
+  condição `react-server`, e sob o Vitest isso entrega um React com o dispatcher de hooks nulo —
+  todo `render` morre em `useState`. O config de teste carrega só `tsconfigPaths` + `viteReact`.
+- Consulte por papel e nome acessível (`getByRole('button', { name: 'Edit' })`), não por classe.
+  Botão que só tem ícone não tem nome acessível — se o teste não consegue encontrá-lo, o leitor de
+  tela também não, e a correção é no componente.
+
+Exemplo completo: [`src/tests/comment-list.test.tsx`](../../src/tests/comment-list.test.tsx).
+
 ## Error handling
 
 - **API errors** always become `ApiClientError { code, message, status }`.

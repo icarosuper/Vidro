@@ -321,14 +321,26 @@ Os 7 steps do pipeline têm todos `_test.go`, o que faz parecer bem coberto. Mas
 
 ### VidroFront — cobertura de fachada
 
-- [ ] 25 testes em 5 arquivos *(recontado em 2026-09-07)*, **todos da camada de API com
-      fetch mockado**.
-      Para 35 componentes e 11 rotas há **0 testes de renderização**.
-      `@testing-library/react`, `@testing-library/dom` e `jsdom` estão instalados
-      e nunca usados.
-- [ ] Features **`channels`, `comments` e `playlists` não têm nenhum teste** —
-      e `CommentList.tsx` é o componente mais complexo do app (8 estados de pending,
-      replies aninhadas, edição inline, reações).
+- [~] 34 testes em 6 arquivos de API com fetch mockado **+ 4 de renderização**
+      *(2026-09-13)*: `src/tests/comment-list.test.tsx` é o primeiro uso de
+      `@testing-library/react`/`jsdom`, que estavam instalados e parados. Continuam sem teste de
+      renderização os outros 34 componentes e as 11 rotas — o que falta agora é cobertura, não
+      harness.
+      **O harness custou um `vitest.config.ts` novo:** com o plugin do TanStack Start no config, o
+      React resolve pela condição `react-server` e chega ao teste com o dispatcher de hooks nulo —
+      todo `render` morre em `useState`. O config de teste carrega só `tsconfigPaths` + `viteReact`.
+      Padrão registrado em `VidroFront/docs/agents/conventions.md` (seção "Teste de componente").
+- [~] Features **`channels` e `playlists` continuam sem teste nenhum**; `comments` passou a ter os
+      4 de renderização do `CommentList.tsx`, que é o componente mais complexo do app.
+      Cobertos: Edit/Delete só no comentário do próprio usuário (o `isOwner`, que já esteve quebrado
+      por `currentUserId` errado), comentário apagado como lápide sem ações, deslogado sem form nem
+      Reply, e erro de carga.
+      **Verificado por mutação:** trocar o `isOwner` por `!!currentUserId` e mostrar a linha de ações
+      em comentário apagado quebram um teste cada.
+      **Um bug real achado pelo quarto teste e corrigido junto:** com a query em erro o componente
+      mostrava "Failed to load comments." **e** "No comments yet." ao mesmo tempo — a mesma mentira
+      ao usuário que o `dashboard.tsx` tinha em 2026-09-07, e a mesma correção (`hasNoComments`
+      nomeado, excluindo `isError`).
 
 ### VidroApi — bom, só limpar
 

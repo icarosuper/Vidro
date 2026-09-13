@@ -286,6 +286,9 @@ export function CommentList({ videoId, currentUserId }: CommentListProps) {
   } = useComments(videoId, sort)
 
   const comments = data?.pages.flatMap((page) => page.comments) ?? []
+  // A failed load also leaves the list empty — without excluding isError the user reads
+  // "No comments yet." on a video that may well have comments.
+  const hasNoComments = !isPending && !isError && comments.length === 0
 
   return (
     <div className="space-y-6">
@@ -318,7 +321,7 @@ export function CommentList({ videoId, currentUserId }: CommentListProps) {
         <p className="text-sm text-destructive">Failed to load comments.</p>
       )}
 
-      {!isPending && comments.length === 0 && (
+      {hasNoComments && (
         <p className="text-sm text-muted-foreground">No comments yet.</p>
       )}
 
