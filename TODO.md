@@ -343,6 +343,19 @@ Os 7 steps do pipeline têm todos `_test.go`, o que faz parecer bem coberto. Mas
 
 - [ ] Nenhum teste E2E do fluxo que define o produto: upload → processamento → play.
       Cada repo testa a própria borda; a integração entre eles não é testada.
+- [ ] **Nenhum teste de carga HTTP da API.** O que existe anotado de performance é só
+      transcode (P-PERF6), dentro do worker. Ninguém nunca mediu a API sob concorrência:
+      latência e taxa de erro por endpoint, pool do Npgsql, e o rate limit de
+      `SignIn`/`SignUp` (`AddRateLimiter`, P1) sob pressão — este último nunca foi exercido
+      com carga real, só com teste de integração.
+      ~~**Pré-requisito:** F5 — o Prometheus só raspa `worker:8080`.~~ **Destravado**
+      *(2026-09-13)*: a API expõe `/metrics` e o Prometheus raspa `api:5000` (degrau 2 do
+      `docs/observabilidade.md`). Latência por rota, taxa de erro e pool do Npgsql já são
+      observáveis durante a carga; `aspnetcore_rate_limiting_*` só aparece quando alguma
+      requisição passa pela política `auth` — ou seja, é esta carga que vai exercitá-lo.
+      **Escopo enxuto quando for a hora:** um cenário só — upload → `GetVideo` em polling —
+      contra o compose local, num host só. Nada de matriz de perfis; vale a mesma ressalva do
+      P-PERF6, com um worker e deploy manual isso é especulativo.
 
 ### Contrato entre serviços — destravado pelo monorepo (2026-08-30)
 

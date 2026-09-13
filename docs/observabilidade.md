@@ -137,11 +137,13 @@ Jaeger). Todo o `internal/telemetry` roda em modo no-op — por projeto, e está
 `VidroProcessor/docs/agents/config.md`. A API não tem OpenTelemetry nenhum: o `.csproj` traz só
 Serilog + enrichers.
 
-### F5 — O Prometheus só raspa o worker
+### ~~F5~~ ✅ — O Prometheus só raspa o worker *(resolvido em 2026-09-13)*
 
 `VidroProcessor/prometheus/prometheus.yml` tem um único `scrape_config`, alvo `worker:8080`. A API
 não expõe métrica: taxa de erro HTTP por endpoint, latência, pool do Npgsql e estado do rate limit
 são invisíveis. O front também não tem métrica, o que é aceitável por enquanto.
+
+> **RESOLVIDO** — degrau 2, abaixo. O front continua sem métrica, de propósito.
 
 ### F6 — O sink do Loki só existe em Development
 
@@ -211,12 +213,37 @@ Maior retorno por linha de diff do documento inteiro.
 > Docs atualizadas junto: `VidroFront/docs/agents/architecture.md` (responsabilidades do
 > `apiClient` + seção Correlation ID) e `features-index.md`.
 
-### Degrau 2 — métricas da API → fecha F5
+### ~~Degrau 2~~ ✅ — métricas da API → fechou F5 *(2026-09-13)*
 
 O .NET já emite meters nativos (`Microsoft.AspNetCore.Hosting`, `System.Net.Http`, Npgsql). Falta o
 exporter (`OpenTelemetry.Exporter.Prometheus.AspNetCore`) e um segundo job em `prometheus.yml`
 apontando para `api:5000`. **Não escrever contador à mão antes disso** — o que já vem de graça cobre
 taxa, erro e latência.
+
+> **FEITO.** `AddOpenTelemetry().WithMetrics(...)` no `Program.cs` com quatro meters
+> (`Microsoft.AspNetCore.Hosting`, `.Server.Kestrel`, `.RateLimiting`, `Npgsql`) +
+> `MapPrometheusScrapingEndpoint()`, e o job `vidro-api` apontando para `api:5000`. **Zero contador
+> escrito à mão**, como o degrau mandava. O que aparece no `/metrics`:
+> `http_server_request_duration_seconds` (histograma, com `http_route` e status),
+> `http_server_active_requests`, `db_client_connection_count{state}`, `db_client_connection_max`,
+> `db_client_operation_duration_seconds` e os contadores de bytes do Npgsql.
+>
+> **Duas coisas achadas no caminho:**
+> 1. **O nome do pool do Npgsql vira label.** O default é a connection string — a senha o Npgsql
+>    remove (conferido na marra), mas host, porta, banco e usuário ficam, num endpoint sem
+>    autenticação, e o valor muda a cada ambiente. `AddInfrastructure` agora constrói um
+>    `NpgsqlDataSource` com `Name = "vidroapi"`. Registrado como **design-decisions #12** da API.
+> 2. **`/metrics` precisava sair do log de request**, como `/health` já saía: com scrape de 15s,
+>    cada raspagem seria uma linha.
+>
+> Testes: `tests/VidroApi.IntegrationTests/Common/MetricsEndpointTests.cs` — o scrape traz o
+> histograma de request e o label do pool é `vidroapi`, não a connection string.
+> **Verificado por mutação:** trocar o `Name` do data source deixa o segundo teste vermelho.
+>
+> **Fica aberto:** o rate limiter só emite métrica quando alguma requisição passa pela política
+> `auth`, então `aspnetcore_rate_limiting_*` não aparece num scrape de API ociosa — é o teste de
+> carga (P2 do `TODO.md`) que vai exercitar isso. E não há dashboard da API no Grafana: o
+> provisionado é só o do worker.
 
 ### Degrau 3 — `traceparent` no envelope → fecha F3
 

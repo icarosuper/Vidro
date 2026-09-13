@@ -119,4 +119,5 @@ Each list endpoint has its own POCO so the limits can diverge without touching a
 Configured entirely from `appsettings*.json`, no POCO. The dev file's `WriteTo` array is
 `[0] Console, [1] GrafanaLoki` — compose overrides the Loki URI **by index**
 (`Serilog__WriteTo__1__Args__uri`), so **reordering that array breaks the compose override silently**.
-`/health` requests are filtered out of the logs by expression.
+`/health` and `/metrics` requests are filtered out of the logs by expression — both are polled on a
+timer (compose healthcheck and Prometheus scrape) and would otherwise drown the log.

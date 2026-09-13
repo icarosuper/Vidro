@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using OpenTelemetry.Metrics;
 using Serilog;
 using VidroApi.Api.BackgroundServices;
 using VidroApi.Api.Extensions;
@@ -51,6 +52,17 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
     policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
+
+// Metrics. The runtime already emits what matters — request rate, latency and status per
+// route, Kestrel connections, rate limiter queue/rejections, Npgsql pool — so this only
+// exports it. No hand-written counter until these stop answering the question.
+builder.Services.AddOpenTelemetry().WithMetrics(metrics => metrics
+    .AddMeter(
+        "Microsoft.AspNetCore.Hosting",
+        "Microsoft.AspNetCore.Server.Kestrel",
+        "Microsoft.AspNetCore.RateLimiting",
+        "Npgsql")
+    .AddPrometheusExporter());
 
 // Credential endpoints are the cheap target for brute force, so they get a per-IP budget.
 // Everything else stays unlimited — a global limiter would throttle legitimate browsing.
@@ -108,6 +120,9 @@ app.UseAuthorization();
 app.MapAllEndpoints();
 // Liveness only — no dependency probes, so a flapping Redis can't take the container down.
 app.MapHealthChecks("/health");
+// Scraped by Prometheus at /metrics. Unauthenticated, like the worker's :8080 — it carries
+// no user data, but it does expose the route list, so it belongs behind the edge in production.
+app.MapPrometheusScrapingEndpoint();
 
 if (allowedOrigins.Length == 0)
     Log.Warning("Cors:AllowedOrigins is empty — every cross-origin browser request will be blocked.");

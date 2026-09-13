@@ -57,6 +57,7 @@ Not features — mapped directly in `Program.cs`.
 | Endpoint | What |
 |---|---|
 | `GET /health` | Liveness only, no dependency probes |
+| `GET /metrics` | Prometheus scrape, runtime meters only (see design-decisions #12) |
 | `GET /openapi/v1.json` | OpenAPI document, Development only |
 
 ## Comments — `src/VidroApi.Api/Features/Comments/`

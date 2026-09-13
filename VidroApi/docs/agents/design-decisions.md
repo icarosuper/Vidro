@@ -18,8 +18,9 @@ decision by **anchor**, never by line number — `[design-decisions.md #7](desig
 - [**#9** — MinIO cleanup goes through `PendingStorageCleanup`](#9-minio-cleanup-goes-through-pendingstoragecleanup)
 - [**#10** — Single presigned PUT URL for upload](#10-single-presigned-put-url-for-upload)
 - [**#11** — The OpenAPI document is generated at build and versioned](#11-the-openapi-document-is-generated-at-build-and-versioned)
+- [**#12** — Metrics are the runtime's own meters, exported as-is](#12-metrics-are-the-runtimes-own-meters-exported-as-is)
 
-A new entry takes the **next number** (highest today is **#11**) plus one line here in the index.
+A new entry takes the **next number** (highest today is **#12**) plus one line here in the index.
 Never renumber an existing entry — references elsewhere point at its anchor.
 
 ---
@@ -152,3 +153,24 @@ Multipart upload is planned, not implemented. See `docs/plans/` for the future w
   return untyped `IResult`. The six enums the front mirrors are pinned by
   `contracts/enums.json` instead, not by this file.
 
+### 12. Metrics are the runtime's own meters, exported as-is
+
+`Program.cs`, `src/VidroApi.Infrastructure/DependencyInjection.cs`,
+`../VidroProcessor/prometheus/prometheus.yml`, `appsettings.Development.json`.
+
+- **No hand-written counter.** .NET already emits request rate, latency and status per route
+  (`Microsoft.AspNetCore.Hosting`), Kestrel connections, rate limiter queue and rejections
+  (`Microsoft.AspNetCore.RateLimiting`) and the Npgsql pool. `AddMeter` + the Prometheus exporter
+  publish that on `/metrics`; a custom counter only earns its place when these stop answering the
+  question.
+- **The exporter package is `-beta.1`, and always has been.** OpenTelemetry has never shipped a
+  stable Prometheus exporter for .NET; this is the same package Microsoft's own metrics
+  documentation uses. The alternative is OTLP into a collector, which the stack does not have yet
+  (see `docs/observabilidade.md`, degrau 4).
+- **The Npgsql data source is named `vidroapi`** so `db_client_connection_pool_name` is a fixed
+  label. Npgsql's default is the connection string — password stripped, but host, port, database
+  and username still land on an unauthenticated endpoint, and the value changes per environment.
+- **`/metrics` is excluded from the request log** the same way `/health` is: Prometheus scrapes
+  every 15s and each scrape would otherwise be a log line.
+- **The endpoint is unauthenticated**, like the worker's `:8080`. It carries no user data but does
+  expose the route list, so in production it belongs behind the edge, not on the public port.

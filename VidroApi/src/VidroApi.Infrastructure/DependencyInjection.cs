@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Minio;
+using Npgsql;
 using StackExchange.Redis;
 using VidroApi.Application.Abstractions;
 using VidroApi.Infrastructure.Persistence;
@@ -15,9 +16,16 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services, IConfiguration config)
     {
-        // PostgreSQL
-        services.AddDbContext<AppDbContext>(opts =>
-            opts.UseNpgsql(config.GetConnectionString("Postgres")));
+        // PostgreSQL. The data source is built here, and named, only because Npgsql tags every
+        // metric it emits with that name. The default is the connection string minus the password
+        // — so host, port, database and username would end up as a label on the unauthenticated
+        // /metrics endpoint, and the label would change with every environment.
+        var postgresDataSource = new NpgsqlDataSourceBuilder(config.GetConnectionString("Postgres"))
+        {
+            Name = "vidroapi"
+        }.Build();
+        services.AddSingleton(postgresDataSource);
+        services.AddDbContext<AppDbContext>(opts => opts.UseNpgsql(postgresDataSource));
 
         // Redis
         services.AddSingleton<IConnectionMultiplexer>(_ =>

@@ -6,3 +6,9 @@ scrape_configs:
   - job_name: "video-processor"
     static_configs:
       - targets: ["worker:8080"]
+
+  # The API exports the runtime's own meters (ASP.NET Core, Kestrel, rate limiter, Npgsql)
+  # on its regular port — there is no separate metrics listener like the worker's :8080.
+  - job_name: "vidro-api"
+    static_configs:
+      - targets: ["api:5000"]
