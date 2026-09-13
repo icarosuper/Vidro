@@ -10,14 +10,17 @@ public class RedisJobQueueService(IConnectionMultiplexer redis, IOptions<JobQueu
 {
     private readonly string _queueName = options.Value.QueueName;
 
-    public async Task PublishJobAsync(string videoId, string callbackUrl, CancellationToken ct = default)
+    public async Task PublishJobAsync(string videoId, string callbackUrl, string correlationId, CancellationToken ct = default)
     {
         var db = redis.GetDatabase();
 
+        // Field names are snake_case because this object is the shared contract with the worker:
+        // VidroProcessor/queue/job.go deserializes exactly these names.
         var jobState = new
         {
             status = "pending",
             callback_url = callbackUrl,
+            correlation_id = correlationId,
             retry_count = 0,
             created_at = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             updated_at = DateTimeOffset.UtcNow.ToUnixTimeSeconds()

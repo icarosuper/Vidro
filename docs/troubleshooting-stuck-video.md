@@ -106,6 +106,17 @@ instead of a substring match — the only version that stays reliable with `WORK
 {container=~".*worker.*"} | json | videoID="<videoId>"
 ```
 
+**Quando o usuário reclama com um ID na mão**, ele tem o correlation ID que a tela de erro mostrou
+("Reference for support"), não o `videoId`. Esse ID atravessa a fila: a API o grava no envelope do
+job, o worker o carrega em toda linha e o devolve no header do webhook. Então a mesma pergunta,
+feita pelo lado do usuário, é uma query só — e ela pega API **e** worker de uma vez:
+
+```logql
+{container=~".*(api|worker).*"} | json | correlationID="<correlationId>"
+```
+
+(no lado da API o campo sai como `CorrelationId`, do enricher do Serilog.)
+
 Read it against the pipeline: `validate → analyze → transcode → thumbnails → audio → preview → streaming`.
 
 - **`Warn` on a step, job continues** — that is by design. `thumbnails`, `audio`, `preview` and

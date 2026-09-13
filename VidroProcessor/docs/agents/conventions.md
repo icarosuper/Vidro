@@ -21,7 +21,8 @@ This file is Go-specific.
   being threaded through any signature:
 
   ```go
-  // main.go — the frame, once per job
+  // main.go — the frame, once per job. correlationID joins the frame when the job envelope
+  // carries one (the API stamps it); a job without one logs without the field.
   jobLogger := log.With().Int("workerID", workerID).Str("videoID", videoID).Logger()
   ctx = jobLogger.WithContext(ctx)
 

@@ -109,7 +109,46 @@ public class MinioUploadCompletedTests(ApiFactory factory) : IClassFixture<ApiFa
         secondResponse.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    private async Task<HttpResponseMessage> SendMinioWebhookAsync(string eventName, string key, string token)
+    [Fact]
+    public async Task MinioUploadCompleted_PutsTheRequestCorrelationIdInTheJobEnvelope()
+    {
+        var (_, videoId) = await CreateVideoAndGetIds();
+        var correlationId = $"corr-{Guid.NewGuid()}";
+
+        await SendMinioWebhookAsync(
+            eventName: "s3:ObjectCreated:Put",
+            key: $"test-bucket/raw/{videoId}",
+            token: MinioUploadToken,
+            correlationId: correlationId);
+
+        // A queue carries no headers, so the only way the worker can log this job under the same
+        // ID is for the producer to put it in the envelope — see docs/observabilidade.md (F3).
+        var published = FakeJobQueueService.Published
+            .Should().ContainSingle(job => job.VideoId == videoId.ToString()).Subject;
+
+        published.CorrelationId.Should().Be(correlationId);
+    }
+
+    [Fact]
+    public async Task MinioUploadCompleted_WithoutAnInboundCorrelationId_StillPublishesOne()
+    {
+        var (_, videoId) = await CreateVideoAndGetIds();
+
+        // MinIO never sends the header: the ID is the one the middleware generated for this
+        // request, and the job must not travel without one.
+        await SendMinioWebhookAsync(
+            eventName: "s3:ObjectCreated:Put",
+            key: $"test-bucket/raw/{videoId}",
+            token: MinioUploadToken);
+
+        var published = FakeJobQueueService.Published
+            .Should().ContainSingle(job => job.VideoId == videoId.ToString()).Subject;
+
+        published.CorrelationId.Should().NotBeNullOrWhiteSpace();
+    }
+
+    private async Task<HttpResponseMessage> SendMinioWebhookAsync(
+        string eventName, string key, string token, string? correlationId = null)
     {
         var payload = JsonSerializer.Serialize(new { EventName = eventName, Key = key });
         var request = new HttpRequestMessage(HttpMethod.Post, "/webhooks/minio-upload-completed")
@@ -117,6 +156,9 @@ public class MinioUploadCompletedTests(ApiFactory factory) : IClassFixture<ApiFa
             Content = new StringContent(payload, Encoding.UTF8, "application/json")
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        if (correlationId is not null)
+            request.Headers.Add("X-Correlation-ID", correlationId);
+
         return await _client.SendAsync(request);
     }
 

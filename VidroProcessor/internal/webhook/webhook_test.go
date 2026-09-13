@@ -26,7 +26,7 @@ func TestNotify_Success(t *testing.T) {
 	defer srv.Close()
 
 	payload := Payload{VideoID: "video-123", Success: true}
-	if err := Notify(srv.URL, "", payload); err != nil {
+	if err := Notify(srv.URL, "", "", payload); err != nil {
 		t.Fatalf("Notify() should not return error: %v", err)
 	}
 	if received.VideoID != "video-123" {
@@ -45,7 +45,7 @@ func TestNotify_ContentTypeJSON(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	Notify(srv.URL, "", Payload{VideoID: "v1", Success: true})
+	Notify(srv.URL, "", "", Payload{VideoID: "v1", Success: true})
 
 	if contentType != "application/json" {
 		t.Fatalf("expected Content-Type 'application/json', got '%s'", contentType)
@@ -69,7 +69,7 @@ func TestNotify_WithHMAC_CorrectSignature(t *testing.T) {
 	defer srv.Close()
 
 	payload := Payload{VideoID: "video-123", Success: true}
-	if err := Notify(srv.URL, secret, payload); err != nil {
+	if err := Notify(srv.URL, secret, "", payload); err != nil {
 		t.Fatalf("Notify() should not return error: %v", err)
 	}
 
@@ -90,7 +90,7 @@ func TestNotify_NoSecret_NoHeader(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	Notify(srv.URL, "", Payload{VideoID: "v1", Success: true})
+	Notify(srv.URL, "", "", Payload{VideoID: "v1", Success: true})
 
 	if signature != "" {
 		t.Fatalf("should not send X-Webhook-Signature without secret, got: '%s'", signature)
@@ -109,7 +109,7 @@ func TestNotify_RetryOnFailure(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	if err := Notify(srv.URL, "", Payload{VideoID: "v1", Success: true}); err != nil {
+	if err := Notify(srv.URL, "", "", Payload{VideoID: "v1", Success: true}); err != nil {
 		t.Fatalf("Notify() should succeed on the 3rd attempt, got: %v", err)
 	}
 	if attempts != 3 {
@@ -125,7 +125,7 @@ func TestNotify_ErrorAfter3Attempts(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	err := Notify(srv.URL, "", Payload{VideoID: "v1", Success: true})
+	err := Notify(srv.URL, "", "", Payload{VideoID: "v1", Success: true})
 	if err == nil {
 		t.Fatal("Notify() should return error after 3 failed attempts")
 	}
@@ -138,7 +138,7 @@ func TestNotify_ErrorAfter3Attempts(t *testing.T) {
 }
 
 func TestNotify_InvalidURL(t *testing.T) {
-	err := Notify("://invalid-url", "", Payload{VideoID: "v1", Success: true})
+	err := Notify("://invalid-url", "", "", Payload{VideoID: "v1", Success: true})
 	if err == nil {
 		t.Fatal("Notify() should return error with invalid URL")
 	}
@@ -146,7 +146,7 @@ func TestNotify_InvalidURL(t *testing.T) {
 
 func TestNotify_ServerUnavailable(t *testing.T) {
 	// Port with no listener
-	err := Notify("http://localhost:19999", "", Payload{VideoID: "v1", Success: true})
+	err := Notify("http://localhost:19999", "", "", Payload{VideoID: "v1", Success: true})
 	if err == nil {
 		t.Fatal("Notify() should return error when server is unavailable")
 	}
@@ -169,5 +169,37 @@ func TestPayload_JSONSerialization(t *testing.T) {
 	}
 	if !strings.Contains(string(data), `"success":true`) {
 		t.Fatalf("'success' field should appear, got: %s", data)
+	}
+}
+
+func TestNotify_ForwardsCorrelationIDWhenPresent(t *testing.T) {
+	var header string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		header = r.Header.Get("X-Correlation-ID")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	if err := Notify(srv.URL, "", "corr-42", Payload{VideoID: "video-123"}); err != nil {
+		t.Fatalf("Notify() should not return error: %v", err)
+	}
+	if header != "corr-42" {
+		t.Fatalf("X-Correlation-ID = %q, want %q", header, "corr-42")
+	}
+}
+
+func TestNotify_OmitsCorrelationIDHeaderWhenEmpty(t *testing.T) {
+	var present bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, present = r.Header["X-Correlation-Id"]
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	if err := Notify(srv.URL, "", "", Payload{VideoID: "video-123"}); err != nil {
+		t.Fatalf("Notify() should not return error: %v", err)
+	}
+	if present {
+		t.Fatal("empty correlation ID must not produce the header at all")
 	}
 }

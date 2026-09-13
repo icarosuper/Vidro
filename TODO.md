@@ -448,8 +448,11 @@ migração destrava".
       **Verificado por mutação dos dois lados:** renomear o `json:` tag de `previewPath` quebra o
       teste Go; renomear `processedPath` no golden quebra o teste C#.
       **Falta o resto do contrato, hoje só documentado:** nome da fila
-      (`JobQueueSettings:QueueName` ↔ `PROCESSING_REQUEST_QUEUE`), `callback_url` no `JobState`,
-      e o layout de paths no MinIO.
+      (`JobQueueSettings:QueueName` ↔ `PROCESSING_REQUEST_QUEUE`), `callback_url` e
+      `correlation_id` no `JobState`, e o layout de paths no MinIO.
+      *(2026-09-13: o `correlation_id` entrou no envelope com teste dos dois lados e verificação na
+      stack — mas cada lado testa o próprio nome de campo, que é exatamente a classe de drift que só
+      um golden pega. Candidato natural a `contracts/job-state.json`.)*
 
 ---
 

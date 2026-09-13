@@ -39,7 +39,8 @@ log e em trace; métrica só recebe dimensão fechada (`status`, `step`) — que
 
 **Propagação de contexto** é o único conceito que custa trabalho: o ID tem de entrar no *envelope*
 de cada salto. HTTP tem header; **fila não tem** — quem publica coloca no payload, quem consome
-extrai. É onde a cadeia daqui quebra (F3).
+extrai. Era onde a cadeia daqui quebrava (F3); desde 2026-09-13 o `correlation_id` viaja no
+`JobState` e volta no header do webhook.
 
 ---
 
@@ -119,7 +120,7 @@ O Promtail entrega no Loki, mas como linha de texto com escape ANSI — sem camp
 > terminal continua legível; sob `docker compose` a saída vira JSON e a busca do runbook passa a
 > ser `| json | videoID="..."` no Loki.
 
-### F3 — O correlation ID morre na fronteira da fila
+### ~~F3~~ ✅ — O correlation ID morre na fronteira da fila *(resolvido em 2026-09-13)*
 
 `VidroApi/src/VidroApi.Infrastructure/Services/RedisJobQueueService.cs` grava `job:<videoId>` com
 `status`, `callback_url`, `retry_count`, `created_at`, `updated_at` e faz `LPUSH` do `videoId` cru.
@@ -129,6 +130,9 @@ webhook (`contracts/*.json`) também não.
 **Consequência:** API e worker nunca compartilham identificador de telemetria. O `videoId` é o único
 laço — e ele funciona (é o que o runbook usa), mas não carrega o correlation ID da requisição do
 usuário que originou o upload.
+
+> **RESOLVIDO** — degrau 3, abaixo. O campo é `correlation_id` no `JobState`, e o webhook devolve
+> o mesmo valor no header `X-Correlation-ID`.
 
 ### F4 — Os spans vão para o vazio
 
@@ -248,7 +252,7 @@ taxa, erro e latência.
 >
 > **Fica aberto:** não há dashboard da API no Grafana — o provisionado é só o do worker.
 
-### Degrau 3 — `traceparent` no envelope → fecha F3
+### ~~Degrau 3~~ ✅ — identificador no envelope → fechou F3 *(2026-09-13)*
 
 Um campo de trace no `jobState` (a API grava, o worker extrai com
 `propagation.TraceContext().Extract`) e um header no POST do webhook.
@@ -256,6 +260,42 @@ Um campo de trace no `jobState` (a API grava, o worker extrai com
 **Isto é contrato compartilhado:** `RedisJobQueueService.cs` e `queue/job.go` mudam no mesmo commit,
 e o golden de `contracts/` entra junto se o campo tocar o payload do webhook. Ver a seção "Contrato
 compartilhado" do `CLAUDE.md` da raiz.
+
+> **FEITO — com uma mudança deliberada no plano: o campo é o `correlation_id`, não `traceparent`.**
+>
+> O motivo é que `traceparent` hoje seria **ficção**. A API não tem tracing: o que entrou nela em
+> 2026-09-13 foram métricas (degrau 2), sem `TracerProvider`, então `Activity.Current` é nulo e um
+> `traceparent` escrito por ela apontaria para um trace que não existe em lugar nenhum — um ID com
+> cara de padrão W3C e nenhum trace atrás. O `correlation_id` já existe, já é o que a tela de erro
+> mostra ao usuário ("Reference for support", F7) e já é o que a API carimba em toda linha de log.
+> **`traceparent` volta no degrau 4**, junto do collector: aí ele aponta para spans de verdade, e o
+> campo do envelope passa a carregar os dois.
+>
+> **O que mudou nos dois lados, no mesmo commit:**
+> - `RedisJobQueueService.PublishJobAsync` recebe `correlationId` e grava `correlation_id` no
+>   envelope. Quem chama: o webhook do MinIO passa o ID **daquela** requisição (o MinIO não manda
+>   header, então é o que o middleware gerou), e o `VideoReconciliationService` — que não tem
+>   requisição HTTP atrás — gera um e **loga o que gerou**, senão os dois lados não se juntam.
+> - `queue.JobState` ganhou `correlation_id`; `processNextMessage` lê o estado publicado e põe
+>   `correlationID` no logger do job, do lado do `videoID`/`workerID`.
+> - `webhook.Notify` manda `X-Correlation-ID`. A API **já** reusa header de entrada
+>   (`CorrelationIdMiddleware`), então o callback cai no log sob o mesmo ID — mudança de zero linha
+>   do lado de quem recebe.
+>
+> **Verificado na stack de pé**, não só em teste: job injetado no Redis com
+> `"correlation_id":"corr-e2e-check"` produziu `{"workerID":4,"videoID":"e2e-corr-video",
+> "correlationID":"corr-e2e-check","message":"Processing video"}` — o formato de fio entre C# e Go
+> bate de verdade.
+> Testes: `MinioUploadCompletedTests` (o ID da requisição chega ao envelope, e sem header de entrada
+> ainda vai um), `queue_test.go` (o ID **sobrevive a toda escrita de status** — é o estado final que
+> o webhook lê) e `webhook_test.go` (header presente, e ausente quando o ID é vazio).
+> **Verificado por mutação:** zerar o ID no endpoint do MinIO quebra os dois testes da API.
+>
+> **O runbook mudou junto:** quando o usuário chega com o ID da tela de erro, a query do Loki agora
+> pega API e worker de uma vez.
+>
+> **Fica aberto:** o `correlation_id` do envelope ainda não tem golden em `contracts/` — é
+> "disciplina", como o resto do contrato de fila (ver `TODO.md`, seção de contrato).
 
 ### Degrau 4 — collector de traces → fecha F4
 

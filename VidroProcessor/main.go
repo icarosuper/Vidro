@@ -232,7 +232,17 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 	videoID := msg.VideoID
 	// Every log line of this job — worker frame and pipeline steps alike — carries these
 	// fields, so concurrent jobs stay distinguishable when WORKER_COUNT > 1.
-	jobLogger := log.With().Int("workerID", workerID).Str("videoID", videoID).Logger()
+	jobFields := log.With().Int("workerID", workerID).Str("videoID", videoID)
+	// The API stamped the ID of the request that enqueued this job. Carrying it here is the
+	// whole point of the field: it is what ties the user's upload to these lines in Loki.
+	// A job published without one (older job, or a producer that does not set it) just logs
+	// without the field — it must not stop the job.
+	if publishedState, err := queue.GetJobState(ctx, videoID); err == nil && publishedState != nil {
+		if publishedState.CorrelationID != "" {
+			jobFields = jobFields.Str("correlationID", publishedState.CorrelationID)
+		}
+	}
+	jobLogger := jobFields.Logger()
 	ctx = jobLogger.WithContext(ctx)
 	jobLogger.Info().Msg("Processing video")
 
@@ -497,7 +507,7 @@ func buildWebhookPayload(videoID string, state *queue.JobState) webhook.Payload 
 func notifyWebhook(callbackURL, secret, videoID string, state *queue.JobState) {
 	payload := buildWebhookPayload(videoID, state)
 
-	if err := webhook.Notify(callbackURL, secret, payload); err != nil {
+	if err := webhook.Notify(callbackURL, secret, state.CorrelationID, payload); err != nil {
 		log.Warn().Err(err).Str("videoID", videoID).Str("callbackURL", callbackURL).Msg("Failed to send webhook")
 	} else {
 		log.Info().Str("videoID", videoID).Str("callbackURL", callbackURL).Msg("Webhook sent successfully")

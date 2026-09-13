@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -44,7 +45,7 @@ func listOf(t *testing.T, key string) []string {
 func TestSetJobFailed_IncrementsRetryCountAndPersists(t *testing.T) {
 	setupRedis(t)
 
-	if err := PublishJob(t.Context(), "vid", ""); err != nil {
+	if err := PublishJob(t.Context(), "vid", "", ""); err != nil {
 		t.Fatalf("PublishJob: %v", err)
 	}
 
@@ -112,7 +113,7 @@ func TestShouldRetry_Boundary(t *testing.T) {
 func TestPublishJob_QueuesAndRecordsPending(t *testing.T) {
 	setupRedis(t)
 
-	if err := PublishJob(t.Context(), "vid", "http://api/hook"); err != nil {
+	if err := PublishJob(t.Context(), "vid", "http://api/hook", ""); err != nil {
 		t.Fatalf("PublishJob: %v", err)
 	}
 
@@ -137,7 +138,7 @@ func TestPublishJob_QueuesAndRecordsPending(t *testing.T) {
 func TestConsumeMessage_MovesJobToProcessing(t *testing.T) {
 	setupRedis(t)
 
-	if err := PublishJob(t.Context(), "vid", ""); err != nil {
+	if err := PublishJob(t.Context(), "vid", "", ""); err != nil {
 		t.Fatalf("PublishJob: %v", err)
 	}
 
@@ -359,7 +360,7 @@ func TestQueueOperations_StopOnCanceledContext(t *testing.T) {
 	cancel()
 
 	operations := map[string]func() error{
-		"PublishJob":            func() error { return PublishJob(canceled, "vid", "") },
+		"PublishJob":            func() error { return PublishJob(canceled, "vid", "", "") },
 		"SetJobProcessing":      func() error { return SetJobProcessing(canceled, "vid") },
 		"SetJobDone":            func() error { return SetJobDone(canceled, "vid", JobArtifacts{}, nil) },
 		"SetJobFailed":          func() error { _, err := SetJobFailed(canceled, "vid", errBoom); return err },
@@ -398,5 +399,56 @@ func TestRecoverStuckJobs_StopsOnCanceledContext(t *testing.T) {
 	// Nothing moved: the LRange that starts the sweep failed on the canceled context.
 	if got := listOf(t, processingQueueName()); len(got) != 1 {
 		t.Errorf("expected the job untouched in the processing queue, got %v", got)
+	}
+}
+
+// --- correlation ID ---------------------------------------------------------
+
+// The ID only earns its keep if it survives to the end of the job: the webhook reads it from
+// the *final* state, which every status write rebuilds from the stored one.
+func TestJobState_CorrelationIDSurvivesEveryStatusWrite(t *testing.T) {
+	setupRedis(t)
+
+	if err := PublishJob(t.Context(), "vid", "http://api/hook", "corr-42"); err != nil {
+		t.Fatalf("PublishJob: %v", err)
+	}
+
+	writes := []struct {
+		name string
+		run  func() error
+	}{
+		{"SetJobProcessing", func() error { return SetJobProcessing(t.Context(), "vid") }},
+		{"SetJobFailed", func() error { _, err := SetJobFailed(t.Context(), "vid", errBoom); return err }},
+		{"RequeueJob", func() error { return RequeueJob(t.Context(), "vid") }},
+		{"SetJobDone", func() error { return SetJobDone(t.Context(), "vid", JobArtifacts{}, nil) }},
+	}
+
+	for _, write := range writes {
+		if err := write.run(); err != nil {
+			t.Fatalf("%s: %v", write.name, err)
+		}
+		state, err := GetJobState(t.Context(), "vid")
+		if err != nil {
+			t.Fatalf("GetJobState after %s: %v", write.name, err)
+		}
+		if state.CorrelationID != "corr-42" {
+			t.Fatalf("after %s: CorrelationID = %q, want %q", write.name, state.CorrelationID, "corr-42")
+		}
+	}
+}
+
+func TestPublishJob_WithoutCorrelationIDOmitsTheField(t *testing.T) {
+	setupRedis(t)
+
+	if err := PublishJob(t.Context(), "vid", "", ""); err != nil {
+		t.Fatalf("PublishJob: %v", err)
+	}
+
+	raw, err := client.Get(t.Context(), jobKey("vid")).Result()
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if strings.Contains(raw, "correlation_id") {
+		t.Fatalf("job state should omit the empty field, got %s", raw)
 	}
 }

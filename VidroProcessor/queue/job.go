@@ -51,8 +51,12 @@ type JobState struct {
 	Metadata    *VideoMetadata `json:"metadata,omitempty"`
 	RetryCount  int            `json:"retry_count"`
 	CallbackURL string         `json:"callback_url,omitempty"`
-	CreatedAt   int64          `json:"created_at"`
-	UpdatedAt   int64          `json:"updated_at"`
+	// CorrelationID is stamped by the API with the ID of the request that enqueued the job.
+	// It is the only telemetry identifier shared across the queue boundary — a queue has no
+	// header, so whoever publishes must put it in the envelope. See docs/observabilidade.md (F3).
+	CorrelationID string `json:"correlation_id,omitempty"`
+	CreatedAt     int64  `json:"created_at"`
+	UpdatedAt     int64  `json:"updated_at"`
 }
 
 func jobKey(videoID string) string {
@@ -70,12 +74,15 @@ func setJobState(ctx context.Context, videoID string, state JobState) error {
 
 // PublishJob publishes a videoID to the queue and records the initial state as pending.
 // callbackURL is optional: if non-empty, the worker will notify this URL upon completion.
+// correlationID is optional and travels with the job so the worker logs under the same ID as
+// the request that created it.
 // Should be called by the producer (API) when submitting a video for processing.
-func PublishJob(ctx context.Context, videoID, callbackURL string) error {
+func PublishJob(ctx context.Context, videoID, callbackURL, correlationID string) error {
 	state := JobState{
-		Status:      JobStatusPending,
-		CallbackURL: callbackURL,
-		CreatedAt:   time.Now().Unix(),
+		Status:        JobStatusPending,
+		CallbackURL:   callbackURL,
+		CorrelationID: correlationID,
+		CreatedAt:     time.Now().Unix(),
 	}
 	if err := setJobState(ctx, videoID, state); err != nil {
 		return fmt.Errorf("failed to create job state: %w", err)

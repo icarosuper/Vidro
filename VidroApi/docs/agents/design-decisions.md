@@ -19,8 +19,9 @@ decision by **anchor**, never by line number — `[design-decisions.md #7](desig
 - [**#10** — Single presigned PUT URL for upload](#10-single-presigned-put-url-for-upload)
 - [**#11** — The OpenAPI document is generated at build and versioned](#11-the-openapi-document-is-generated-at-build-and-versioned)
 - [**#12** — Metrics are the runtime's own meters, exported as-is](#12-metrics-are-the-runtimes-own-meters-exported-as-is)
+- [**#13** — The correlation ID travels inside the job envelope](#13-the-correlation-id-travels-inside-the-job-envelope)
 
-A new entry takes the **next number** (highest today is **#12**) plus one line here in the index.
+A new entry takes the **next number** (highest today is **#13**) plus one line here in the index.
 Never renumber an existing entry — references elsewhere point at its anchor.
 
 ---
@@ -174,3 +175,23 @@ Multipart upload is planned, not implemented — it is an item in the root `TODO
   every 15s and each scrape would otherwise be a log line.
 - **The endpoint is unauthenticated**, like the worker's `:8080`. It carries no user data but does
   expose the route list, so in production it belongs behind the edge, not on the public port.
+
+### 13. The correlation ID travels inside the job envelope
+
+`Middleware/CorrelationIdMiddleware.cs`, `Features/Videos/MinioUploadCompleted.cs`,
+`BackgroundServices/VideoReconciliationService.cs`,
+`src/VidroApi.Infrastructure/Services/RedisJobQueueService.cs`.
+
+- **A queue has no headers.** HTTP propagates a correlation ID in a header and the middleware
+  reuses an inbound one; Redis does not. So `PublishJobAsync` takes the ID and writes
+  `correlation_id` into the job state the worker reads. This is the shared contract with
+  `VidroProcessor/queue/job.go` — change one side, change the other in the same commit.
+- **The ID comes from the request that enqueued the job.** For the MinIO webhook that is the ID
+  this API generated (MinIO sends none). `VideoReconciliationService` has no request behind it, so
+  it mints one **and logs it** — an ID nobody can read in the log joins nothing.
+- **It comes back on the callback.** The worker sends `X-Correlation-ID` on
+  `/webhooks/video-processed`, and the middleware reuses inbound values, so the callback logs under
+  the same ID with no extra code here.
+- **Not `traceparent`, on purpose.** This API has metrics but no tracing (#12), so
+  `Activity.Current` is null and a `traceparent` written here would point at a trace that does not
+  exist. It becomes the right field once there is a collector — `docs/observabilidade.md`, degrau 4.

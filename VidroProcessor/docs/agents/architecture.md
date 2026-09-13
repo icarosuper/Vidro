@@ -38,7 +38,9 @@ Shared contract with VidroApi. Do not change queue names or job layout without c
 - **Dead letter queue**: `<ProcessingRequestQueue>:dead`. Jobs land here after `MaxJobRetries = 3` failed attempts.
 - **Success queue**: `ProcessingFinishedQueue`. Consumed by API to react to completed jobs (plus webhook).
 
-Each job: bare `videoID` string in queue. Full job state under Redis key `job:<videoID>` (`JobState` JSON, 24h TTL) — status, retry count, callback URL, artifacts, extracted metadata.
+Each job: bare `videoID` string in queue. Full job state under Redis key `job:<videoID>` (`JobState` JSON, 24h TTL) — status, retry count, callback URL, **correlation ID**, artifacts, extracted metadata.
+
+`correlation_id` is written by the API (the ID of the request that enqueued the job) and is the only telemetry identifier shared across the queue boundary: a queue carries no headers, so the producer puts it in the envelope. The worker adds it to every log line of the job and sends it back as the `X-Correlation-ID` header on the completion webhook, where the API reuses it. A job published without one still runs — it just logs without the field.
 
 ### Job state machine
 

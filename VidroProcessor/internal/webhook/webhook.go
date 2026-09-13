@@ -36,8 +36,10 @@ var sleepFn = time.Sleep
 
 // Notify sends the payload to callbackURL with up to 3 attempts and exponential backoff.
 // If secret is non-empty, signs the body with HMAC-SHA256 in the X-Webhook-Signature header.
+// If correlationID is non-empty, it goes out as X-Correlation-ID — the API reuses an inbound
+// value, so the callback lands in its log under the same ID as the upload that started the job.
 // Returns an error only if all attempts fail.
-func Notify(callbackURL, secret string, payload Payload) error {
+func Notify(callbackURL, secret, correlationID string, payload Payload) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to serialize webhook payload: %w", err)
@@ -45,7 +47,7 @@ func Notify(callbackURL, secret string, payload Payload) error {
 
 	var lastErr error
 	for attempt := 1; attempt <= 3; attempt++ {
-		if err := send(callbackURL, secret, body); err != nil {
+		if err := send(callbackURL, secret, correlationID, body); err != nil {
 			lastErr = err
 			if attempt < 3 {
 				sleepFn(time.Duration(attempt*attempt) * time.Second)
@@ -57,7 +59,7 @@ func Notify(callbackURL, secret string, payload Payload) error {
 	return fmt.Errorf("webhook failed after 3 attempts: %w", lastErr)
 }
 
-func send(url, secret string, body []byte) error {
+func send(url, secret, correlationID string, body []byte) error {
 	// context.Background() and not the job context on purpose: the webhook is sent from a
 	// defer, after the job is over, and often while the job context is already canceled —
 	// inheriting it would drop the notification the API is waiting for. The 10s
@@ -67,6 +69,9 @@ func send(url, secret string, body []byte) error {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if correlationID != "" {
+		req.Header.Set("X-Correlation-ID", correlationID)
+	}
 
 	if secret != "" {
 		mac := hmac.New(sha256.New, []byte(secret))

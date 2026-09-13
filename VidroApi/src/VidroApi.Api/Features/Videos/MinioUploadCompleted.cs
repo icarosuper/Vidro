@@ -2,6 +2,7 @@ using CSharpFunctionalExtensions;
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using VidroApi.Api.Middleware;
 using VidroApi.Application.Abstractions;
 using VidroApi.Domain.Enums;
 using VidroApi.Domain.Errors;
@@ -22,6 +23,7 @@ public static class MinioUploadCompleted
     public record Command : IRequest<UnitResult<Error>>
     {
         public Guid VideoId { get; init; }
+        public string CorrelationId { get; init; } = null!;
     }
 
     public static void MapEndpoint(IEndpointRouteBuilder app) =>
@@ -46,7 +48,13 @@ public static class MinioUploadCompleted
             if (videoId is null)
                 return Results.Ok();
 
-            await mediator.Send(new Command { VideoId = videoId.Value }, ct);
+            // The ID of *this* request is what the whole job will be logged under, worker
+            // included — MinIO does not send one, so it is the one the middleware generated.
+            var correlationId = CorrelationIdMiddleware.GetCorrelationId(ctx);
+
+            await mediator.Send(
+                new Command { VideoId = videoId.Value, CorrelationId = correlationId },
+                ct);
             return Results.Ok();
         });
 
@@ -78,7 +86,7 @@ public static class MinioUploadCompleted
             video.MarkAsProcessing(clock.UtcNow);
 
             var callbackUrl = $"{apiOptions.Value.BaseUrl}/webhooks/video-processed";
-            await jobQueue.PublishJobAsync(cmd.VideoId.ToString(), callbackUrl, ct);
+            await jobQueue.PublishJobAsync(cmd.VideoId.ToString(), callbackUrl, cmd.CorrelationId, ct);
 
             await db.SaveChangesAsync(ct);
 

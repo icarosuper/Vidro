@@ -108,14 +108,20 @@ public class VideoReconciliationService(
 
             if (fileExistsInMinio)
             {
+                // No HTTP request behind this job, so there is no inbound ID to reuse: this
+                // service is the origin, and it logs the ID it hands to the worker so the two
+                // sides can still be joined in Loki.
+                var correlationId = Guid.NewGuid().ToString();
+
                 logger.LogWarning(
-                    "Video {VideoId} upload completed but webhook was missed — triggering processing",
-                    video.Id);
+                    "Video {VideoId} upload completed but webhook was missed — triggering processing under correlation {CorrelationId}",
+                    video.Id,
+                    correlationId);
 
                 video.MarkAsProcessing(clock.UtcNow);
 
                 var callbackUrl = $"{apiOptions.Value.BaseUrl}/webhooks/video-processed";
-                await jobQueue.PublishJobAsync(video.Id.ToString(), callbackUrl, ct);
+                await jobQueue.PublishJobAsync(video.Id.ToString(), callbackUrl, correlationId, ct);
             }
             else
             {

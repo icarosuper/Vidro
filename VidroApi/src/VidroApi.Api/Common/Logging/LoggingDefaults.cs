@@ -7,4 +7,6 @@ public static class LoggingDefaults
     public const string ProcessTypeProperty = "ProcessType";
 
     public const string StepProcessType = "Step";
+
+    public const string CorrelationIdHeader = "X-Correlation-ID";
 }
