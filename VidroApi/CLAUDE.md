@@ -12,7 +12,7 @@ version: all code in English, conventional commits **in Portuguese**, subject li
 The post-implementation cycle (tests → docs → suggested commit) is in the root `../CLAUDE.md`. What
 is specific here is **which** file to update:
 
-- Schema, endpoint or feature added/removed → `docs/agents/features-index.md` (+ `docs/plans/`)
+- Schema, endpoint or feature added/removed → `docs/agents/features-index.md`
 - New setting in `appsettings.json` or a `Settings` POCO → `docs/agents/config.md`
 - New non-obvious pattern, or a *why* that changed → new numbered entry in `docs/agents/design-decisions.md`
 - Layer boundaries or cross-cutting flow changed → `docs/agents/architecture.md`
@@ -79,7 +79,3 @@ Each feature is self-contained file under `src/VidroApi.Api/Features/<Domain>/Fe
 ## Features index
 
 → Read `docs/agents/features-index.md` to locate existing feature file before search codebase. Update whenever feature added or removed.
-
-## Implementation plan
-
-See `docs/plans/2026-03-26-implementation-plan.md` for full task-by-task plan.

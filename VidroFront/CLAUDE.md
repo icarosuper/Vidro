@@ -61,8 +61,6 @@ Leia doc **antes** tarefa descrita. Pular → infringir padrões que existem por
 
 - **[docs/agents/features-index.md](docs/agents/features-index.md)** — Antes criar/mexer feature, ou buscar "onde está endpoint X / hook Y". Mapa cada feature: arquivos, endpoints backend, hooks, tipos, componentes. **Atualize ao add/remover endpoints, hooks ou componentes.**
 
-- **[docs/plans/README.md](docs/plans/README.md)** — Índice das 9 fases (todas concluídas) e o que cada uma entregou. Os planos detalhados estão ao lado; marcar tarefas ✅ conforme concluídas.
-
 ## Manter as docs em dia
 
 O ciclo pós-implementação (testes → docs → commit sugerido) está no `../CLAUDE.md` da raiz. O que é
@@ -72,4 +70,3 @@ específico daqui é **qual** arquivo atualizar:
 - Mudar camadas, `apiClient` ou estratégia de renderização → `docs/agents/architecture.md`
 - Qualquer mudança de auth → `docs/agents/auth.md`
 - Mudou uma convenção de código (raro) → `docs/agents/conventions.md`
-- Nova fase concluída → `docs/plans/README.md`

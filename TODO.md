@@ -545,10 +545,16 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
       mapa, não substitui a doc — falta shape de cada payload, retries, e o que acontece quando
       cada handoff falha.)*
 - [ ] **`VidroApi/README.md` tem 46 linhas e o quickstart não funciona.**
-- [ ] **60% do markdown do projeto é arqueologia.** 4.797 de 7.992 linhas são
-      `docs/plans/` de fases 100% concluídas (o plano da API sozinho tem 2.717
-      linhas). Ninguém lê, e infla o custo de qualquer varredura de docs.
-      Arquivar ou comprimir.
+- [x] ~~**60% do markdown do projeto é arqueologia.**~~ **RESOLVIDO** *(2026-09-13)*.
+      `VidroApi/docs/plans/` e `VidroFront/docs/plans/` deletados: **5.194 linhas**, 8 arquivos,
+      zero checkbox em aberto nos oito. O histórico continua no git; o que some é o custo de
+      varrer doc de fase concluída em toda tarefa.
+      Ponteiros ajustados na mesma leva (`VidroApi/CLAUDE.md`, `VidroFront/CLAUDE.md`,
+      `design-decisions.md #10`) — doc que aponta para arquivo inexistente é a mesma classe do P0.1.
+      **Duas coisas foram resgatadas antes de apagar**, porque eram futuro e não história:
+      o multipart upload com resume (virou item de P5 aqui embaixo) e as notificações, que já
+      estavam em P5. O resto da seção "Melhorias Futuras" do design da API já tinha sido feito
+      (busca) ou já mentia (`MediatR`, que o repo nunca usou — é o `Mediator` com source generator).
 
 ---
 
@@ -560,6 +566,10 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
       de vídeo.
 - [ ] **Sem notificações** de vídeo novo em canal inscrito. `ChannelFollower` já
       existe; falta o resto.
+- [ ] **Upload é um PUT presignado só, sem resume.** Um vídeo grande que perde a conexão
+      recomeça do zero. O caminho previsto desde o design da API é a S3 Multipart API com o
+      estado das partes no `localStorage` do cliente; atravessa API (`design-decisions.md #10`)
+      e front. Enquanto o produto não tiver upload grande de verdade, é especulativo.
 - [ ] **Nenhuma legenda/caption em lugar nenhum.** O pipeline não tem step de legenda, a API
       não tem campo, e o `<video>` do `VideoPlayer.tsx` sai sem `<track>` — hoje suprimido com
       `biome-ignore lint/a11y/useMediaCaption` **nomeando a lacuna**, não fingindo que não existe.
