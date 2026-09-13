@@ -19,6 +19,8 @@ import {
   videoKeys,
 } from '#/features/videos/hooks'
 import { fetchVideoSsr } from '#/features/videos/server'
+import type { Video } from '#/features/videos/types'
+import { seo } from '#/shared/lib/seo'
 import { ReactionType } from '#/shared/types'
 
 export const Route = createFileRoute('/watch/$videoId')({
@@ -30,6 +32,31 @@ export const Route = createFileRoute('/watch/$videoId')({
           ? fetchVideoSsr(params.videoId, accessToken)
           : getVideo(params.videoId),
     })
+
+    // Read from the cache instead of returning the fetch: prefetchQuery swallows the error, so a
+    // video that failed to load leaves this undefined and the page keeps rendering its own error
+    // state. Returning the query itself would turn a broken meta tag into a broken page.
+    const video = queryClient.getQueryData<Video>(
+      videoKeys.detail(params.videoId),
+    )
+    return { video }
+  },
+  // The one page people paste into a chat — without this, every share previews as "Vidro".
+  head: ({ loaderData }) => {
+    const video = loaderData?.video
+    if (!video) return {}
+
+    return {
+      meta: seo({
+        title: video.title,
+        description:
+          video.description ??
+          `${video.title}, by @${video.ownerUsername}/${video.channelHandle} on Vidro.`,
+        // Presigned MinIO URL: it expires, so a card cached for long enough loses its image.
+        image: video.thumbnailUrls[0],
+        type: 'video.other',
+      }),
+    }
   },
   component: WatchPage,
 })

@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useCurrentUser } from '#/features/users/hooks'
 import { UploadVideoForm } from '#/features/videos/components/UploadVideoForm'
+import { seo } from '#/shared/lib/seo'
 import { tokenStore } from '#/shared/lib/token-store'
 
 export const Route = createFileRoute('/upload')({
@@ -13,6 +14,13 @@ export const Route = createFileRoute('/upload')({
       throw redirect({ to: '/' })
     }
   },
+  head: () => ({
+    meta: seo({
+      title: 'Upload',
+      description: 'Upload a video to your channel.',
+      noIndex: true,
+    }),
+  }),
   component: UploadPage,
 })
 

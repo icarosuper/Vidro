@@ -2,12 +2,20 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '#/components/ui/button'
 import { VideoGrid } from '#/features/videos/components/VideoGrid'
 import { useSearchVideos } from '#/features/videos/hooks'
+import { seo } from '#/shared/lib/seo'
 
 type SearchParams = { q: string }
 
 export const Route = createFileRoute('/search')({
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     q: typeof search.q === 'string' ? search.q : '',
+  }),
+  head: ({ match }) => ({
+    meta: seo({
+      title: match.search.q ? `Search: ${match.search.q}` : 'Search',
+      description: 'Search videos on Vidro.',
+      noIndex: true,
+    }),
   }),
   component: SearchPage,
 })

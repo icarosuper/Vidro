@@ -5,8 +5,15 @@ import { Card, CardContent } from '#/components/ui/card'
 import { Skeleton } from '#/components/ui/skeleton'
 import { useUserChannels } from '#/features/channels/hooks'
 import type { ChannelSummary } from '#/features/channels/types'
+import { seo } from '#/shared/lib/seo'
 
 export const Route = createFileRoute('/$username/')({
+  head: ({ params }) => ({
+    meta: seo({
+      title: `@${params.username}`,
+      description: `Channels by @${params.username} on Vidro.`,
+    }),
+  }),
   component: UserPage,
 })
 

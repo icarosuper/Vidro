@@ -88,7 +88,7 @@ export function Header() {
                       <User className="h-3 w-3" />
                     </AvatarFallback>
                   </Avatar>
-                  <span className="sr-only lg:not-sr-only">Meu Perfil</span>
+                  <span className="sr-only lg:not-sr-only">My profile</span>
                 </Button>
               </Link>
               <Button

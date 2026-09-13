@@ -497,14 +497,28 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
       não havia overflow em lugar nenhum, mas a busca sobrava com **17px** em 320px e **18px**
       em 640px — cabia porque o campo era esmagado. É por isso que a asserção é a largura da
       busca, não só `scrollWidth <= clientWidth`.
-- [ ] **`<html lang="pt-BR">` com a UI toda em inglês** (`src/routes/__root.tsx:76`),
-      datas com `toLocaleDateString('en-US')` (`watch.$videoId.tsx:38`), e o Header
-      mistura "Upload"/"Dashboard"/"Sign out" com **"Meu Perfil"**. Escolher um
-      idioma — `lang` errado também é bug de leitor de tela.
-- [ ] **SEO é zero.** Só `__root.tsx` define `head`, então toda página é
-      `<title>Vidro</title>`, sem `description`, sem OG, sem Twitter card.
-      Compartilhar link de vídeo não gera preview. Com SSR já funcionando, é jogar
-      fora o motivo de ter SSR.
+- [x] ~~**`<html lang="pt-BR">` com a UI toda em inglês.**~~ **RESOLVIDO** *(2026-09-13)*.
+      **Decisão do dono do repo: inglês.** `lang="en"` no `__root.tsx` e "Meu Perfil" →
+      "My profile" no Header — eram as duas únicas ocorrências de português na UI (varri
+      `src/**/*.tsx`). As datas já estavam em `en-US`, então nada mais mudou.
+- [x] ~~**SEO é zero.**~~ **RESOLVIDO** *(2026-09-13)*. Helper `seo()`
+      (`src/shared/lib/seo.ts`) monta title + `description` + Open Graph + Twitter card, e as
+      **9 rotas** declaram o seu `head`: home, busca (com o termo), usuário e canal (dos params),
+      playlist e watch (do `loaderData`), e as três privadas com `noIndex`.
+      **O watch é o ponto do item** — é o link que se cola no chat: título do vídeo, descrição e
+      `og:image` da thumbnail, `og:type: video.other`.
+      **A armadilha que decidiu o desenho:** para o `head` ver o dado, o loader tem de devolver
+      algo — mas trocar `prefetchQuery` por `ensureQueryData` faria um vídeo que falhou derrubar a
+      **página** em vez de só a meta tag. O loader devolve o que houver no cache
+      (`queryClient.getQueryData`), e sem dado o `head` cai no default do root.
+      **Verificado rodando** (`bun run dev` + `curl`, SSR de verdade): home, `/search?q=jazz`
+      (com `robots: noindex`), `/alice/music` e `/dashboard` saem com o head certo, e
+      `/watch/<id inexistente>` com a API fora do ar cai no default sem quebrar a página.
+      **Não verificado:** o head do watch com vídeo real — exige a stack de pé com dado semeado.
+      Testes: `src/tests/seo.test.ts` (sufixo do título, card grande só com imagem, `noIndex`).
+      **Fica aberto:** `og:url` não é emitido (não existe URL pública configurada; o crawler cai na
+      URL que buscou) e o `og:image` do watch é presignado do MinIO — **expira**, então card
+      cacheado por tempo demais perde a imagem. Resolver exige artefato público ou proxy.
 - [x] ~~**Nenhum `errorComponent` ou `notFoundComponent` em nenhuma rota.**~~ **RESOLVIDO**
       *(2026-09-07)*. Em vez de 11 rotas, **um lugar**: `src/router.tsx` registra
       `defaultErrorComponent` e `defaultNotFoundComponent` (`components/RouteFallback.tsx`), que

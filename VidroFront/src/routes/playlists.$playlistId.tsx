@@ -18,7 +18,9 @@ import {
   useDeletePlaylist,
   usePlaylist,
 } from '#/features/playlists/hooks'
+import type { Playlist } from '#/features/playlists/types'
 import { useCurrentUser } from '#/features/users/hooks'
+import { seo } from '#/shared/lib/seo'
 
 export const Route = createFileRoute('/playlists/$playlistId')({
   loader: async ({ params, context: { queryClient } }) => {
@@ -26,6 +28,24 @@ export const Route = createFileRoute('/playlists/$playlistId')({
       queryKey: playlistKeys.detail(params.playlistId),
       queryFn: () => getPlaylist(params.playlistId),
     })
+
+    const playlist = queryClient.getQueryData<Playlist>(
+      playlistKeys.detail(params.playlistId),
+    )
+    return { playlist }
+  },
+  head: ({ loaderData }) => {
+    const playlist = loaderData?.playlist
+    if (!playlist) return {}
+
+    return {
+      meta: seo({
+        title: playlist.name,
+        description:
+          playlist.description ??
+          `A playlist with ${playlist.videoCount} ${playlist.videoCount === 1 ? 'video' : 'videos'} on Vidro.`,
+      }),
+    }
   },
   component: PlaylistPage,
 })

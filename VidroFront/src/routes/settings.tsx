@@ -19,6 +19,7 @@ import type { ChannelSummary } from '#/features/channels/types'
 import { AvatarUpload } from '#/features/users/components/AvatarUpload'
 import { ProfileInfo } from '#/features/users/components/ProfileInfo'
 import { useCurrentUser } from '#/features/users/hooks'
+import { seo } from '#/shared/lib/seo'
 import { tokenStore } from '#/shared/lib/token-store'
 
 export const Route = createFileRoute('/settings')({
@@ -31,6 +32,13 @@ export const Route = createFileRoute('/settings')({
       throw redirect({ to: '/' })
     }
   },
+  head: () => ({
+    meta: seo({
+      title: 'Settings',
+      description: 'Your profile and account settings.',
+      noIndex: true,
+    }),
+  }),
   component: SettingsPage,
 })
 

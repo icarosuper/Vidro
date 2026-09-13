@@ -4,8 +4,15 @@ import { useIsAuthenticated } from '#/features/auth/hooks'
 import { getTrending } from '#/features/videos/api'
 import { VideoGrid } from '#/features/videos/components/VideoGrid'
 import { useFeed, useTrending, videoKeys } from '#/features/videos/hooks'
+import { seo } from '#/shared/lib/seo'
 
 export const Route = createFileRoute('/')({
+  head: () => ({
+    meta: seo({
+      title: 'Vidro',
+      description: 'Trending videos and your feed on Vidro.',
+    }),
+  }),
   loader: async ({ context: { queryClient } }) => {
     await queryClient.prefetchQuery({
       queryKey: videoKeys.trending(),

@@ -13,6 +13,7 @@ import { CreatePlaylistForm } from '#/features/playlists/components/CreatePlayli
 import { PlaylistCard } from '#/features/playlists/components/PlaylistCard'
 import { useDeletePlaylist, useUserPlaylists } from '#/features/playlists/hooks'
 import { useCurrentUser } from '#/features/users/hooks'
+import { seo } from '#/shared/lib/seo'
 import { tokenStore } from '#/shared/lib/token-store'
 
 export const Route = createFileRoute('/dashboard')({
@@ -25,6 +26,13 @@ export const Route = createFileRoute('/dashboard')({
       throw redirect({ to: '/' })
     }
   },
+  head: () => ({
+    meta: seo({
+      title: 'Dashboard',
+      description: 'Your channels, videos and playlists.',
+      noIndex: true,
+    }),
+  }),
   component: DashboardPage,
 })
 

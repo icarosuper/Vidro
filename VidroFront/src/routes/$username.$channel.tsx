@@ -22,8 +22,17 @@ import { useChannelPlaylists } from '#/features/playlists/hooks'
 import { useCurrentUser } from '#/features/users/hooks'
 import { VideoCard } from '#/features/videos/components/VideoCard'
 import { useChannelVideos } from '#/features/videos/hooks'
+import { seo } from '#/shared/lib/seo'
 
 export const Route = createFileRoute('/$username/$channel')({
+  // No loader here, so the channel name is not available at head time — the handle is what the
+  // URL already carries, and it is enough to tell two tabs apart.
+  head: ({ params }) => ({
+    meta: seo({
+      title: `@${params.username}/${params.channel}`,
+      description: `Videos from @${params.username}/${params.channel} on Vidro.`,
+    }),
+  }),
   component: ChannelPage,
 })
 

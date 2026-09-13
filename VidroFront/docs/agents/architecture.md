@@ -42,6 +42,7 @@ src/
 │   │   ├── correlation-id.ts # X-Correlation-ID por requisição
 │   │   ├── token-store.ts # access token em memória (client-only)
 │   │   ├── error-messages.ts
+│   │   ├── seo.ts          # meta tags (title/OG/Twitter) do `head` de cada rota
 │   │   └── toast-error.ts
 │   └── types.ts           # ApiSuccess/ApiError/EnumValue/CursorPage/PagedResult + enums
 ├── components/            # Header, ThemeToggle, shadcn/ui/*
@@ -145,6 +146,26 @@ declara os seus quando consegue fazer melhor.
 Isso cobre erro de **rota**. Erro de **query** continua sendo do componente: trate `isError` do
 `useQuery` na própria tela (o padrão do repo é um parágrafo `text-muted-foreground` centrado), porque
 o fallback do router não vê uma query que falhou depois da rota já ter renderizado.
+
+## SEO e `head` por rota
+
+Toda rota declara o seu `head` com o helper `seo()` (`src/shared/lib/seo.ts`), que monta title,
+description, Open Graph e Twitter card de uma vez. O `__root.tsx` traz o default, e a rota que
+não declara nada herda dele.
+
+- **Título:** `seo()` acrescenta `· Vidro` — passe só a parte da página (`'Dashboard'`), nunca o
+  título inteiro. `'Vidro'` é o único que não recebe sufixo.
+- **Página privada ou de resultado de busca** passa `noIndex: true`.
+- **Rota com dado dinâmico** (watch, playlist) lê de `loaderData`, e o loader devolve o que
+  pegou do cache com `queryClient.getQueryData` — **não** o resultado de `ensureQueryData`.
+  O `prefetchQuery` engole o erro; trocar por uma query que lança transformaria meta tag quebrada
+  em página quebrada.
+- **`og:url` não é emitido**: não existe URL pública configurada no projeto, e o crawler cai na
+  URL que ele mesmo buscou. Quando existir domínio, é aqui que entra.
+- **`og:image` do watch é URL presignada do MinIO** e portanto expira — card cacheado por tempo
+  demais perde a imagem. Resolver de verdade exige artefato público ou URL de proxy.
+
+O idioma da UI é **inglês** (`<html lang="en">`); datas usam `toLocaleDateString('en-US')`.
 
 ## Formatos de resposta da API
 

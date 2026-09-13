@@ -14,6 +14,7 @@ import { AuthModalProvider, AuthProvider } from '../features/auth/hooks'
 import { getInitialToken, renewToken } from '../features/auth/server'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 import { apiClient } from '../shared/lib/api-client'
+import { seo } from '../shared/lib/seo'
 import { tokenStore } from '../shared/lib/token-store'
 import appCss from '../styles.css?url'
 
@@ -26,7 +27,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'Vidro' },
+      ...seo({
+        title: 'Vidro',
+        description: 'Watch, upload and share videos on Vidro.',
+      }),
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
@@ -72,7 +76,7 @@ function RootApp() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="en">
       <head>
         <HeadContent />
       </head>
