@@ -526,10 +526,21 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
       (via `hasNoPlaylists`/`hasPlaylists`, nomeados em vez de compostos inline).
 - [x] ~~**Devtools vão para produção**~~ **RESOLVIDO** *(2026-09-07)* — `<TanStackDevtools>`
       agora atrás de `import.meta.env.DEV` em `__root.tsx`.
-- [ ] **A11y rasa** — só ~10 arquivos têm qualquer `aria-*`/`alt`/`sr-only`.
+- [~] **A11y rasa** — só ~10 arquivos têm qualquer `aria-*`/`alt`/`sr-only`.
       *(2026-09-07: o Header deixou de ser o pior caso — `SearchBox` e `ThemeToggle` têm
       `aria-label`, e a busca usa o elemento nativo `<search>`. O resto do app continua raso, e
       o `<video>` sem `<track>` virou item de P5.)*
+      *(2026-09-13: fechados os controles cujo **ícone era o único significado**.* Os 6 botões de
+      reação (`CommentList`, `ReplyList`, `watch.$videoId`) tinham nome acessível vazio quando o
+      contador era zero — "botão, botão, botão" no leitor de tela — e no `watch` o nome era só o
+      número. Ganharam `sr-only`, o padrão que o Header já usava. As 6 estatísticas do `VideoCard`
+      (views/likes/dislikes) eram número solto: agora leem "12 views".
+      Travado por teste: `comment-list.test.tsx` consulta os botões por nome acessível
+      (`Like`, `Dislike 3`) — **verificado por mutação**, remover um `sr-only` deixa vermelho.
+      *Os botões só-ícone de verdade (`Trash2` em `dashboard`/`PlaylistItemList`, `Pencil`/
+      `ImagePlus` no `VideoCard`) já tinham `aria-label`.*
+      **Continua aberto:** ninguém rodou um audit (axe/Lighthouse) no app; o que foi feito aqui
+      saiu de leitura de código, não de ferramenta.)
 
 ---
 

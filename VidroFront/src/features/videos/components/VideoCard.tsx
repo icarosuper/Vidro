@@ -215,16 +215,17 @@ export function VideoCard({
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Eye className="h-3 w-3" />
-                    {viewCountFormatted}
+                    {viewCountFormatted} <span className="sr-only">views</span>
                   </span>
                   <span className="flex items-center gap-1">
                     <ThumbsUp className="h-3 w-3" />
-                    {likeCountFormatted}
+                    {likeCountFormatted} <span className="sr-only">likes</span>
                   </span>
                   {dislikeCountFormatted !== null && (
                     <span className="flex items-center gap-1">
                       <ThumbsDown className="h-3 w-3" />
-                      {dislikeCountFormatted}
+                      {dislikeCountFormatted}{' '}
+                      <span className="sr-only">dislikes</span>
                     </span>
                   )}
                   <TimeAgo isoDate={video.createdAt} className="ml-auto" />
@@ -285,16 +286,19 @@ export function VideoCard({
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Eye className="h-3 w-3" />
-                      {viewCountFormatted}
+                      {viewCountFormatted}{' '}
+                      <span className="sr-only">views</span>
                     </span>
                     <span className="flex items-center gap-1">
                       <ThumbsUp className="h-3 w-3" />
-                      {likeCountFormatted}
+                      {likeCountFormatted}{' '}
+                      <span className="sr-only">likes</span>
                     </span>
                     {dislikeCountFormatted !== null && (
                       <span className="flex items-center gap-1">
                         <ThumbsDown className="h-3 w-3" />
-                        {dislikeCountFormatted}
+                        {dislikeCountFormatted}{' '}
+                        <span className="sr-only">dislikes</span>
                       </span>
                     )}
                     <span>

@@ -152,6 +152,7 @@ function ReplyItem({
               disabled={isMutating || !isAuthenticated}
             >
               <ThumbsUp className="h-3.5 w-3.5" />
+              <span className="sr-only">Like</span>{' '}
               {reply.likeCount > 0 && (
                 <span className="ml-1 text-xs">{reply.likeCount}</span>
               )}
@@ -168,6 +169,7 @@ function ReplyItem({
               disabled={isMutating || !isAuthenticated}
             >
               <ThumbsDown className="h-3.5 w-3.5" />
+              <span className="sr-only">Dislike</span>{' '}
               {reply.dislikeCount > 0 && (
                 <span className="ml-1 text-xs">{reply.dislikeCount}</span>
               )}

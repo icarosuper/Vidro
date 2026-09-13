@@ -108,6 +108,17 @@ describe('CommentList', () => {
     expect(screen.queryByRole('button', { name: '2 replies' })).toBeNull()
   })
 
+  it('names the reaction buttons, which carry only an icon', () => {
+    mockCommentsQuery([buildComment({ likeCount: 0, dislikeCount: 3 })])
+
+    render(<CommentList videoId="video-1" currentUserId="user-1" />)
+
+    // With no count to render, an icon-only button has no accessible name at all — the reader
+    // announces "button". The count joins the name when there is one.
+    expect(screen.getByRole('button', { name: 'Like' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Dislike 3' })).toBeDefined()
+  })
+
   it('says the load failed instead of claiming there are no comments', () => {
     mockCommentsQuery([], { isError: true })
 

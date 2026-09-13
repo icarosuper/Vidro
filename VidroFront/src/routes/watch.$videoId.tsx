@@ -195,6 +195,7 @@ function WatchPage() {
                   title={isAuthenticated ? undefined : 'Sign in to react'}
                 >
                   <ThumbsUp className="mr-1.5 h-4 w-4" />
+                  <span className="sr-only">Like</span>{' '}
                   {formatCount(video.likeCount)}
                 </Button>
                 <Button
@@ -209,6 +210,7 @@ function WatchPage() {
                   title={isAuthenticated ? undefined : 'Sign in to react'}
                 >
                   <ThumbsDown className="mr-1.5 h-4 w-4" />
+                  <span className="sr-only">Dislike</span>{' '}
                   {formatCount(video.dislikeCount)}
                 </Button>
               </div>

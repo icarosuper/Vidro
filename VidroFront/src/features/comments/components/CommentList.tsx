@@ -149,6 +149,7 @@ function CommentItem({
               disabled={isMutating || !isAuthenticated}
             >
               <ThumbsUp className="h-3.5 w-3.5" />
+              <span className="sr-only">Like</span>{' '}
               {comment.likeCount > 0 && (
                 <span className="ml-1 text-xs">{comment.likeCount}</span>
               )}
@@ -165,6 +166,7 @@ function CommentItem({
               disabled={isMutating || !isAuthenticated}
             >
               <ThumbsDown className="h-3.5 w-3.5" />
+              <span className="sr-only">Dislike</span>{' '}
               {comment.dislikeCount > 0 && (
                 <span className="ml-1 text-xs">{comment.dislikeCount}</span>
               )}
