@@ -250,9 +250,13 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 	// heavy work is canceled, these writes are exactly what has to still happen, or the job
 	// stays in the :processing queue forever. WithoutCancel keeps the values — the job
 	// logger included — and drops only the cancellation.
+	//
+	// The release belongs to the goroutine below, NOT to this function: the goroutine sends on
+	// `done` from its body and only then runs the defer that closes the job out, so a
+	// `defer cancelBookkeeping()` here would cancel that context while those writes are still
+	// running — which is exactly the failure WithoutCancel is here to prevent.
 	bookkeepingCtx, cancelBookkeeping := context.WithTimeout(
 		context.WithoutCancel(ctx), bookkeepingTimeout)
-	defer cancelBookkeeping()
 
 	if err := queue.SetJobProcessing(bookkeepingCtx, videoID); err != nil {
 		jobLogger.Warn().Err(err).Msg("Failed to update job state to processing")
@@ -272,6 +276,10 @@ func processNextMessage(ctx context.Context, workerID int, cfg *config.Config, v
 	go func() {
 		// jobErr tracks the final error for the defer below.
 		var jobErr error
+
+		// Registered first, so it runs last: the bookkeeping context dies only after the
+		// writes that close the job out are done with it.
+		defer cancelBookkeeping()
 
 		metrics.ActiveWorkers.Inc()
 		defer metrics.ActiveWorkers.Dec()

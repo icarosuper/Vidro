@@ -243,7 +243,24 @@ FFmpeg is not available - skipping test
 - `queue`: `InitRedisClient` (`log.Fatal`) and `StartRecovery`'s ticker loop — the remaining 24.2%
 - `main.go`'s split between `processCtx` and `bookkeepingCtx` (design-decisions #13): the rule is
   only exercised end to end by `test/integration`, which needs Docker. The `queue`-side half of it
-  is covered by `TestQueueOperations_StopOnCanceledContext`
+  is covered by `TestQueueOperations_StopOnCanceledContext`.
+  **The ownership half has no automated test at all**, and that is why the 2026-09-13 bug (the
+  parent cancelling the bookkeeping context while the goroutine was still closing the job out)
+  shipped: the worker loop lives in `package main`, which `test/integration` cannot import, and
+  driving it needs Redis *and* MinIO. Until the loop moves to an importable package, the check is
+  manual, against a running stack:
+
+  ```bash
+  docker compose exec redis redis-cli SET job:stuck-check \
+    '{"status":"pending","retry_count":0,"created_at":1757800000,"updated_at":1757800000}'
+  docker compose exec redis redis-cli LPUSH video_queue stuck-check
+  # the object does not exist in MinIO, so the job must fail fast and close itself out:
+  docker compose exec redis redis-cli LRANGE video_queue:processing 0 -1   # must be empty
+  docker compose exec redis redis-cli LRANGE video_queue:dead 0 -1         # must hold stuck-check
+  docker compose exec redis redis-cli GET job:stuck-check                  # status failed, retry_count 4
+  ```
+
+  Any `context canceled` in the worker log during that run is the bug back.
 - Transcoding + throughput benchmarks
 
 ---

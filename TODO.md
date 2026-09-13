@@ -278,6 +278,14 @@ Os 7 steps do pipeline têm todos `_test.go`, o que faz parecer bem coberto. Mas
 - [x] ~~**`queue/` (283 linhas, `client.go` + `job.go`) — zero testes unitários.**~~
       **RESOLVIDO** — `VidroProcessor` `8d1b98d`. 12 testes em `queue/queue_test.go`,
       cobertura 0% → **60.3%**, rodando em 8ms.
+- [ ] **O laço do worker mora no `package main`, então nada consegue testá-lo** *(achado em
+      2026-09-13)*. `test/integration` não importa `main`, e dirigir `processNextMessage` pede Redis
+      **e** MinIO. Foi por isso que o bug do `cancelBookkeeping` (design-decisions #13 do Processor)
+      passou: o pai cancelava o contexto que a goroutine ainda usava para fechar o job — job falho
+      ficava preso em `:processing` com `retry_count: 0` e job **concluído** ficava esperando o
+      orphan recovery reprocessá-lo. Corrigido e verificado na stack, mas a regressão só tem
+      **check manual** (`VidroProcessor/docs/TESTING.md`). Mover o laço para um pacote importável é
+      o que destrava um teste de verdade — e destrava junto o item logo abaixo.
 - [ ] Os testes de integração de fila (`test/integration/queue_test.go`) cobrem só
       caminho feliz: `PublishAndConsume`, `MultipleMessages`, `EmptyQueue`,
       `SuccessQueue`. Nenhum de falha — e **nenhum deles importa o pacote `queue`**:

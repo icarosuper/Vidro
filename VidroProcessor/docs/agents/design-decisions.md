@@ -145,6 +145,15 @@ A new entry takes the **next number** (highest today is **#13**) plus one line h
   and drops only the cancellation.
 - **The split, as a rule**: heavy I/O (download, transcode, uploads, success publish) rides
   `processCtx` and *must* be cancellable. Bookkeeping rides `bookkeepingCtx` and *must not*.
+- **Who releases it is part of the rule** *(2026-09-13)*: `cancelBookkeeping` is deferred **inside
+  the job goroutine**, registered first so it runs last — never at the end of `processNextMessage`.
+  The goroutine sends on `done` from its body and only *then* runs the defer that closes the job
+  out, so the parent returns first; a `defer cancelBookkeeping()` in the parent cancelled that
+  context while those writes were still running. It shipped that way and was caught in the stack:
+  a job that failed to download logged three `context canceled` warnings, stayed in
+  `:processing`, never reached the DLQ and kept `retry_count: 0`. A finished job was worse — the
+  ack failed the same way, so a **successful** job sat in `:processing` waiting to be reprocessed
+  by the orphan recovery.
 - **Exception**: `notifyWebhook` stays detached (`context.Background()` inside `webhook.send`),
   bounded by the HTTP client's own 10s timeout. It usually runs from a defer with the job context
   already canceled, and inheriting it would drop the notification the API is waiting for. The two
