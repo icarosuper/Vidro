@@ -62,6 +62,7 @@ Falhou no meio? O runbook é [`docs/troubleshooting-stuck-video.md`](docs/troubl
 | [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md) | Vídeo preso em `Processing` — atravessa API, Redis, worker e MinIO |
 | [`docs/padroes-a-importar.md`](docs/padroes-a-importar.md) | Regras e ferramentas de outros repos que valem para cá, com a ordem sugerida |
 | [`docs/observabilidade.md`](docs/observabilidade.md) | O que existe de log, métrica e trace nos três serviços, os furos e a ordem de fechá-los |
+| [`loadtest/README.md`](loadtest/README.md) | Teste de carga da API com k6: como rodar, o que cada cenário mede e a primeira medição |
 | [`contracts/README.md`](contracts/README.md) | Os golden que travam contrato entre serviços: payload do webhook e os enums que o front espelha |
 | [`VidroApi/openapi/README.md`](VidroApi/openapi/README.md) | O documento OpenAPI versionado — como regenerar e o que ele **não** cobre |
 

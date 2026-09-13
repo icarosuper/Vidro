@@ -240,10 +240,13 @@ taxa, erro e latência.
 > histograma de request e o label do pool é `vidroapi`, não a connection string.
 > **Verificado por mutação:** trocar o `Name` do data source deixa o segundo teste vermelho.
 >
-> **Fica aberto:** o rate limiter só emite métrica quando alguma requisição passa pela política
-> `auth`, então `aspnetcore_rate_limiting_*` não aparece num scrape de API ociosa — é o teste de
-> carga (P2 do `TODO.md`) que vai exercitar isso. E não há dashboard da API no Grafana: o
-> provisionado é só o do worker.
+> **Confirmado na stack de verdade** *(2026-09-13, junto com o teste de carga)*: o Prometheus
+> mostra `up{job="vidro-api"} 1`, o p95 por rota sai separado por `http_route`, o pool do Npgsql
+> aparece em `db_client_connection_count{state}`, e `aspnetcore_rate_limiting_requests_total`
+> separa `acquired` de `endpoint_limiter` — era a série que faltava para o limiter deixar de ser
+> uma promessa. Ver [`loadtest/README.md`](../loadtest/README.md).
+>
+> **Fica aberto:** não há dashboard da API no Grafana — o provisionado é só o do worker.
 
 ### Degrau 3 — `traceparent` no envelope → fecha F3
 
