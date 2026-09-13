@@ -1,4 +1,5 @@
 import {
+  skipToken,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -39,33 +40,36 @@ export function useChannelPlaylists(
 ) {
   return useInfiniteQuery({
     queryKey: playlistKeys.channelPlaylists(username ?? '', handle ?? ''),
-    queryFn: ({ signal, pageParam }) =>
-      listChannelPlaylists(
-        username!,
-        handle!,
-        PLAYLISTS_LIMIT,
-        pageParam as string | undefined,
-        signal,
-      ),
+    queryFn:
+      username && handle
+        ? ({ signal, pageParam }) =>
+            listChannelPlaylists(
+              username,
+              handle,
+              PLAYLISTS_LIMIT,
+              pageParam as string | undefined,
+              signal,
+            )
+        : skipToken,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    enabled: !!username && !!handle,
   })
 }
 
 export function useUserPlaylists(username: string | undefined) {
   return useInfiniteQuery({
     queryKey: playlistKeys.userPlaylists(username ?? ''),
-    queryFn: ({ signal, pageParam }) =>
-      listUserPlaylists(
-        username!,
-        PLAYLISTS_LIMIT,
-        pageParam as string | undefined,
-        signal,
-      ),
+    queryFn: username
+      ? ({ signal, pageParam }) =>
+          listUserPlaylists(
+            username,
+            PLAYLISTS_LIMIT,
+            pageParam as string | undefined,
+            signal,
+          )
+      : skipToken,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    enabled: !!username,
   })
 }
 

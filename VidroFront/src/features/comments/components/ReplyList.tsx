@@ -132,7 +132,10 @@ function ReplyItem({
             [deleted]
           </p>
         ) : (
-          <ExpandableText text={reply.content!} className="mt-0.5 text-sm" />
+          <ExpandableText
+            text={reply.content ?? ''}
+            className="mt-0.5 text-sm"
+          />
         )}
 
         {!reply.isDeleted && (

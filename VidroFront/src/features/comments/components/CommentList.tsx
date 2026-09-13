@@ -129,7 +129,10 @@ function CommentItem({
             [deleted]
           </p>
         ) : (
-          <ExpandableText text={comment.content!} className="mt-0.5 text-sm" />
+          <ExpandableText
+            text={comment.content ?? ''}
+            className="mt-0.5 text-sm"
+          />
         )}
 
         {!comment.isDeleted && (

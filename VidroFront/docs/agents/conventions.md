@@ -45,6 +45,30 @@ export function useVideo(videoId: string) {
 }
 ```
 
+### Query que depende de um parâmetro que pode faltar
+
+`queryFn` recebe `skipToken` em vez de `enabled: !!param`. Com `enabled` o TypeScript continua
+achando que o parâmetro pode ser `undefined` dentro do `queryFn`, e a saída era `param!` — uma
+promessa ao compilador que ninguém verifica. Com `skipToken` o próprio tipo prova que o `queryFn`
+só existe quando o parâmetro existe, e a query fica no mesmo estado que `enabled: false` deixava.
+
+```ts
+export function useChannel(
+  username: string | undefined,
+  handle: string | undefined,
+) {
+  return useQuery({
+    queryKey: channelKeys.detail(username ?? '', handle ?? ''),
+    queryFn:
+      username && handle
+        ? ({ signal }) => getChannel(username, handle, signal)
+        : skipToken,
+  })
+}
+```
+
+A query key continua precisando de um valor — daí o `?? ''`. Vale igual para `useInfiniteQuery`.
+
 ### Mutations + invalidação
 
 Mutations invalidate affected query keys **in `onSuccess`**, use `toastApiError` in `onError`.

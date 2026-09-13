@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { toastApiError } from '#/shared/lib/toast-error'
 import {
   createChannel,
@@ -20,8 +25,9 @@ export const channelKeys = {
 export function useUserChannels(username: string | undefined) {
   return useQuery({
     queryKey: channelKeys.userChannels(username ?? ''),
-    queryFn: ({ signal }) => getUserChannels(username!, signal),
-    enabled: !!username,
+    queryFn: username
+      ? ({ signal }) => getUserChannels(username, signal)
+      : skipToken,
   })
 }
 
@@ -31,8 +37,10 @@ export function useChannel(
 ) {
   return useQuery({
     queryKey: channelKeys.detail(username ?? '', handle ?? ''),
-    queryFn: ({ signal }) => getChannel(username!, handle!, signal),
-    enabled: !!username && !!handle,
+    queryFn:
+      username && handle
+        ? ({ signal }) => getChannel(username, handle, signal)
+        : skipToken,
   })
 }
 

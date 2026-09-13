@@ -690,11 +690,15 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
       temporário quebra o build). Regra escrita em
       `VidroFront/docs/agents/conventions.md`.
 
-- [ ] **Os 11 `noNonNullAssertion` que sobraram no front.** `channels/hooks.ts` (3),
-      `playlists/hooks.ts` (3), `videos/hooks.ts` (3), `CommentList.tsx` (1), `ReplyList.tsx` (1).
-      São warning, então o CI passa — mas cada `!` é a mesma classe do BUG-1: uma promessa ao
-      compilador que ninguém verificou. A maioria está em `queryFn` de hook com `enabled: !!x`,
-      onde o `!` é *provavelmente* verdade e o padrão certo é `skipToken`.
+- [x] ~~**Os 11 `noNonNullAssertion` que sobraram no front.**~~ **RESOLVIDO** *(2026-09-13)*.
+      Zero `noNonNullAssertion` no `biome check`. Os 9 de `queryFn` viraram `skipToken` — o
+      `enabled: !!x` saiu junto, porque `skipToken` já deixa a query no mesmo estado, e agora é o
+      **tipo** que garante o parâmetro em vez de uma promessa ao compilador. Regra registrada em
+      `VidroFront/docs/agents/conventions.md`.
+      Os 2 de `CommentList`/`ReplyList` eram outra coisa: `content` é `string | null` de verdade
+      no contrato (comentário apagado), e o `!` estava num ramo que **não** é o de `isDeleted` —
+      viraram `?? ''`.
+      34 testes passando, `typecheck` e `build` limpos.
 
 - [x] ~~**Nada rodava `tsc --noEmit` no front** — nem script, nem CI.~~ **RESOLVIDO**
       *(2026-09-07)*. `"typecheck": "tsc --noEmit"` no `package.json` + passo **Typecheck** no

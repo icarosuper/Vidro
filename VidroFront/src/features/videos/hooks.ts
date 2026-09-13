@@ -1,4 +1,5 @@
 import {
+  skipToken,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -154,8 +155,7 @@ const VIDEO_PROCESSING_POLL_INTERVAL_MS = 3000
 export function useVideoStatus(videoId: string | null) {
   return useQuery({
     queryKey: videoKeys.detail(videoId ?? ''),
-    queryFn: ({ signal }) => getVideo(videoId!, signal),
-    enabled: !!videoId,
+    queryFn: videoId ? ({ signal }) => getVideo(videoId, signal) : skipToken,
     refetchInterval: (query) => {
       const status = query.state.data?.status.id
       const isTerminal =
@@ -192,18 +192,20 @@ export function useChannelVideos(
 ) {
   return useInfiniteQuery({
     queryKey: videoKeys.channelVideos(username ?? '', handle ?? ''),
-    queryFn: ({ signal, pageParam }) =>
-      getChannelVideos(
-        username!,
-        handle!,
-        CHANNEL_VIDEOS_LIMIT,
-        pageParam as string | undefined,
-        signal,
-      ),
+    queryFn:
+      username && handle
+        ? ({ signal, pageParam }) =>
+            getChannelVideos(
+              username,
+              handle,
+              CHANNEL_VIDEOS_LIMIT,
+              pageParam as string | undefined,
+              signal,
+            )
+        : skipToken,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
       lastPage.nextCursor ? lastPage.nextCursor : undefined,
-    enabled: !!username && !!handle,
   })
 }
 
