@@ -568,7 +568,13 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
       *(2026-08-30: o `README.md` da raiz agora traz esse fluxo em 8 passos + diagrama. Serve de
       mapa, não substitui a doc — falta shape de cada payload, retries, e o que acontece quando
       cada handoff falha.)*
-- [ ] **`VidroApi/README.md` tem 46 linhas e o quickstart não funciona.**
+- [x] ~~**`VidroApi/README.md` tem 46 linhas e o quickstart não funciona.**~~ **O item é que estava
+      desatualizado** *(conferido em 2026-09-13)*. O arquivo tem 60 linhas e já cobre stack inteira,
+      API isolada, portas, nota de migration no startup e os comandos de EF — foi corrigido em
+      alguma leva anterior sem riscar o item aqui (a mesma classe do P0.1, agora no TODO).
+      **Verificado rodando**, não lendo: `dotnet run --project src/VidroApi.Api` contra o
+      `postgres`/`redis`/`minio` do compose sobe, `/health` responde `Healthy` e
+      `GET /v1/videos/trending?limit=3` devolve 200.
 - [x] ~~**60% do markdown do projeto é arqueologia.**~~ **RESOLVIDO** *(2026-09-13)*.
       `VidroApi/docs/plans/` e `VidroFront/docs/plans/` deletados: **5.194 linhas**, 8 arquivos,
       zero checkbox em aberto nos oito. O histórico continua no git; o que some é o custo de
