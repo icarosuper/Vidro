@@ -22,8 +22,9 @@ There are exactly four handoffs, and the symptom tells you which one to look at 
 | `Processing`, id sitting in `<queue>` | Nothing consuming | Step 4 |
 | `Processing`, id sitting in `<queue>:processing` | Worker holds it — running, or crashed mid-job | Step 3, then Step 4 |
 | `Processing`, id in `<queue>:dead` | Worker gave up after `MaxJobRetries = 3` | Step 3 |
+| `Processing`, id in `<queue>:dead`, **no** `job:<id>` | The job record expired or was deleted before a worker took it; dead-lettered unprocessed | Step 7 |
 | `Processing`, `job:<id>` says `done` | Worker finished, the webhook never landed | Step 6 |
-| Flipped to `Failed` ~45 min in, no worker error | The API's reconciliation timeout fired | Step 6 |
+| Flipped to `Failed` ~90 min in, no worker error | The API's reconciliation timeout fired | Step 6 |
 
 `<queue>` is `PROCESSING_REQUEST_QUEUE` (`video_queue` in the stack) — see [config.md](../VidroProcessor/docs/agents/config.md).
 
@@ -165,11 +166,10 @@ the only channel from worker to API, and one safety net backs it:
 - **Webhook delivery is fire-and-forget.** A failed POST is logged and never fails the job
   ([#10](../VidroProcessor/docs/agents/design-decisions.md#10-webhook-contract-uses-camelcase-to-match-the-net-api)). Grep the
   worker log for the videoID plus `webhook`.
-- **`ProcessingFinishedQueue`** (`video_success_queue`) is the recovery channel — the API consumes it
-  independently of the webhook.
 - **`ReconcileStuckProcessingAsync`** marks any video `Processing` for longer than
-  `VideoSettings:ProcessingTimeoutMinutes` (**45 min**) as `Failed`. That is a safety net, not a
-  diagnosis: a video that flips to `Failed` at ~45 min with no error in the worker log almost always
+  `VideoSettings:ProcessingTimeoutMinutes` (**90 min** — the worker's worst case with every retry,
+  80 min, plus slack) as `Failed`. That is a safety net, not a
+  diagnosis: a video that flips to `Failed` at ~90 min with no error in the worker log almost always
   finished fine and lost its webhook.
 
 **A success webhook that returns 500 is the dangerous shape.** The API must tolerate a payload with

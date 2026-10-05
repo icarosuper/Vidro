@@ -26,9 +26,9 @@ Vídeo parado no meio do caminho? O runbook é
 | `PendingUpload` → `Processing` | webhook do MinIO | `MinioUploadCompleted.cs:86` |
 | `PendingUpload` → `Processing` | reconciliação: upload expirou **com** arquivo | `VideoReconciliationService.cs:121` |
 | `PendingUpload` → `Failed` | reconciliação: upload expirou **sem** arquivo | `VideoReconciliationService.cs:132` |
-| `Processing` → `Ready` | webhook `video-processed` com `success` e `processedPath` | `VideoProcessed.cs:97-99` |
-| `Processing` → `Failed` | webhook com `success: false`, ou sem `processedPath` | `VideoProcessed.cs:100-101` |
-| `Processing` → `Failed` | reconciliação: `Processing` há mais de 45 min | `VideoReconciliationService.cs:75-87` |
+| `Processing` → `Ready` | webhook `video-processed` com `success` e `processedPath` | `VideoProcessed.cs:106-107` |
+| `Processing` → `Failed` | webhook com `success: false`, ou sem `processedPath` | `VideoProcessed.cs:108-109` |
+| `Processing` → `Failed` | reconciliação: `Processing` há mais de 90 min | `VideoReconciliationService.cs:75-87` |
 
 Os `MarkAs*` da entidade não têm guarda (`Video.cs:76-92`): quem impede transição errada são os
 handlers, checando o status antes. `Ready` e `Failed` são terminais — nada no código sai deles.
@@ -42,11 +42,11 @@ Arquivos da API citados abaixo sem pasta moram em `VidroApi/src/VidroApi.Api/Fea
 |---|---|---|
 | Validade da URL de upload (presigned PUT) | 2 h | `appsettings.json:19` (`MinIO:UploadUrlTtlHours`) |
 | Intervalo da reconciliação | 15 min | `appsettings.json:32` |
-| `Processing` vira `Failed` após | 45 min sem `UpdatedAt` novo | `appsettings.json:34`, `VideoSettings.cs:15` |
-| TTL do `job:<videoId>` no Redis | 24 h | `RedisJobQueueService.cs:32`, `VidroProcessor/queue/job.go:34` |
-| Tentativas por job no worker | 1 + 3 retries (`MaxJobRetries`) | `VidroProcessor/queue/job.go:32`, `ShouldRetry` em `job.go:136` |
+| `Processing` vira `Failed` após | 90 min sem `UpdatedAt` novo (pior caso do worker, 80 min, + folga) | `appsettings.json:34`, `VideoSettings.cs`; pior caso em [`contracts/processing-timeout.json`](../contracts/processing-timeout.json) |
+| TTL do `job:<videoId>` no Redis | 24 h | `RedisJobQueueService.cs:32`, `VidroProcessor/queue/job.go:37` |
+| Tentativas por job no worker | 1 + 3 retries (`MaxJobRetries`) | `VidroProcessor/queue/job.go:35`, `ShouldRetry` em `job.go:148` |
 | Orçamento de um job | 18 min (passos 13 min + 5 min de transferência) × `PROCESSING_TIMEOUT_SCALE` | `JobBudget` em `VidroProcessor/internal/processor/processor.go:40` |
-| Lease órfão volta para a fila após | orçamento + 1 min, checado a cada 1 min | `main.go` (`StartRecovery(ctx, JobTimeout+1min)`), `queue/client.go:85-97` |
+| Lease órfão volta para a fila após | orçamento + 1 min, checado a cada 1 min | `OrphanThreshold` em `internal/worker/worker.go`, `RecoveryInterval` em `queue/client.go` |
 | Webhook `video-processed` | 3 tentativas, timeout 10 s cada, espera 1 s e 4 s | `VidroProcessor/internal/webhook/webhook.go:33,49-58` |
 | Circuit breaker Redis (worker) | abre com 3 falhas seguidas, 30 s aberto | `internal/circuitbreaker/circuitbreaker.go:41-56` |
 | Circuit breaker MinIO (worker) | abre com 5 falhas seguidas, 60 s aberto | `circuitbreaker.go:24-39` |
@@ -109,14 +109,15 @@ Arquivos da API citados abaixo sem pasta moram em `VidroApi/src/VidroApi.Api/Fea
 
 ## 4. API → Redis: publicar o job
 
-Dentro do mesmo handler (`MinioUploadCompleted.cs:86-91`), nesta ordem:
-`MarkAsProcessing` (em memória) → `PublishJobAsync` → `SaveChanges`.
+Dentro do mesmo handler (`MinioUploadCompleted.cs`, `Handle`), numa transação, nesta ordem:
+`MarkAsProcessing` (em memória) → `SaveChanges` → `PublishJobAsync` → `Commit`
+([`design-decisions.md #14`](../VidroApi/docs/agents/design-decisions.md#14-the-job-is-published-inside-the-transaction-that-marks-the-video-processing)).
 
 - **Chaves** (`RedisJobQueueService.cs:19-34`):
   - `SET job:<videoId> <json> EX 86400` — uma **string JSON**, não um hash.
   - `LPUSH video_queue <videoId>` — a fila carrega só o id; tudo o mais está no `job:`.
 - **Forma do `job:<videoId>`** (snake_case; o worker desserializa em `JobState`,
-  `VidroProcessor/queue/job.go:47-60`):
+  `VidroProcessor/queue/job.go:50-63`):
 
   | Campo | Escrito por | Conteúdo |
   |---|---|---|
@@ -124,19 +125,20 @@ Dentro do mesmo handler (`MinioUploadCompleted.cs:86-91`), nesta ordem:
   | `callback_url` | API | `{Api:BaseUrl}/webhooks/video-processed` — `http://api:5000/...` no compose |
   | `correlation_id` | API | id da requisição do passo 3 (ou gerado pela reconciliação) |
   | `retry_count` | API (`0`), worker | incrementado a cada falha |
-  | `created_at`, `updated_at` | ambos | Unix seconds; o worker reescreve `updated_at` a cada escrita (`job.go:67`) |
+  | `created_at`, `updated_at` | ambos | Unix seconds; o worker reescreve `updated_at` a cada escrita (`job.go:70`) |
   | `error` | worker | mensagem da última falha |
   | `artifacts`, `metadata` | worker | caminhos no MinIO e saída do `analyze`, no `done` |
 
 - **Nome da fila:** `JobQueueSettings:QueueName` na API (`appsettings.json:69`) e
   `PROCESSING_REQUEST_QUEUE` no worker (`docker-compose.yml:123`) — os dois `video_queue`, mas são
   duas configurações independentes; nenhum teste as liga.
-- **Retry:** nenhum. Redis fora → exceção → 500 para o MinIO, `SaveChanges` não roda, o vídeo
+- **Retry:** nenhum. Redis fora → exceção → a transação faz rollback, 500 para o MinIO, o vídeo
   continua `PendingUpload` e cai no caminho da reconciliação do passo 3.
-- **Falha no meio:** se o `PublishJobAsync` passa e o `SaveChanges` falha, o job está na fila mas o
-  banco diz `PendingUpload`. O worker processa; o webhook do passo 7 é ignorado (vídeo não está
-  `Processing`); a reconciliação, 2 h depois, procura `raw/<videoId>` — que o worker já moveu para
-  `raw-archived/` — e marca `Failed`.
+- **`SaveChanges` falha:** falha antes do publish — nenhum job existe. *(Até 2026-10-05 o publish
+  vinha antes do save: o job rodava, o webhook do passo 7 era ignorado porque o vídeo não estava
+  `Processing`, e a reconciliação marcava `Failed`.)*
+- **Falha no meio que sobrou:** o `PublishJobAsync` passa e o `Commit` falha — o caso antigo,
+  reduzido ao commit. Mesmo desfecho: processado, webhook ignorado, `Failed` pela reconciliação.
 
 ## 5. Redis → worker: consumir com lease
 
@@ -144,15 +146,19 @@ Dentro do mesmo handler (`MinioUploadCompleted.cs:86-91`), nesta ordem:
   circuit breaker do Redis (`VidroProcessor/queue/client.go:47-66`). O id passa atomicamente para
   a lista de lease `video_queue:processing`.
 - **Início:** `processNextMessage` lê o `job:` para pegar o `correlation_id` (falta → loga sem o
-  campo, não para o job) e grava `status: processing` (`SetJobProcessing`, `job.go:94-101`).
+  campo, não para o job) e grava `status: processing` (`SetJobProcessing`, `job.go:102-113`).
 - **Status na API:** nenhum — continua `Processing`. A API não sabe que o worker pegou o job.
-- **Worker morre no meio:** o id fica em `:processing`. `recoverStuckJobs` (`queue/client.go:99-147`)
+- **Worker morre no meio:** o id fica em `:processing`. `recoverStuckJobs` (`queue/client.go:100-148`)
   roda a cada minuto e devolve para `video_queue` todo job em `processing` com `updated_at` mais
   velho que orçamento + 1 min, incrementando `retry_count`; esgotado, manda para
   `video_queue:dead` com `error: "orphaned repeatedly..."`. **Esse caminho não chama o webhook** —
-  a API só descobre pela reconciliação de 45 min.
-- **`job:` sumiu** (TTL de 24 h, ou `DEL` manual): `SetJobProcessing` cria um estado novo **sem
-  `callback_url`** (`job.go:95-98`). O vídeo é processado e ninguém é avisado.
+  a API só descobre pela reconciliação de 90 min.
+- **`job:` sumiu** (TTL de 24 h, ou `DEL` manual): `SetJobProcessing` devolve `ErrJobStateMissing`
+  em vez de recriar o estado, e o worker manda o id para `video_queue:dead` **sem processar**, com
+  log `Error` "Job state missing" (`deadLetterJobWithoutState`). O `callback_url` só existe no
+  `job:`; processar seria arquivar o raw sem avisar ninguém. `raw/<videoId>` fica intacto para
+  reenfileirar à mão (passo 7 do runbook). A API só descobre pela reconciliação de `Processing`.
+  *(Até 2026-10-05 o estado era recriado sem `callback_url` e o vídeo era processado em silêncio.)*
 
 ## 6. Worker ↔ MinIO: pipeline e artefatos
 
@@ -167,8 +173,7 @@ Dentro do mesmo handler (`MinioUploadCompleted.cs:86-91`), nesta ordem:
 3. Sobe `processed/<videoId>_processed` (crítico).
 4. Move `raw/<videoId>` → `raw-archived/<videoId>` (copy + remove; falha só loga).
 5. Sobe os opcionais; falha de upload só loga.
-6. `LPUSH video_success_queue <videoId>_processed` (crítico — ver abaixo).
-7. Grava `status: done` com `artifacts` e `metadata`, e dispara o webhook.
+6. Grava `status: done` com `artifacts` e `metadata`, e dispara o webhook.
 
 **Layout no bucket** (`buildJobArtifacts`):
 
@@ -192,9 +197,12 @@ teto de 10 s (`bookkeepingTimeout`).
   tentado 4 vezes antes do DLQ.
 - **Timeout do job** (orçamento estourado): o contexto cancela o FFmpeg em curso, o passo falha e
   entra no mesmo caminho de retry.
-- **Falha depois do arquivamento:** se o passo 6.6 falha (Redis fora ou breaker aberto), o job vai
-  para retry — mas `raw/<videoId>` já foi movido, o download das próximas tentativas falha, e o job
-  termina no DLQ com webhook de falha. O vídeo vira `Failed` com os artefatos processados no bucket.
+- **Depois do arquivamento (6.4) nenhum passo é crítico:** opcionais e o `SetJobDone` só logam a
+  falha, então o job não volta para retry com o `raw/` já movido. *(Até 2026-10-05 o publish em
+  `video_success_queue` vinha aqui e era crítico: falhar nele mandava o job para retries que
+  falhavam todos no download. A fila foi removida — ninguém a consumia.)* Resta um caso estreito:
+  Redis fora no fechamento do job deixa `status: processing` e o lease em `:processing`; o
+  `recoverStuckJobs` reenfileira e as tentativas falham no download até o DLQ.
 - **MinIO fora:** cinco falhas seguidas abrem o breaker por 60 s e os jobs falham rápido, gastando
   retries.
 
@@ -208,23 +216,26 @@ teto de 10 s (`bookkeepingTimeout`).
   do corpo cru com `WEBHOOK_SECRET` (`webhook.go:76-80`); `X-Correlation-ID` com o
   `correlation_id` do job (`webhook.go:72-74`), que a API reaproveita no log dela.
 - **Verificação na API:** HMAC do corpo cru com `Webhook:Secret`, comparação em tempo constante
-  (`VideoProcessed.cs:46-51,70-78`). Errado ou ausente → 401. No worker o segredo é **opcional**
-  (`VidroProcessor/config/config.go:34`): vazio, ele manda sem assinatura e toda entrega toma 401. No compose os dois
+  (`VideoProcessed.cs:46-51,70-78`). Errado ou ausente → 401. No worker o segredo é **obrigatório**
+  (`WebhookSecret` em `VidroProcessor/config/config.go`, `notEmpty`): sem ele o worker não sobe —
+  até 2026-10-05 era opcional, e vazio fazia toda entrega tomar 401. No compose os dois
   lados usam `dev-webhook-secret` (`docker-compose.yml:130`, `appsettings.Development.json:54`).
-- **Status na API:** só age em `Processing` (`VideoProcessed.cs:89-91`). `success && processedPath`
+- **Status na API:** só age em `Processing` (`VideoProcessed.cs:89-99`). `success && processedPath`
   → `Ready`, grava `VideoArtifacts` e, se os cinco campos de metadata vierem, `VideoMetadata`
-  (`:108-139`). Qualquer outra coisa → `Failed`.
+  (`:116-147`). Qualquer outra coisa → `Failed`.
 - **Idempotência:** como no passo 3, o resultado do handler é ignorado e a resposta é **200**
   (`:57-58`). Webhook repetido, ou que chega depois de a reconciliação já ter marcado `Failed`, é
-  descartado em silêncio — **um vídeo marcado `Failed` por timeout não volta a `Ready`**.
+  descartado — **um vídeo marcado `Failed` por timeout não volta a `Ready`**. Não é mais em
+  silêncio: o handler loga `Warning` "Ignoring video-processed webhook" com `VideoId`, status e
+  `success`.
 - **Retry:** 3 tentativas, 10 s de timeout cada, espera de 1 s e 4 s; qualquer status fora de 2xx
   conta como falha (`webhook.go:42-60,88-90`). Roda numa goroutine solta, com
   `context.Background()`: não segura o job nem o shutdown.
 - **Falha:** depois das 3 tentativas, só um log `Warn` "Failed to send webhook" (`notifyWebhook`)
   com `videoID` e `callbackURL`. O job já está `done` (ou no DLQ) e não é retentado. A API
-  descobre pela reconciliação: 45 min depois do último `UpdatedAt`, `Failed`.
-- **`video_success_queue`:** recebe `<videoId>_processed` a cada sucesso (`queue/client.go:76-81`),
-  mas **nenhum código da API consome essa lista** — não é canal de recuperação hoje.
+  descobre pela reconciliação: 90 min depois do último `UpdatedAt`, `Failed`.
+- **Único canal:** o webhook é o único caminho de volta do worker para a API — não existe fila de
+  sucesso (a `video_success_queue` foi removida em 2026-10-05; nada a consumia).
 
 ## 8. API → player
 
@@ -248,12 +259,16 @@ teto de 10 s (`bookkeepingTimeout`).
 | Redis fora ao publicar | reconciliação de upload | 2 h + até 15 min | job publicado, segue normal |
 | Erro crítico no pipeline | retry do worker | imediato, até 4 tentativas | `Ready`, ou DLQ + webhook → `Failed` |
 | Worker morreu com o job | `recoverStuckJobs` | orçamento + 1 min (19 min na escala 1) | retry; esgotado → DLQ **sem** webhook |
-| Webhook `video-processed` perdido | reconciliação de processamento | 45 min após o último `UpdatedAt` | `Failed`, mesmo se o worker terminou bem |
-| `job:` expirou antes do consumo | nenhuma no worker | — | processa sem avisar; reconciliação → `Failed` |
+| Webhook `video-processed` perdido | reconciliação de processamento | 90 min após o último `UpdatedAt` | `Failed`, mesmo se o worker terminou bem |
+| `job:` expirou antes do consumo | DLQ sem processar, log `Error` no worker | imediato no worker; API pela reconciliação de processamento | `Failed`, `raw/` intacto para reenfileirar |
 
-O 45 min é calibrado contra **uma** tentativa (18 + 19 min, comentário em `VideoSettings.cs:9-14`).
-Um job que falha devagar e usa os retries pode passar disso e ser marcado `Failed` pela API
-enquanto o worker ainda tenta; o webhook que chegar depois é descartado.
+Os 90 min cobrem o pior caso do worker com todos os retries: 4 tentativas × 20 min (a tentativa
+mais lenta é a órfã — orçamento de 18 min + 1 min até ser órfã + 1 min até a varredura) = 80 min, na
+escala 1. Esse número mora em [`contracts/processing-timeout.json`](../contracts/processing-timeout.json):
+o worker testa que a conta dele bate com o golden, a API testa que o timeout dela fica acima.
+*(Até 2026-10-05 eram 45 min, calibrados para **uma** tentativa: um job que usava os retries era
+marcado `Failed` enquanto o worker ainda tentava.)* O que a folga de 10 min não cobre: espera na fila
+— com backlog, um job pode ficar parado em `video_queue` mais que isso antes de começar.
 
 ## Como observar
 

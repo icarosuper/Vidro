@@ -81,7 +81,7 @@ const RecoveryInterval = time.Minute
 // StartRecovery starts a goroutine that periodically checks the processing queue
 // and re-queues stuck jobs (worker crash) back to the main queue.
 func StartRecovery(ctx context.Context, stuckTimeout time.Duration) {
-	ticker := time.NewTicker(time.Minute)
+	ticker := time.NewTicker(RecoveryInterval)
 	defer ticker.Stop()
 	log.Info().Dur("stuck_timeout", stuckTimeout).Msg("Orphan job recovery started")
 	for {

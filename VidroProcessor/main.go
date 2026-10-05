@@ -90,10 +90,8 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Goroutine that re-queues orphan jobs (crash during processing). The threshold
-	// must stay above the job budget, otherwise a healthy long job gets requeued
-	// while it is still running.
-	go queue.StartRecovery(ctx, worker.JobTimeout(cfg)+time.Minute)
+	// Goroutine that re-queues orphan jobs (crash during processing).
+	go queue.StartRecovery(ctx, worker.OrphanThreshold(cfg))
 
 	// Goroutine that updates the queue size metric every 30 seconds
 	go func() {

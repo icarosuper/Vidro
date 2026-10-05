@@ -137,4 +137,4 @@ VideoProcessor = separate service at `../VidroProcessor`. Integration points:
 Every key, its default and why the default is that value: [config.md](config.md). The two that bind
 this service to the worker are `JobQueueSettings:QueueName` (must equal the worker's
 `PROCESSING_REQUEST_QUEUE`) and `VideoSettings:ProcessingTimeoutMinutes` (must stay above the
-worker's job budget + orphan-requeue threshold).
+worker's worst case with every retry spent — `contracts/processing-timeout.json`).

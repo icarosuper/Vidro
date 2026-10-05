@@ -68,7 +68,7 @@ Two rules that follow from `ValidateOnStart`:
 | `VideoSettings:MaxTagsPerVideo` | `10` | |
 | `VideoSettings:ReconciliationIntervalMinutes` | `15` | How often `VideoReconciliationService` sweeps: stale `PendingUpload` (upload expired or webhook missed) and stuck `Processing` |
 | `VideoSettings:ViewDeduplicationWindowHours` | `1` | A repeat view from the same viewer inside this window doesn't count again |
-| `VideoSettings:ProcessingTimeoutMinutes` | `45` | How long a video may sit in `Processing` before reconciliation marks it `Failed`. **Must stay above the worker's job budget + orphan-requeue threshold** (18 min + 19 min at `PROCESSING_TIMEOUT_SCALE=1`), otherwise a healthy job the worker is still retrying gets failed here. Raising `PROCESSING_TIMEOUT_SCALE` on the worker means raising this too |
+| `VideoSettings:ProcessingTimeoutMinutes` | `90` | How long a video may sit in `Processing` before reconciliation marks it `Failed`. **Must stay above the worker's worst case with every retry spent**: 4 attempts × 20 min (an orphaned attempt — 18 min budget + 1 min orphan margin + 1 min recovery tick) = **80 min** at `PROCESSING_TIMEOUT_SCALE=1`, pinned in `contracts/processing-timeout.json` and checked by `ProcessingTimeoutContractTests`. Below it, a job the worker is still retrying gets failed here and its late success webhook is dropped (logged as a warning). Was 45, sized for a single attempt, until 2026-10-05. Raising `PROCESSING_TIMEOUT_SCALE` on the worker means raising this too |
 
 ## `TrendingSettings` → `TrendingSettings`
 

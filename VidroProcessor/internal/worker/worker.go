@@ -91,6 +91,13 @@ func JobTimeout(cfg *config.Config) time.Duration {
 	return processor.JobBudget(cfg.ProcessingTimeoutScale)
 }
 
+// OrphanThreshold is how long a job may sit in :processing without a state write before orphan
+// recovery requeues it. It must stay above the job budget, otherwise a healthy long job gets
+// requeued while it is still running.
+func OrphanThreshold(cfg *config.Config) time.Duration {
+	return JobTimeout(cfg) + time.Minute
+}
+
 // Run processes jobs one after another until ctx is canceled (shutdown).
 func (w *Worker) Run(ctx context.Context, workerID int) {
 	for {

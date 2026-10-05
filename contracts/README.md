@@ -7,6 +7,7 @@ mesmo arquivo**: se um divergir, o CI do outro quebra.
 |---|---|
 | `video-processed-*.json` | `VidroProcessor` → `VidroApi` (payload do webhook) |
 | `enums.json` | `VidroApi` → `VidroFront` (os seis enums espelhados à mão) |
+| `processing-timeout.json` | `VidroProcessor` → `VidroApi` (pior caso de um job vs. timeout de `Processing`) |
 
 Existe porque os dois P0 do [`TODO.md`](../TODO.md) foram divergência de contrato entre o
 webhook Go e o handler C#, e ninguém viu por meses. Antes do monorepo isso exigiria publicar um
@@ -51,6 +52,24 @@ entrada de golden sem ninguém atrás é contrato que ninguém confere.
 **Por que não vem do OpenAPI:** viria, se o documento descrevesse os enums. Não descreve — ver
 [`VidroApi/openapi/README.md`](../VidroApi/openapi/README.md). O `openapi/v1.json` trava a
 superfície de URL; este golden trava os enums.
+
+## `processing-timeout.json` — pior caso do worker vs. timeout da API
+
+A reconciliação da API marca `Failed` o vídeo em `Processing` há mais de
+`VideoSettings:ProcessingTimeoutMinutes`, e descarta o webhook de sucesso que chegar depois. Esse
+timeout tem que passar do pior caso do worker com todos os retries gastos — `workerWorstCaseMinutes`,
+na escala 1 (`PROCESSING_TIMEOUT_SCALE=1`, `JOB_TIMEOUT` derivado):
+`(MaxJobRetries + 1) × (OrphanThreshold + RecoveryInterval)` = 4 × (18 + 1 + 1) = **80**.
+
+Quem testa:
+
+- `VidroProcessor/processing_timeout_contract_test.go` — a conta feita com as constantes do worker
+  bate com o golden. Mudar retries, orçamento ou o limiar de órfão quebra aqui.
+- `VidroApi/tests/VidroApi.UnitTests/Contracts/ProcessingTimeoutContractTests.cs` — o
+  `ProcessingTimeoutMinutes` do `appsettings.json` da API fica **acima** do golden.
+
+Existe porque os 45 min antigos foram calibrados para uma tentativa só, num comentário que nenhum
+teste conferia.
 
 ---
 

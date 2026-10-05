@@ -26,6 +26,13 @@
     <Content Include="..\..\..\contracts\enums.json"
              Link="contracts\%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest" />
+    <!-- Worker worst case shared with VidroProcessor, checked against the API's own appsettings -->
+    <Content Include="..\..\..\contracts\processing-timeout.json"
+             Link="contracts\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\VidroApi.Api\appsettings.json"
+             Link="api-appsettings.json"
+             CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

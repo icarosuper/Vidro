@@ -77,7 +77,7 @@ public static class VideoProcessed
         return CryptographicOperations.FixedTimeEquals(expectedBytes, actualBytes);
     }
 
-    public class Handler(AppDbContext db, IDateTimeProvider clock)
+    public class Handler(AppDbContext db, IDateTimeProvider clock, ILogger<Handler> logger)
         : IRequestHandler<Command, UnitResult<Error>>
     {
         public async ValueTask<UnitResult<Error>> Handle(Command cmd, CancellationToken ct)
@@ -88,7 +88,15 @@ public static class VideoProcessed
 
             var isProcessing = video.Status == VideoStatus.Processing;
             if (!isProcessing)
+            {
+                // The endpoint still answers 200, so the worker will not retry: this line is the
+                // only trace of a result that arrived too late — typically a success for a video
+                // the processing timeout already marked Failed.
+                logger.LogWarning(
+                    "Ignoring video-processed webhook for video {VideoId} in {Status}, not Processing (success: {Success})",
+                    cmd.VideoId, video.Status, cmd.Success);
                 return Errors.Video.NotInProcessingState();
+            }
 
             var now = clock.UtcNow;
 
