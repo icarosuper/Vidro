@@ -165,14 +165,20 @@ Exemplo completo: [`src/tests/comment-list.test.tsx`](../../src/tests/comment-li
 
 - **shadcn/ui** in `src/components/ui/`. Customize by extension, not editing base wrappers.
 - **Feature components** in `src/features/<name>/components/`. Shared across features → `src/components/`.
-- **Forms:** `react-hook-form` + `zodResolver` + os componentes `Form*` do shadcn
-  (`components/ui/form.tsx`). O padrão é o mesmo nos 8 formulários (`SignInForm`,
-  `SignUpForm`, `CreateChannelForm`, `EditChannelForm`, `CreatePlaylistForm`,
-  `EditPlaylistForm`, `UploadVideoForm`, `EditVideoForm`): schema `zod` no topo do arquivo,
-  `type XxxFormValues = z.infer<typeof schema>`, `useForm({ resolver: zodResolver(schema),
-  defaultValues })`, um `FormField` por campo e `form.handleSubmit(...)` no `onSubmit`.
-  Erro de validação aparece no `FormMessage`; erro da API vem do estado da mutation, via
-  `getApiErrorMessage(mutation.error)`. Não componha formulário na mão com `useState`.
+- **Forms:** `react-hook-form` + `zodResolver`, schema `zod` no topo do arquivo e
+  `type XxxFormValues = z.infer<typeof schema>`. Não componha formulário na mão com `useState`.
+  Dois estilos coexistem, e a diferença é real:
+  - `SignInForm` e `SignUpForm` usam os componentes `Form*` do shadcn (`components/ui/form.tsx`):
+    `useForm` → `<Form {...form}>`, um `FormField` por campo, erro no `FormMessage`.
+  - Os outros 6 (`CreateChannelForm`, `EditChannelForm`, `CreatePlaylistForm`,
+    `EditPlaylistForm`, `UploadVideoForm`, `EditVideoForm`) **não usam** `FormField`: desestruturam
+    `register`/`handleSubmit`/`formState.errors` do `useForm`, e cada campo é `Label` + `Input`
+    com `{...register('campo')}` + `errors.campo.message` num `<p>`. Siga o estilo do arquivo que
+    estiver editando; não migre um para o outro de passagem.
+  - Nos dois: `.max()` do schema sempre com mensagem que diz o limite (`Name must be at most
+    ${NAME_MAX} characters`, limite em constante); descrição opcional vai para a API como
+    `description?.trim() || null` (vazio ou só espaços = `null`, nunca `''`); erro da API vem do
+    estado da mutation, via `getApiErrorMessage(mutation.error)`.
 - **No props drilling beyond 2 levels** — use context (e.g. `AuthModalProvider`) when needed.
 
 ## Imports

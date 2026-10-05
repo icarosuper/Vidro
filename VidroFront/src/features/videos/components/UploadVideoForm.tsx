@@ -42,13 +42,24 @@ const VISIBILITY_OPTIONS = [
 ]
 
 const MAX_TAGS = 10
+const TITLE_MAX = 100
+const DESCRIPTION_MAX = 5000
 const ACCEPTED_VIDEO_TYPES = 'video/*'
 const ACCEPTED_IMAGE_TYPES = 'image/jpeg,image/png,image/webp'
 
 const uploadSchema = z.object({
   channelId: z.string().min(1, 'Select a channel'),
-  title: z.string().min(1, 'Title is required').max(100),
-  description: z.string().max(5000).optional(),
+  title: z
+    .string()
+    .min(1, 'Title is required')
+    .max(TITLE_MAX, `Title must be at most ${TITLE_MAX} characters`),
+  description: z
+    .string()
+    .max(
+      DESCRIPTION_MAX,
+      `Description must be at most ${DESCRIPTION_MAX} characters`,
+    )
+    .optional(),
   tags: z.string().optional(),
   visibility: z.string(),
 })
@@ -221,7 +232,7 @@ export function UploadVideoForm({ username }: Props) {
     try {
       createResponse = await createVideo.mutateAsync({
         title: values.title,
-        description: values.description ?? null,
+        description: values.description?.trim() || null,
         tags: parsedTags,
         visibility: Number(values.visibility),
       })

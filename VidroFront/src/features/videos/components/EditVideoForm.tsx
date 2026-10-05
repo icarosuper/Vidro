@@ -25,12 +25,23 @@ const VISIBILITY_OPTIONS = [
 ]
 
 const MAX_TAGS = 10
+const TITLE_MAX = 100
+const DESCRIPTION_MAX = 5000
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
 const editVideoSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(100),
-  description: z.string().max(5000).optional(),
+  title: z
+    .string()
+    .min(1, 'Title is required')
+    .max(TITLE_MAX, `Title must be at most ${TITLE_MAX} characters`),
+  description: z
+    .string()
+    .max(
+      DESCRIPTION_MAX,
+      `Description must be at most ${DESCRIPTION_MAX} characters`,
+    )
+    .optional(),
   tags: z.string().optional(),
   visibility: z.string(),
 })
@@ -78,7 +89,7 @@ export function EditVideoForm({ video, onSuccess }: Props) {
     await updateVideo.mutateAsync(
       {
         title: values.title,
-        description: values.description || null,
+        description: values.description?.trim() || null,
         tags: parsedTags,
         visibility: Number(values.visibility),
       },
