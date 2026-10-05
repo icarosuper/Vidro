@@ -257,6 +257,51 @@ FFmpeg is not available - skipping test
 
 ---
 
+## Benchmarks (`internal/processor/pipeline_bench_test.go`, P-PERF6)
+
+Real FFmpeg, no mocks. Benchmarks never run in `go test ./...` (only with `-bench`); they skip
+without `ffmpeg`/`ffprobe`. The clip is generated per run (10s, 1280x720, 30fps, `testsrc` +
+`sine`), not versioned.
+
+```bash
+go test ./internal/processor -run '^$' -bench . -benchtime 3x -count 3
+```
+
+One variable per benchmark: `BenchmarkTranscodeVideo` (a), `BenchmarkNonCriticalSteps`
+(b: sequential vs `runNonCriticalStepsParallel` at 1/2/4), `BenchmarkProcessVideo` (c: all
+steps vs steps 4-7 skipped, i.e. all `ENABLE_*` off).
+
+Measured 2026-10-05 on AMD Ryzen 7 7800X3D (8 cores / 16 threads, `NumCPU`=16), ffmpeg n9.0.2,
+CPU encoder (libx264, no NVENC), idle host, `-benchtime 3x -count 3`:
+
+| Benchmark | Runs (s/op) | Mean |
+|---|---|---|
+| (a) TranscodeVideo | 0.442 / 0.452 / 0.455 | 0.45 s |
+| (b) steps 4-7 sequential | 1.487 / 1.466 / 1.479 | 1.48 s |
+| (b) parallel, max=1 | 1.479 / 1.459 / 1.484 | 1.47 s |
+| (b) parallel, max=2 | 0.998 / 1.004 / 0.992 | 1.00 s |
+| (b) parallel, max=4 | 0.969 / 0.968 / 0.970 | 0.97 s |
+| (c) ProcessVideo, all steps (parallel 4) | 1.477 / 1.470 / 1.461 | 1.47 s |
+| (c) ProcessVideo, steps 4-7 skipped | 0.498 / 0.497 / 0.498 | 0.50 s |
+
+What this confirms and what it does not:
+
+- **Confirmed (P-PERF3):** parallel steps 4-7 take 0.97 s vs 1.48 s sequential (~1.5x); max=1
+  equals sequential, as it should. Most of the gain is already at max=2; 2 to 4 adds ~3%. On
+  this clip the wall time is probably bounded by the slowest single step (inference, not
+  measured per step), so the ceiling of 4 buys little here.
+- **Confirmed (P-OPT1):** skipping steps 4-7 cuts the pipeline from 1.47 s to 0.50 s (~66%).
+  Steps 4-7 are ~2/3 of the work on this clip.
+- **Not measured:** P-PERF1 (HLS single command) and P-PERF2 (`fast` vs `medium`): there is no
+  before/after, both are already the code, so the "~2-3 min" claim in `TODO.md` is still a paper
+  estimate. The numbers above are 10 s of synthetic 720p, not a 500 MB 1080p video; `testsrc`
+  encodes far more easily than camera footage, so do not extrapolate absolute times.
+- **Not measured (P-PERF5):** `DefaultWorkerCount` is about concurrent jobs, and these
+  benchmarks run one job at a time. Whether `NumCPU / parallel steps` workers is the right
+  default needs a concurrent-jobs benchmark (vary `WORKER_COUNT`), which does not exist yet.
+
+---
+
 ## What's Missing
 
 - `config.LoadConfig()` — incl. behavior without `.env`
@@ -266,7 +311,7 @@ FFmpeg is not available - skipping test
   `orchestration_test.go`
 - `queue`: `InitRedisClient` (`log.Fatal`) and `StartRecovery`'s ticker loop — the remaining 24.2%
 - `internal/worker`: the bare `Run` loop, webhook dispatch and the optional-artifact uploads
-- Transcoding + throughput benchmarks
+- Throughput under real load (benchmarks exist, but on a 10s synthetic clip — see "Benchmarks")
 
 ---
 
