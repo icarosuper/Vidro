@@ -215,3 +215,5 @@ Multipart upload is planned, not implemented — it is an item in the root `TODO
   video: save → publish → commit, so a failed publish leaves that video `PendingUpload` and the next
   tick retries it. Saves are per video, not one batch — a rolled-back video is detached so the next
   video's save cannot persist it as `Processing` anyway. Covered by `VideoReconciliationServiceTests`.
+- **`ReconcileStuckProcessingAsync` is per video too** (2026-10-05): one `SaveChanges` per video, the
+  failure logs the video id and detaches the entity, so one bad row no longer fails the sweep.
