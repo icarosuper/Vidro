@@ -50,6 +50,7 @@ browser ──1──▶ API ──2──▶ MinIO ──3──▶ API ──4
 8. A API marca `Ready`; o front toca o MP4 processado (o player já suporta HLS — falta o campo na
    API, ver P6 no `TODO.md`).
 
+Payload, retries e o que acontece quando cada salto falha: [`docs/fluxo-ponta-a-ponta.md`](docs/fluxo-ponta-a-ponta.md).
 Falhou no meio? O runbook é [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md).
 
 ## Documentação
@@ -59,6 +60,7 @@ Falhou no meio? O runbook é [`docs/troubleshooting-stuck-video.md`](docs/troubl
 | [`CLAUDE.md`](CLAUDE.md) | Regras que valem para os três serviços: idioma, commits, escopo, contrato compartilhado |
 | [`docs/MONOREPO.md`](docs/MONOREPO.md) | Por que é monorepo, o que foi decidido e o que isso custou |
 | [`TODO.md`](TODO.md) | Backlog dos três serviços, com referência de arquivo/linha |
+| [`docs/fluxo-ponta-a-ponta.md`](docs/fluxo-ponta-a-ponta.md) | Cada salto do upload ao player: payload, chaves Redis, layout no MinIO, retries e o que acontece quando falha |
 | [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md) | Vídeo preso em `Processing` — atravessa API, Redis, worker e MinIO |
 | [`docs/padroes-a-importar.md`](docs/padroes-a-importar.md) | Regras e ferramentas de outros repos que valem para cá, com a ordem sugerida |
 | [`docs/observabilidade.md`](docs/observabilidade.md) | O que existe de log, métrica e trace nos três serviços, os furos e a ordem de fechá-los |
