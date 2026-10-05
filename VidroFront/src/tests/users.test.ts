@@ -76,4 +76,22 @@ describe('users api', () => {
     expect(secondOptions.method).toBe('PUT')
     expect(secondOptions.body).toBe(file)
   })
+
+  it('uploadAvatar rejects when storage refuses the upload', async () => {
+    mockFetch.mockResolvedValueOnce(
+      mockResponse({
+        data: {
+          uploadUrl: 'https://minio.example.com/avatars/user-1?sig=abc',
+          uploadExpiresAt: '2026-04-08T18:00:00Z',
+        },
+      }),
+    )
+    mockFetch.mockResolvedValueOnce(new Response(null, { status: 403 }))
+    const { uploadAvatar } = await import('#/features/users/api')
+    const file = new File(['img'], 'avatar.jpg', { type: 'image/jpeg' })
+
+    // An expired signature answers 403; resolving here would tell the user the avatar
+    // changed while the old one stays.
+    await expect(uploadAvatar(file)).rejects.toThrow()
+  })
 })

@@ -155,10 +155,16 @@ export async function uploadThumbnail(
     signal,
   )
 
-  await fetch(uploadUrl, {
+  const uploadResponse = await fetch(uploadUrl, {
     method: 'PUT',
     body: file,
     headers: { 'Content-Type': file.type },
     signal,
   })
+
+  if (!uploadResponse.ok) {
+    throw new Error(
+      `Thumbnail upload failed with status ${uploadResponse.status}`,
+    )
+  }
 }

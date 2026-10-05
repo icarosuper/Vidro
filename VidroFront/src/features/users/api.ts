@@ -19,10 +19,14 @@ export async function uploadAvatar(file: File, signal?: AbortSignal) {
 
   // Upload the file directly to MinIO using the presigned URL
   // No Authorization header — the presigned URL already carries the credentials
-  await fetch(uploadUrl, {
+  const uploadResponse = await fetch(uploadUrl, {
     method: 'PUT',
     body: file,
     headers: { 'Content-Type': file.type },
     signal,
   })
+
+  if (!uploadResponse.ok) {
+    throw new Error(`Avatar upload failed with status ${uploadResponse.status}`)
+  }
 }

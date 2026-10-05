@@ -147,4 +147,22 @@ describe('videos api', () => {
       expect.objectContaining({ method: 'DELETE' }),
     )
   })
+
+  it('uploadThumbnail rejects when storage refuses the upload', async () => {
+    mockFetch.mockResolvedValueOnce(
+      mockResponse({
+        data: {
+          uploadUrl: 'https://minio.example.com/thumbnails/vid-1?sig=abc',
+          uploadExpiresAt: '2026-04-08T18:00:00Z',
+        },
+      }),
+    )
+    mockFetch.mockResolvedValueOnce(new Response(null, { status: 403 }))
+    const { uploadThumbnail } = await import('#/features/videos/api')
+    const file = new File(['img'], 'thumb.png', { type: 'image/png' })
+
+    // An expired signature answers 403; resolving here would report a thumbnail that
+    // never reached storage.
+    await expect(uploadThumbnail('vid-1', file)).rejects.toThrow()
+  })
 })
