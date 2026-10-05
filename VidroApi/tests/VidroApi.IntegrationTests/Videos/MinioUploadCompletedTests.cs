@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using FluentAssertions;
+using VidroApi.Domain.Enums;
 using VidroApi.IntegrationTests.Common;
 
 namespace VidroApi.IntegrationTests.Videos;
@@ -145,6 +146,44 @@ public class MinioUploadCompletedTests(ApiFactory factory) : IClassFixture<ApiFa
             .Should().ContainSingle(job => job.VideoId == videoId.ToString()).Subject;
 
         published.CorrelationId.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task MinioUploadCompleted_SavesProcessingBeforePublishingTheJob()
+    {
+        var (_, videoId) = await CreateVideoAndGetIds();
+
+        await SendMinioWebhookAsync(
+            eventName: "s3:ObjectCreated:Put",
+            key: $"test-bucket/raw/{videoId}",
+            token: MinioUploadToken);
+
+        // Published before the save, a save that then failed would leave a running job for a
+        // PendingUpload video — and the API ignores the webhook of a video not in Processing.
+        var published = FakeJobQueueService.Published
+            .Should().ContainSingle(job => job.VideoId == videoId.ToString()).Subject;
+
+        published.SavedStatus.Should().Be(VideoStatus.Processing);
+    }
+
+    [Fact]
+    public async Task MinioUploadCompleted_WhenPublishFails_VideoStaysPendingUpload()
+    {
+        var (_, videoId) = await CreateVideoAndGetIds();
+        lock (FakeJobQueueService.FailingVideoIds)
+            FakeJobQueueService.FailingVideoIds.Add(videoId.ToString());
+
+        await SendMinioWebhookAsync(
+            eventName: "s3:ObjectCreated:Put",
+            key: $"test-bucket/raw/{videoId}",
+            token: MinioUploadToken);
+
+        // Rolled back, so the upload reconciliation still finds it and republishes the job.
+        // Committed as Processing, it would sit with no job until the processing timeout.
+        var getResponse = await _client.GetAsync($"/v1/videos/{videoId}");
+        var body = await getResponse.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        body.GetProperty("data").GetProperty("status").GetProperty("value").GetString()
+            .Should().Be("PendingUpload");
     }
 
     private async Task<HttpResponseMessage> SendMinioWebhookAsync(

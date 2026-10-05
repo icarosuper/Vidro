@@ -85,10 +85,18 @@ public static class MinioUploadCompleted
 
             video.MarkAsProcessing(clock.UtcNow);
 
+            // Save first, publish second, commit last. A save that fails now fails before any job
+            // exists — published first, the job would run for a video still PendingUpload and its
+            // webhook would be ignored. A publish that fails (Redis down) rolls the save back, so
+            // the video stays PendingUpload and the upload reconciliation republishes it once
+            // UploadExpiresAt passes. Only a failing commit after a good publish is left uncovered.
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+            await db.SaveChangesAsync(ct);
+
             var callbackUrl = $"{apiOptions.Value.BaseUrl}/webhooks/video-processed";
             await jobQueue.PublishJobAsync(cmd.VideoId.ToString(), callbackUrl, cmd.CorrelationId, ct);
 
-            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
 
             return UnitResult.Success<Error>();
         }

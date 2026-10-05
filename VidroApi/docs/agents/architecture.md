@@ -118,7 +118,7 @@ DIY JWT — no ASP.NET Core Identity. `TokenService` (Infrastructure): access to
 VideoProcessor = separate service at `../VidroProcessor`. Integration points:
 
 1. **Upload** — API writes raw video to MinIO at `raw/{videoId}` via presigned PUT URL (client uploads directly, never through API).
-2. **Enqueue** — `IJobQueueService.PublishJobAsync(videoId, callbackUrl)` writes `job:{videoId}` key to Redis, pushes `videoId` to `video_queue`.
+2. **Enqueue** — `IJobQueueService.PublishJobAsync(videoId, callbackUrl, correlationId)` writes `job:{videoId}` key to Redis, pushes `videoId` to `video_queue`. `MinioUploadCompleted` publishes inside the transaction that marks the video `Processing` (save → publish → commit) — [design-decisions.md #14](design-decisions.md#14-the-job-is-published-inside-the-transaction-that-marks-the-video-processing).
 3. **Webhook** — VideoProcessor calls `POST /webhooks/video-processed` when done. Validated with HMAC-SHA256 (`X-Webhook-Signature: sha256=...`). Secret shared via `Webhook:Secret` config.
 
 ### MinIO object paths (shared contract with VideoProcessor)

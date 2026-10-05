@@ -20,8 +20,9 @@ decision by **anchor**, never by line number — `[design-decisions.md #7](desig
 - [**#11** — The OpenAPI document is generated at build and versioned](#11-the-openapi-document-is-generated-at-build-and-versioned)
 - [**#12** — Metrics are the runtime's own meters, exported as-is](#12-metrics-are-the-runtimes-own-meters-exported-as-is)
 - [**#13** — The correlation ID travels inside the job envelope](#13-the-correlation-id-travels-inside-the-job-envelope)
+- [**#14** — The job is published inside the transaction that marks the video `Processing`](#14-the-job-is-published-inside-the-transaction-that-marks-the-video-processing)
 
-A new entry takes the **next number** (highest today is **#13**) plus one line here in the index.
+A new entry takes the **next number** (highest today is **#14**) plus one line here in the index.
 Never renumber an existing entry — references elsewhere point at its anchor.
 
 ---
@@ -195,3 +196,20 @@ Multipart upload is planned, not implemented — it is an item in the root `TODO
 - **Not `traceparent`, on purpose.** This API has metrics but no tracing (#12), so
   `Activity.Current` is null and a `traceparent` written here would point at a trace that does not
   exist. It becomes the right field once there is a collector — `docs/observabilidade.md`, degrau 4.
+
+### 14. The job is published inside the transaction that marks the video `Processing`
+
+`Features/Videos/MinioUploadCompleted.cs`.
+
+- **Order: save → publish → commit.** Until 2026-10-05 it was publish → save: a save that failed
+  left a job running for a video still `PendingUpload`, and `VideoProcessed` ignores the webhook of a
+  video not in `Processing` — the video was processed and then marked `Failed` anyway.
+- **Why not plain save → publish.** A publish that fails after a committed save (Redis down, the
+  likeliest failure here) would leave a `Processing` video with no job, and the only net for that is
+  the processing timeout — it ends `Failed`. Inside the transaction the failed publish rolls the save
+  back: the video stays `PendingUpload` and `ReconcileStaleUploadsAsync` republishes it once
+  `UploadExpiresAt` passes, as it did before.
+- **What is left:** a commit that fails after a good publish. That is the old failure, narrowed to
+  the commit itself.
+- **Not applied to `VideoReconciliationService`**, which still publishes before its single
+  `SaveChangesAsync` for the whole batch.
