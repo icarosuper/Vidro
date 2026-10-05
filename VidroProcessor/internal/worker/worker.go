@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/attribute"
 	oteltrace "go.opentelemetry.io/otel/trace"
@@ -147,7 +148,13 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 	bookkeepingCtx, cancelBookkeeping := context.WithTimeout(
 		context.WithoutCancel(ctx), bookkeepingTimeout)
 
-	if err := queue.SetJobProcessing(bookkeepingCtx, videoID); err != nil {
+	err = queue.SetJobProcessing(bookkeepingCtx, videoID)
+	jobStateMissing := errors.Is(err, queue.ErrJobStateMissing)
+	if jobStateMissing {
+		defer cancelBookkeeping()
+		return deadLetterJobWithoutState(bookkeepingCtx, jobLogger, videoID)
+	}
+	if err != nil {
 		jobLogger.Warn().Err(err).Msg("Failed to update job state to processing")
 	}
 
@@ -316,6 +323,20 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 	case <-processCtx.Done():
 		return fmt.Errorf("operation canceled: %w", processCtx.Err())
 	}
+}
+
+// deadLetterJobWithoutState handles a job whose job:<videoID> expired or was deleted. The
+// callback_url lived there, so processing it would archive the raw and notify nobody: the job
+// goes to the DLQ untouched, raw still in raw/, to be re-enqueued by hand (runbook, step 7).
+func deadLetterJobWithoutState(ctx context.Context, jobLogger zerolog.Logger, videoID string) error {
+	jobLogger.Error().Msg("Job state missing (expired or deleted): no callback_url to notify, moving to dead letter queue without processing")
+	if err := queue.MoveToDLQ(ctx, videoID); err != nil {
+		jobLogger.Warn().Err(err).Msg("Failed to move job to dead letter queue")
+	}
+	if err := queue.AcknowledgeMessage(ctx, videoID); err != nil {
+		jobLogger.Warn().Err(err).Msg("Failed to acknowledge job")
+	}
+	return fmt.Errorf("job %s: %w", videoID, queue.ErrJobStateMissing)
 }
 
 // toJobMetadata converts pipeline metadata to the queue package type.

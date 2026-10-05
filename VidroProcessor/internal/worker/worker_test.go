@@ -19,7 +19,6 @@ const (
 	requestQueue    = "videos"
 	processingQueue = requestQueue + ":processing"
 	deadLetterQueue = requestQueue + ":dead"
-	finishedQueue   = "videos:finished"
 	videoID         = "vid"
 )
 
@@ -56,10 +55,9 @@ func setupQueue(t *testing.T) (*miniredis.Miniredis, *config.Config) {
 	t.Helper()
 	mr := miniredis.RunT(t)
 	cfg := &config.Config{
-		RedisHost:               mr.Addr(),
-		ProcessingRequestQueue:  requestQueue,
-		ProcessingFinishedQueue: finishedQueue,
-		JobTimeout:              time.Minute,
+		RedisHost:              mr.Addr(),
+		ProcessingRequestQueue: requestQueue,
+		JobTimeout:             time.Minute,
 	}
 	queue.InitRedisClient(cfg)
 	return mr, cfg
@@ -194,9 +192,43 @@ func TestProcessNextMessage_CompletedJobIsAcked(t *testing.T) {
 	if state.RetryCount != 0 {
 		t.Fatalf("RetryCount = %d, want 0", state.RetryCount)
 	}
-	processedID := videoID + "_processed"
-	if got := listOf(t, mr, finishedQueue); len(got) != 1 || got[0] != processedID {
-		t.Fatalf("finished queue = %v, want [%s]", got, processedID)
+	wantVideoArtifact := "processed/" + videoID + "_processed"
+	if state.Artifacts == nil || state.Artifacts.Video != wantVideoArtifact {
+		t.Fatalf("Artifacts = %+v, want Video %q", state.Artifacts, wantVideoArtifact)
+	}
+	if got := listOf(t, mr, requestQueue); len(got) != 0 {
+		t.Fatalf("request queue = %v, want empty", got)
+	}
+}
+
+// TestProcessNextMessage_JobWithoutStateIsDeadLetteredUnprocessed: job:<id> expired or was
+// deleted, so there is no callback_url. Processing it would archive the raw and tell nobody;
+// it goes to the DLQ untouched instead, raw still in place for a manual re-enqueue.
+func TestProcessNextMessage_JobWithoutStateIsDeadLetteredUnprocessed(t *testing.T) {
+	mr, cfg := setupQueue(t)
+	mr.Lpush(requestQueue, videoID)
+
+	downloadCalled := false
+	recordingDownload := fakeStorage{download: func(context.Context) error {
+		downloadCalled = true
+		return nil
+	}}
+
+	err := newTestWorker(cfg, recordingDownload).processNextMessage(t.Context(), 1)
+	if !errors.Is(err, queue.ErrJobStateMissing) {
+		t.Fatalf("processNextMessage error = %v, want %v", err, queue.ErrJobStateMissing)
+	}
+
+	waitForProcessingQueueToDrain(t, mr)
+	if downloadCalled {
+		t.Fatal("job without state was processed")
+	}
+	if got := listOf(t, mr, deadLetterQueue); len(got) != 1 || got[0] != videoID {
+		t.Fatalf("dead letter queue = %v, want [%s]", got, videoID)
+	}
+	stateWasCreated := mr.Exists("job:" + videoID)
+	if stateWasCreated {
+		t.Fatal("job state was recreated without a callback_url")
 	}
 }
 

@@ -87,6 +87,10 @@ docker compose exec redis redis-cli LRANGE video_queue:dead 0 -1
 - **In `video_queue:dead`** — three attempts failed. `job:<id>.error` holds the last one. **Nothing
   drains the DLQ automatically, on purpose** ([#2](../VidroProcessor/docs/agents/design-decisions.md#2-retry-in-place-then-dead-letter)):
   a job here is waiting for a human. Do not add an auto-drain — it would hide the bug.
+  **No `job:<id>` at all and no retries in the log** means the record was gone when a worker took
+  the job (24 h TTL, or a manual `DEL`): without it there is no `callback_url`, so the worker logs
+  `Job state missing` and dead-letters it **without processing** — `raw/<id>` is untouched. Go to
+  Step 7.
 
 ---
 

@@ -87,6 +87,22 @@ func TestSetJobFailed_WithoutExistingState(t *testing.T) {
 	}
 }
 
+// The callback_url lives only in job:<id>. Recreating a missing state would let the worker
+// process the video and notify nobody, so SetJobProcessing must refuse instead.
+func TestSetJobProcessing_WithoutExistingStateRefusesAndCreatesNothing(t *testing.T) {
+	mr := setupRedis(t)
+
+	err := SetJobProcessing(t.Context(), "ghost")
+
+	if !errors.Is(err, ErrJobStateMissing) {
+		t.Fatalf("SetJobProcessing error = %v, want %v", err, ErrJobStateMissing)
+	}
+	stateWasCreated := mr.Exists(jobKey("ghost"))
+	if stateWasCreated {
+		t.Fatalf("SetJobProcessing created %s without a callback_url", jobKey("ghost"))
+	}
+}
+
 // TestShouldRetry_Boundary locks the meaning of MaxJobRetries: the initial
 // attempt plus MaxJobRetries retries. An off-by-one here either sends a healthy
 // job to the DLQ or reprocesses a poisoned one forever.

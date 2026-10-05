@@ -107,6 +107,7 @@ on the one-minute ticker.
 
 - `TestSetJobFailed_IncrementsRetryCountAndPersists`
 - `TestSetJobFailed_WithoutExistingState`
+- `TestSetJobProcessing_WithoutExistingStateRefusesAndCreatesNothing` — no state, no callback_url: never recreated
 - `TestShouldRetry_Boundary` — initial attempt + `MaxJobRetries` retries
 - `TestPublishJob_QueuesAndRecordsPending`
 - `TestConsumeMessage_MovesJobToProcessing` — the in-flight guarantee
@@ -149,6 +150,9 @@ poll until `:processing` drains (2s ceiling) instead of asserting right after th
 - `TestWorker_CrashMidJobIsRecoveredAndReprocessed` — the queue's failure path end to end: a worker
   dies mid-job (its goroutine never reaches the bookkeeping), the job survives in `:processing`,
   `queue.RecoverStuckJobs` requeues it with `retry_count` 1, and a second worker finishes it
+
+- `TestProcessNextMessage_JobWithoutStateIsDeadLetteredUnprocessed` — `job:<id>` expired or
+  deleted: no download, straight to `:dead`, state not recreated without a `callback_url`
 
 Mutation-checked: moving `defer cancelBookkeeping()` back into the parent turns all three red.
 

@@ -3,8 +3,11 @@ package queue
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // VideoMetadata mirrors the metadata extracted by the pipeline analysis step.
@@ -90,11 +93,20 @@ func PublishJob(ctx context.Context, videoID, callbackURL, correlationID string)
 	return client.LPush(ctx, cfg.ProcessingRequestQueue, videoID).Err()
 }
 
-// SetJobProcessing updates the job state to processing.
+// ErrJobStateMissing means job:<videoID> does not exist — expired (24h TTL) or deleted.
+var ErrJobStateMissing = errors.New("job state missing")
+
+// SetJobProcessing updates the job state to processing. It never creates the state: the
+// callback_url lives only there, so a job without it would be processed with nobody notified.
+// It returns ErrJobStateMissing in that case so the worker can dead-letter the job instead.
 func SetJobProcessing(ctx context.Context, videoID string) error {
-	existing, _ := GetJobState(ctx, videoID)
-	if existing == nil {
-		existing = &JobState{CreatedAt: time.Now().Unix()}
+	existing, err := GetJobState(ctx, videoID)
+	stateMissing := errors.Is(err, redis.Nil)
+	if stateMissing {
+		return ErrJobStateMissing
+	}
+	if err != nil {
+		return err
 	}
 	existing.Status = JobStatusProcessing
 	return setJobState(ctx, videoID, *existing)

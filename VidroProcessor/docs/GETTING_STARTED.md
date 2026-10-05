@@ -89,7 +89,11 @@ curl -X PUT "http://localhost:9000/videos/raw/my-video" \
 
 ## 5. Publish the job
 
+The job record comes first — the worker dead-letters a queued id that has no `job:<id>` (that is
+where the `callback_url` lives). Without an API to notify, an empty `callback_url` is fine:
+
 ```bash
+redis-cli SET job:my-video '{"status":"pending","retry_count":0}' EX 86400
 redis-cli LPUSH video_queue "my-video"
 ```
 
@@ -223,6 +227,7 @@ cd .. && docker compose up -d --build
 To test the retry mechanism, publish a job with an ID that doesn't exist in MinIO:
 
 ```bash
+redis-cli SET job:non-existent-video '{"status":"pending","retry_count":0}' EX 86400
 redis-cli LPUSH video_queue "non-existent-video"
 ```
 

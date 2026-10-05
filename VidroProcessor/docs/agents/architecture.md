@@ -65,7 +65,7 @@ Every job runs inside `processNextMessage` (`internal/worker/worker.go`) under:
 
 Order of operations:
 
-1. `queue.SetJobProcessing(videoID)`
+1. `queue.SetJobProcessing(videoID)` — never creates the state. If `job:<id>` is gone (24h TTL or `DEL`), it returns `ErrJobStateMissing` and the job goes straight to the DLQ unprocessed (`deadLetterJobWithoutState`): the `callback_url` lived there, so processing would archive the raw and notify nobody.
 2. `minio.DownloadVideo(raw, videoID, tmpInput)` — enforces `MAX_FILE_SIZE_MB`.
 3. `processor.ProcessVideo(...)` — runs 7-step pipeline (see below), returns `ProcessingResult` with artifact paths in temp dir.
 4. `minio.UploadVideo(tmpOutput, processed, "<id>_processed")` — primary MP4.
