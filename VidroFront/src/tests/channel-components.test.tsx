@@ -174,6 +174,48 @@ describe('CreateChannelForm', () => {
       name: 'My Channel',
     })
   })
+
+  it('sends a blank description as null, like the edit form', async () => {
+    render(<CreateChannelForm username="alice" />)
+
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'My Channel' },
+    })
+    fireEvent.change(screen.getByLabelText('Handle'), {
+      target: { value: 'my-channel' },
+    })
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: '   ' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create channel' }))
+
+    await waitFor(() => expect(createMutate).toHaveBeenCalledOnce())
+    expect(createMutate.mock.calls[0]?.[0]).toEqual({
+      handle: 'my-channel',
+      name: 'My Channel',
+      description: null,
+    })
+  })
+
+  it('explains a description over the limit', async () => {
+    render(<CreateChannelForm username="alice" />)
+
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'My Channel' },
+    })
+    fireEvent.change(screen.getByLabelText('Handle'), {
+      target: { value: 'my-channel' },
+    })
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'a'.repeat(501) },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create channel' }))
+
+    expect(
+      await screen.findByText('Description must be at most 500 characters'),
+    ).toBeDefined()
+    expect(createMutate).not.toHaveBeenCalled()
+  })
 })
 
 describe('EditChannelForm', () => {

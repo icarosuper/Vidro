@@ -31,7 +31,13 @@ const schema = z.object({
     .string()
     .min(1, 'Name is required')
     .max(NAME_MAX, `Name must be at most ${NAME_MAX} characters`),
-  description: z.string().max(DESCRIPTION_MAX).optional(),
+  description: z
+    .string()
+    .max(
+      DESCRIPTION_MAX,
+      `Description must be at most ${DESCRIPTION_MAX} characters`,
+    )
+    .optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -50,7 +56,7 @@ export function CreateChannelForm({ username, onSuccess }: Props) {
       {
         handle: values.handle,
         name: values.name,
-        description: values.description ?? null,
+        description: values.description?.trim() || null,
       },
       { onSuccess },
     )
