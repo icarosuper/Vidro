@@ -1,6 +1,7 @@
 package processor_steps
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,9 +26,9 @@ func GenerateTestVideo(t *testing.T, duration int) string {
 	// sine: generates test audio
 	cmd := exec.CommandContext(t.Context(), "ffmpeg",
 		"-f", "lavfi",
-		"-i", "testsrc=duration=5:size=640x480:rate=30",
+		"-i", fmt.Sprintf("testsrc=duration=%d:size=640x480:rate=30", duration),
 		"-f", "lavfi",
-		"-i", "sine=frequency=1000:duration=5",
+		"-i", fmt.Sprintf("sine=frequency=1000:duration=%d", duration),
 		"-pix_fmt", "yuv420p",
 		"-c:v", "libx264",
 		"-c:a", "aac",

@@ -91,7 +91,7 @@ Most important rule in `internal/processor`:
 
 - Unit tests: `*_test.go` same package.
 - Integration tests: `test/integration/`, need a running Docker daemon — they spin up Redis + MinIO with testcontainers (`setup_test.go`). Slow; run `-timeout 10m`.
-- Tests using `ffmpeg`/`ffprobe`: must skip when binaries missing — use `GenerateTestVideo` from `test_helpers.go`.
+- Tests using `ffmpeg`/`ffprobe`: must skip when binaries missing — use `GenerateTestVideo` from `helpers_test.go`.
 - No mocking MinIO/Redis in integration tests. Test real contract.
 
 ## File layout
@@ -117,7 +117,7 @@ hand, and a step wired into only some of them fails silently or hangs.
    error; non-critical logs `Warn` and is swallowed. Changing the existing classification is a
    product decision — talk to VidroApi first ([#3](design-decisions.md#3-critical-vs-non-critical-pipeline-steps)).
 2. Create `internal/processor/processor-steps/<name>.go` + `<name>_test.go`. The test must skip when
-   `ffmpeg`/`ffprobe` is missing (`GenerateTestVideo` from `test_helpers.go`).
+   `ffmpeg`/`ffprobe` is missing (`GenerateTestVideo` from `helpers_test.go`).
 3. Add a `stepTimeout<Name>` constant in `processor.go`. It is scaled by `Options.step()` — never
    read a raw duration inside the step.
 4. Register the step in the `nonCriticalSteps` list — **one** place, read by both

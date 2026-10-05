@@ -30,7 +30,7 @@ go test ./...                                     # unit
 go test -v ./test/integration/... -timeout 10m    # integration (needs Docker)
 ```
 
-Tests shelling to `ffmpeg`/`ffprobe` auto-skip when binaries missing — use `GenerateTestVideo` from `processor-steps/test_helpers.go`.
+Tests shelling to `ffmpeg`/`ffprobe` auto-skip when binaries missing — use `GenerateTestVideo` from `processor-steps/helpers_test.go`.
 
 ## Docs pointers — read these when the task calls for it
 

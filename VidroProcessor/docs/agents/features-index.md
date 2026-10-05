@@ -45,7 +45,7 @@ Orchestrator: `internal/processor/processor.go` (`ProcessVideo`). 7 steps w/ ind
 
 Support:
 - `internal/processor/processor-steps/video_encoder.go` — `ResolveVideoEncoder` (probes `ffmpeg -encoders` for `h264_nvenc`) + `NormalizeNVENCPreset` (p1–p7).
-- `internal/processor/processor-steps/test_helpers.go` — `GenerateTestVideo`; tests skip if `ffmpeg` missing.
+- `internal/processor/processor-steps/helpers_test.go` — `GenerateTestVideo`; tests skip if `ffmpeg` missing.
 
 Steps 4–7 run parallel by default (`runNonCriticalStepsParallel`, bounded by `MaxParallelPostTranscodeSteps`). Set `PARALLEL_NON_CRITICAL_STEPS=false` for sequential. Both orchestrators run the same `nonCriticalSteps` list — that is where a new post-transcode step goes.
 
@@ -102,4 +102,4 @@ Object layout inside bucket:
 
 - Unit tests: co-located `*_test.go` per package.
 - Integration tests: `test/integration/` — real Redis/MinIO spun up with testcontainers. See `docs/TESTING.md`.
-- FFmpeg-dependent tests auto-skip when `ffmpeg` absent (see `test_helpers.go`).
+- FFmpeg-dependent tests auto-skip when `ffmpeg` absent (see `helpers_test.go`).
