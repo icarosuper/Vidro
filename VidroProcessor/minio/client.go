@@ -27,19 +27,21 @@ const (
 // rawArchivedLifecycleDays is the number of days archived raws are retained before being deleted.
 const rawArchivedLifecycleDays = 30
 
+// staticCredentialsSessionToken is empty on purpose: a session token only applies to
+// temporary STS credentials, and the worker authenticates with the static root user/password.
+const staticCredentialsSessionToken = ""
+
 var (
 	client *minio.Client
 	cfg    *config.Config
 )
-
-const token = "" // TODO: Ver se precisa adicionar esse token
 
 func InitMinioClient(config *config.Config) {
 	cfg = config
 
 	var err error
 	client, err = minio.New(cfg.MinioEndpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(cfg.MinioRootUser, cfg.MinioRootPassword, token),
+		Creds:  credentials.NewStaticV4(cfg.MinioRootUser, cfg.MinioRootPassword, staticCredentialsSessionToken),
 		Secure: cfg.MinioUseSSL,
 	})
 	if err != nil {
