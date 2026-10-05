@@ -47,7 +47,7 @@ Arquivos da API citados abaixo sem pasta moram em `VidroApi/src/VidroApi.Api/Fea
 | Tentativas por job no worker | 1 + 3 retries (`MaxJobRetries`) | `MaxJobRetries` e `ShouldRetry` em `VidroProcessor/queue/job.go` |
 | Orçamento de um job | 18 min (passos 13 min + 5 min de transferência) × `PROCESSING_TIMEOUT_SCALE` | `JobBudget` em `VidroProcessor/internal/processor/processor.go` |
 | Lease órfão volta para a fila após | orçamento + 1 min, checado a cada 1 min | `OrphanThreshold` em `internal/worker/worker.go`, `RecoveryInterval` em `queue/client.go` |
-| Webhook `video-processed` | 3 tentativas, timeout 10 s cada, espera 1 s e 4 s | `VidroProcessor/internal/webhook/webhook.go:33,49-58` |
+| Webhook `video-processed` | até 3 tentativas (só erro de rede, 5xx e 429; outro 4xx falha na hora), timeout 10 s cada, espera 1 s e 4 s | `VidroProcessor/internal/webhook/webhook.go` (`Notify`) |
 | Circuit breaker Redis (worker) | abre com 3 falhas seguidas, 30 s aberto | `internal/circuitbreaker/circuitbreaker.go:41-56` |
 | Circuit breaker MinIO (worker) | abre com 5 falhas seguidas, 60 s aberto | `circuitbreaker.go:24-39` |
 | Tamanho máximo do vídeo | 5120 MB | `VidroProcessor/config/config.go:40`, checado no download (`minio/client.go`, `downloadVideo`) |
@@ -231,7 +231,7 @@ teto de 10 s (`bookkeepingTimeout`).
 - **Retry:** 3 tentativas, 10 s de timeout cada, espera de 1 s e 4 s; qualquer status fora de 2xx
   conta como falha (`webhook.go:42-60,88-90`). Roda numa goroutine solta, com
   `context.Background()`: não segura o job nem o shutdown.
-- **Falha:** depois das 3 tentativas, só um log `Warn` "Failed to send webhook" (`notifyWebhook`)
+- **Falha:** depois das 3 tentativas (ou na primeira, se for 4xx que não seja 429), só um log `Warn` "Failed to send webhook" (`notifyWebhook`)
   com `videoID` e `callbackURL`. O job já está `done` (ou no DLQ) e não é retentado. A API
   descobre pela reconciliação: 90 min depois do último `UpdatedAt`, `Failed`.
 - **Único canal:** o webhook é o único caminho de volta do worker para a API — não existe fila de

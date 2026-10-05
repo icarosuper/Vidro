@@ -117,6 +117,7 @@ on the one-minute ticker.
 - `TestMoveToDLQ_LandsInDeadQueueOnly`
 - `TestRecoverStuckJobs_RequeuesOrphan`
 - `TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ`
+- `TestRecoverStuckJobs_FailedRequeueIsRetriedOnNextSweep` — move fails: state stays `processing`, next sweep requeues
 - `TestRecoverStuckJobs_JobWithoutStateGoesToDLQ` — state expired while parked in `:processing`
 - `TestRecoverStuckJobs_LeavesHealthyJobsAlone` — fresh job, finished job
 - `TestQueueOperations_StopOnCanceledContext` — the 10 public entry points, one canceled
@@ -130,6 +131,8 @@ on the one-minute ticker.
 - `TestNotify_WithHMAC_CorrectSignature`
 - `TestNotify_RetryOnFailure`
 - `TestNotify_ErrorAfter3Attempts`
+- `TestNotify_PermanentClientErrorsAreNotRetried` — 400/401/404 fail on the first attempt
+- `TestNotify_TooManyRequestsIsRetried`
 - `TestNotify_InvalidURL`
 - `TestNotify_ServerUnavailable`
 - `TestPayload_JSONSerialization`

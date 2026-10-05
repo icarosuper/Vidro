@@ -77,7 +77,7 @@ Object layout inside bucket:
 | Payload contract | `internal/webhook/webhook.go` (`Payload`) | camelCase keys, matches VidroApi `VideoProcessed` |
 | Payload mapping | `internal/worker/worker.go` (`BuildWebhookPayload`) | `queue.JobState` → `Payload`; optional artifacts and the metadata block may be absent |
 | Contract goldens | `../contracts/video-processed-*.json` (monorepo root) | Shared with VidroApi — both sides test the same files, see `../contracts/README.md` |
-| Delivery with retry | `internal/webhook/webhook.go` (`Notify`) | 3 attempts, exponential backoff, 10s HTTP timeout |
+| Delivery with retry | `internal/webhook/webhook.go` (`Notify`) | 3 attempts, exponential backoff, 10s HTTP timeout; retries only network errors, 5xx and 429 — other 4xx fail at once |
 | HMAC signature | `internal/webhook/webhook.go` (`send`) | `X-Webhook-Signature: sha256=<hex>`; `WEBHOOK_SECRET` is required |
 | Caller wiring | `internal/worker/worker.go` (`notifyWebhook`) | Fires on success + permanent DLQ failure |
 
@@ -86,7 +86,7 @@ Object layout inside bucket:
 | Feature | File | Notes |
 |---|---|---|
 | MinIO circuit breaker | `internal/circuitbreaker/circuitbreaker.go` | Trips after 5 consecutive failures, 60s open |
-| Redis circuit breaker | `internal/circuitbreaker/circuitbreaker.go` | Trips after 3 consecutive failures, 30s open |
+| Redis circuit breaker | `internal/circuitbreaker/circuitbreaker.go` | Trips after 3 consecutive failures, 30s open; wraps only `ConsumeMessage` and `AcknowledgeMessage` |
 
 ## Observability
 

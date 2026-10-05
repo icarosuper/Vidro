@@ -84,7 +84,7 @@ Most important rule in `internal/processor`:
 
 ## External calls
 
-- All MinIO/Redis calls via circuit breakers (`circuitbreaker.MinIO.Execute`, `circuitbreaker.Redis.Execute`). New functions: wrap same as existing.
+- MinIO calls go through `circuitbreaker.MinIO.Execute`. **Redis is partial on purpose**: only the queue pop (`ConsumeMessage`) and the ack (`AcknowledgeMessage`) use `circuitbreaker.Redis.Execute`; job-state writes, publish, requeue, DLQ, `moveFromProcessing` and the recovery sweep call the client directly, so bookkeeping and recovery keep trying while the breaker is open. New MinIO function: wrap. New Redis function: follow the neighbours in `queue/`, do not wrap by default.
 - No blocking external calls without context/timeout. Exception: `ConsumeMessage` (`BRPOPLPUSH` blocking timeout 0) — cancellation via shutdown context.
 
 ## Tests
@@ -128,7 +128,7 @@ hand, and a step wired into only some of them fails silently or hangs.
    post-transcode steps, in order.
 5. Run it through `runStep` so it gets its `step/<name>` span and error recording. No direct
    `telemetry.Tracer().Start` inside a step.
-6. Wrap every MinIO/Redis call in the matching circuit breaker.
+6. Wrap every MinIO call in `circuitbreaker.MinIO`; Redis only per the rule in "External calls" above (pop and ack).
 7. Producing an artifact: add the path to `ProcessingResult`, upload it, add the field to the webhook
    payload — then tell VidroApi, because the payload is shared contract.
 8. `JobBudget` sums every step timeout, so the new constant widens the whole-job budget by itself.

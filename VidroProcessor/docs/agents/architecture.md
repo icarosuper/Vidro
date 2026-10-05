@@ -120,7 +120,7 @@ hls/<id>/<variant>/seg_NNN.ts
 
 ## Resilience layers
 
-- **Circuit breakers** (`internal/circuitbreaker`) wrap every Redis and MinIO call. MinIO trips on 5 consecutive failures (60s open); Redis on 3 (30s open). State changes logged.
+- **Circuit breakers** (`internal/circuitbreaker`) wrap every MinIO call but only two Redis calls: the queue pop and the ack. The other Redis writes (job state, publish, requeue, DLQ, recovery) go direct, so bookkeeping is not blocked by an open breaker. MinIO trips on 5 consecutive failures (60s open); Redis on 3 (30s open). State changes logged.
 - **Orphan recovery** re-queues jobs stuck in `:processing` beyond the job budget + 1 min — covers worker crashes mid-job.
 - **Retry + DLQ** — auto retry with state persistence, DLQ after exhaustion. DLQ jobs not auto-retried; investigate and requeue manually.
 - **Per-step timeouts** prevent single bad video holding worker forever.
