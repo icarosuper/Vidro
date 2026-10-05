@@ -166,3 +166,61 @@ describe('videos api', () => {
     await expect(uploadThumbnail('vid-1', file)).rejects.toThrow()
   })
 })
+
+describe('uploadVideoFile', () => {
+  class FakeXhr {
+    status = 200
+    upload = {}
+    onload: (() => void) | null = null
+    onerror: (() => void) | null = null
+    onabort: (() => void) | null = null
+    open = vi.fn()
+    setRequestHeader = vi.fn()
+    send = vi.fn()
+    abort = vi.fn(() => this.onabort?.())
+  }
+
+  async function startUpload(signal: AbortSignal) {
+    const xhr = new FakeXhr()
+    vi.stubGlobal(
+      'XMLHttpRequest',
+      vi.fn(() => xhr),
+    )
+    const { uploadVideoFile } = await import('#/features/videos/api')
+    const promise = uploadVideoFile(
+      'https://minio/put',
+      new File(['x'], 'v.mp4', { type: 'video/mp4' }),
+      undefined,
+      signal,
+    )
+    return { xhr, promise }
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  it('aborts the request when the signal fires', async () => {
+    const controller = new AbortController()
+    const { xhr } = await startUpload(controller.signal)
+
+    controller.abort()
+
+    expect(xhr.abort).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    ['success', (xhr: FakeXhr) => xhr.onload?.()],
+    ['network error', (xhr: FakeXhr) => xhr.onerror?.()],
+  ])('stops listening to the signal after %s', async (_, settle) => {
+    const controller = new AbortController()
+    const { xhr, promise } = await startUpload(controller.signal)
+
+    settle(xhr)
+    await promise.catch(() => {})
+    controller.abort()
+
+    expect(xhr.abort).not.toHaveBeenCalled()
+  })
+})

@@ -113,7 +113,12 @@ export function uploadVideoFile(
       }
     }
 
+    const abortRequest = () => xhr.abort()
+    const stopListeningForAbort = () =>
+      signal?.removeEventListener('abort', abortRequest)
+
     xhr.onload = () => {
+      stopListeningForAbort()
       const uploadSucceeded = xhr.status >= 200 && xhr.status < 300
       if (uploadSucceeded) {
         resolve()
@@ -122,11 +127,15 @@ export function uploadVideoFile(
       }
     }
 
-    xhr.onerror = () => reject(new Error('Network error during upload'))
-
-    if (signal) {
-      signal.addEventListener('abort', () => xhr.abort())
+    xhr.onerror = () => {
+      stopListeningForAbort()
+      reject(new Error('Network error during upload'))
     }
+
+    // abort() fires onabort, not onerror/onload
+    xhr.onabort = stopListeningForAbort
+
+    signal?.addEventListener('abort', abortRequest)
 
     xhr.send(file)
   })
