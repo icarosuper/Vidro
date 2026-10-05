@@ -7,9 +7,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 // Payload is the body sent to the API callback when a job finishes.
@@ -35,6 +38,9 @@ var httpClient = &http.Client{Timeout: 10 * time.Second}
 var sleepFn = time.Sleep
 
 // Notify sends the payload to callbackURL with up to 3 attempts and exponential backoff.
+// Only transient failures are retried: network errors, 5xx and 429. Any other 4xx (400 bad
+// payload, 401 bad signature) is permanent — resending the same body and signature cannot
+// succeed — so it fails on the first attempt.
 // Signs the body with HMAC-SHA256 in the X-Webhook-Signature header (WEBHOOK_SECRET is mandatory).
 // If correlationID is non-empty, it goes out as X-Correlation-ID — the API reuses an inbound
 // value, so the callback lands in its log under the same ID as the upload that started the job.
@@ -49,6 +55,11 @@ func Notify(callbackURL, secret, correlationID string, payload Payload) error {
 	for attempt := 1; attempt <= 3; attempt++ {
 		if err := send(callbackURL, secret, correlationID, body); err != nil {
 			lastErr = err
+			var statusErr *statusError
+			if errors.As(err, &statusErr) && !statusErr.retryable() {
+				log.Error().Err(err).Int("status", statusErr.code).Msg("Webhook rejected with a permanent status, not retrying")
+				return fmt.Errorf("webhook rejected, not retrying: %w", err)
+			}
 			if attempt < 3 {
 				sleepFn(time.Duration(attempt*attempt) * time.Second)
 			}
@@ -84,7 +95,19 @@ func send(url, secret, correlationID string, body []byte) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("webhook returned unexpected status: %d", resp.StatusCode)
+		return &statusError{code: resp.StatusCode}
 	}
 	return nil
+}
+
+// statusError is a non-2xx answer from the callback.
+type statusError struct{ code int }
+
+func (e *statusError) Error() string {
+	return fmt.Sprintf("webhook returned unexpected status: %d", e.code)
+}
+
+// retryable reports whether another attempt can change the outcome: server errors and 429.
+func (e *statusError) retryable() bool {
+	return e.code >= 500 || e.code == http.StatusTooManyRequests
 }

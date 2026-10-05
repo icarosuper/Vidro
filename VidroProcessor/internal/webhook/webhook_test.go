@@ -122,6 +122,45 @@ func TestNotify_ErrorAfter3Attempts(t *testing.T) {
 	}
 }
 
+func TestNotify_PermanentClientErrorsAreNotRetried(t *testing.T) {
+	for _, status := range []int{http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound} {
+		attempts := 0
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			attempts++
+			w.WriteHeader(status)
+		}))
+
+		err := Notify(srv.URL, "", "", Payload{VideoID: "v1", Success: true})
+		srv.Close()
+		if err == nil {
+			t.Fatalf("status %d: Notify() should return an error", status)
+		}
+		if attempts != 1 {
+			t.Fatalf("status %d: expected 1 attempt, got %d", status, attempts)
+		}
+	}
+}
+
+func TestNotify_TooManyRequestsIsRetried(t *testing.T) {
+	attempts := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		if attempts < 2 {
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	if err := Notify(srv.URL, "", "", Payload{VideoID: "v1", Success: true}); err != nil {
+		t.Fatalf("Notify() should succeed after a 429, got: %v", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("expected 2 attempts, got %d", attempts)
+	}
+}
+
 func TestNotify_InvalidURL(t *testing.T) {
 	err := Notify("://invalid-url", "", "", Payload{VideoID: "v1", Success: true})
 	if err == nil {
