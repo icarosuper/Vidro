@@ -33,7 +33,7 @@ describe('apiClient', () => {
     const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit]
     expect(url).toContain('/v1/test')
     expect(
-      (init.headers as Record<string, string>)['Authorization'],
+      (init.headers as Record<string, string>).Authorization,
     ).toBeUndefined()
     expect(result).toEqual({ id: '1' })
   })
@@ -46,7 +46,7 @@ describe('apiClient', () => {
     await apiClient.get('/v1/test')
 
     const [, init] = mockFetch.mock.calls[0] as [string, RequestInit]
-    expect((init.headers as Record<string, string>)['Authorization']).toBe(
+    expect((init.headers as Record<string, string>).Authorization).toBe(
       'Bearer meu-access-token',
     )
   })
