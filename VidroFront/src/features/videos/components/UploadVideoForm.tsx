@@ -191,7 +191,7 @@ export function UploadVideoForm({ username }: Props) {
     formState: { errors },
   } = useForm<UploadFormValues>({
     resolver: zodResolver(uploadSchema),
-    defaultValues: { visibility: '0' },
+    defaultValues: { channelId: '', visibility: '0' },
   })
 
   const selectedChannelId = watch('channelId')

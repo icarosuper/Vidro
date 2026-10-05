@@ -112,6 +112,17 @@ describe('UploadVideoForm', () => {
     fireEvent.submit(container.querySelector('form') as Element)
   }
 
+  it('keeps the channel select controlled from the first render', async () => {
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    render(<UploadVideoForm username="alice" />)
+
+    await screen.findAllByText('Mine')
+    const warnings = consoleWarn.mock.calls.filter((call) =>
+      String(call[0]).includes('uncontrolled'),
+    )
+    expect(warnings).toHaveLength(0)
+  })
+
   it('sends a blank description as null', async () => {
     createMutateAsync.mockRejectedValue(new Error('stop here'))
     fillAndSubmit({ title: 'T', description: '   ' })
