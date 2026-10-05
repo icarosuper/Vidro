@@ -134,11 +134,9 @@ func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration) {
 				log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update state during recovery")
 				continue
 			}
-			if err := MoveToDLQ(ctx, videoID); err != nil {
+			if err := moveFromProcessing(ctx, videoID, deadLetterQueueName()); err != nil {
 				log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to move orphan job to dead letter queue")
-				continue
 			}
-			client.LRem(ctx, processingQueueName(), 1, videoID)
 			continue
 		}
 
@@ -149,8 +147,9 @@ func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration) {
 			log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update state during recovery")
 			continue
 		}
-		client.LRem(ctx, processingQueueName(), 1, videoID)
-		client.LPush(ctx, cfg.ProcessingRequestQueue, videoID)
+		if err := moveFromProcessing(ctx, videoID, cfg.ProcessingRequestQueue); err != nil {
+			log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to re-queue orphan job")
+		}
 	}
 }
 
@@ -160,11 +159,20 @@ func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration) {
 // deadLetterJobWithoutState): do it now instead of leaving it in :processing forever.
 func deadLetterOrphanWithoutState(ctx context.Context, videoID string) {
 	log.Error().Str("videoID", videoID).Msg("Orphan job has no state (expired or deleted), moving to dead letter queue")
-	if err := MoveToDLQ(ctx, videoID); err != nil {
+	if err := moveFromProcessing(ctx, videoID, deadLetterQueueName()); err != nil {
 		log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to move stateless orphan job to dead letter queue")
-		return
 	}
-	client.LRem(ctx, processingQueueName(), 1, videoID)
+}
+
+// moveFromProcessing takes the job out of :processing and pushes it to destination in one
+// MULTI/EXEC, so a failure between the two can never drop the job.
+func moveFromProcessing(ctx context.Context, videoID, destination string) error {
+	_, err := client.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+		pipe.LRem(ctx, processingQueueName(), 1, videoID)
+		pipe.LPush(ctx, destination, videoID)
+		return nil
+	})
+	return err
 }
 
 // GetQueueSize returns the number of jobs waiting in the request queue.

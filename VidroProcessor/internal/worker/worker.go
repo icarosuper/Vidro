@@ -195,13 +195,16 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 				if err != nil {
 					jobLogger.Warn().Err(err).Msg("Failed to update job state to failed")
 				}
+				requeued := false
 				if state != nil && state.ShouldRetry() {
 					if err := queue.RequeueJob(bookkeepingCtx, videoID); err != nil {
-						jobLogger.Warn().Err(err).Msg("Failed to requeue job")
+						jobLogger.Warn().Err(err).Msg("Failed to requeue job, moving to dead letter queue")
 					} else {
+						requeued = true
 						jobLogger.Warn().Int("attempt", state.RetryCount).Int("max", queue.MaxJobRetries).Msg("Job scheduled for retry")
 					}
-				} else {
+				}
+				if !requeued {
 					if err := queue.MoveToDLQ(bookkeepingCtx, videoID); err != nil {
 						jobLogger.Warn().Err(err).Msg("Failed to move job to dead letter queue")
 					} else {

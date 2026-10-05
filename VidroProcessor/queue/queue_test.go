@@ -497,3 +497,50 @@ func TestPublishJob_WithoutCorrelationIDOmitsTheField(t *testing.T) {
 		t.Fatalf("job state should omit the empty field, got %s", raw)
 	}
 }
+
+func TestRequeueJob_MissingStateRefusesAndQueuesNothing(t *testing.T) {
+	setupRedis(t)
+
+	err := RequeueJob(t.Context(), "gone")
+	if !errors.Is(err, ErrJobStateMissing) {
+		t.Fatalf("err = %v, want ErrJobStateMissing", err)
+	}
+	if got := listOf(t, cfg.ProcessingRequestQueue); len(got) != 0 {
+		t.Fatalf("request queue = %v, want empty", got)
+	}
+}
+
+// A read failure that is not "missing" must not requeue a job whose status was left unchanged.
+func TestRequeueJob_ReadFailurePropagatesAndQueuesNothing(t *testing.T) {
+	mr := setupRedis(t)
+	mr.Set(jobKey("vid"), "{not json")
+
+	err := RequeueJob(t.Context(), "vid")
+	if err == nil || errors.Is(err, ErrJobStateMissing) {
+		t.Fatalf("err = %v, want a non-missing read error", err)
+	}
+	if got := listOf(t, cfg.ProcessingRequestQueue); len(got) != 0 {
+		t.Fatalf("request queue = %v, want empty", got)
+	}
+}
+
+func TestMoveFromProcessing_MovesAtomicallyAndReportsFailure(t *testing.T) {
+	mr := setupRedis(t)
+	if err := client.LPush(t.Context(), processingQueueName(), "vid").Err(); err != nil {
+		t.Fatalf("LPush: %v", err)
+	}
+	if err := moveFromProcessing(t.Context(), "vid", cfg.ProcessingRequestQueue); err != nil {
+		t.Fatalf("moveFromProcessing: %v", err)
+	}
+	if got := listOf(t, processingQueueName()); len(got) != 0 {
+		t.Fatalf("processing queue = %v, want empty", got)
+	}
+	if got := listOf(t, cfg.ProcessingRequestQueue); len(got) != 1 || got[0] != "vid" {
+		t.Fatalf("request queue = %v, want [vid]", got)
+	}
+
+	mr.Close()
+	if err := moveFromProcessing(t.Context(), "vid", cfg.ProcessingRequestQueue); err == nil {
+		t.Fatal("moveFromProcessing returned nil with Redis down")
+	}
+}

@@ -147,15 +147,19 @@ func (s *JobState) ShouldRetry() bool {
 	return s.RetryCount <= MaxJobRetries
 }
 
-// RequeueJob puts the job back in the main queue for reprocessing.
+// RequeueJob puts the job back in the main queue for reprocessing. Like the other writers it
+// never creates the state: a missing state returns ErrJobStateMissing and nothing is queued
+// (a pending job without callback_url would be processed with nobody notified). Any other read
+// error propagates too, so a requeued job is always marked pending.
 // AcknowledgeMessage must still be called to remove it from the processing queue.
 func RequeueJob(ctx context.Context, videoID string) error {
-	existing, _ := GetJobState(ctx, videoID)
-	if existing != nil {
-		existing.Status = JobStatusPending
-		if err := setJobState(ctx, videoID, *existing); err != nil {
-			return fmt.Errorf("failed to update state for requeue: %w", err)
-		}
+	existing, err := GetJobState(ctx, videoID)
+	if err != nil {
+		return err
+	}
+	existing.Status = JobStatusPending
+	if err := setJobState(ctx, videoID, *existing); err != nil {
+		return fmt.Errorf("failed to update state for requeue: %w", err)
 	}
 	return client.LPush(ctx, cfg.ProcessingRequestQueue, videoID).Err()
 }
