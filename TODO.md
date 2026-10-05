@@ -29,7 +29,10 @@ de carga com k6, primeiros testes de renderização (`CommentList`), planos de f
 apagados, e o bug do `cancelBookkeeping` no worker corrigido.
 *(2026-10-05)* laço do worker testável em `internal/worker` (regressão do #13 e crash → recovery
 travados por teste), testes de `channels`/`playlists` no front (com o bug do upload do avatar do
-canal corrigido), `docs/fluxo-ponta-a-ponta.md`, e o `const token` do MinIO explicado.
+canal corrigido), `docs/fluxo-ponta-a-ponta.md`, e o `const token` do MinIO explicado. Onda B:
+`video_success_queue` removida, `WEBHOOK_SECRET` obrigatório, job publicado só depois do save, job
+sem estado vai para o DLQ, timeout de `Processing` em 90 min travado por contrato, e três correções
+no front (PUT presignado checado, descrição vazia como `null`, Visibility acessível).
 Itens marcados `[x]` trazem o commit e o que ficou no lugar.
 
 **Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
@@ -494,13 +497,13 @@ migração destrava".
 
 ### Confiabilidade do fluxo — achados da doc ponta a ponta *(2026-10-05)*
 
-Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Nenhum corrigido ainda.
+Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Os riscos graves foram fechados na onda B (2026-10-05).
 
 **Doc/comentário que mente:**
-- [ ] **Ninguém consome `video_success_queue`.** O worker publica (`VidroProcessor/queue/client.go`,
+- [x] **RESOLVIDO** *(`1eaa603`, fila removida — também fechou o "falha depois do arquivamento")*. ~~**Ninguém consome `video_success_queue`.** O worker publica (`VidroProcessor/queue/client.go`,
       `PublishSuccessMessage`), nenhum código da API lê. Afirmam o contrário:
       `docs/troubleshooting-stuck-video.md:164,192`, `VidroProcessor/docs/agents/architecture.md:39`,
-      `design-decisions.md:113`. Decidir: corrigir as docs ou parar de publicar.
+      `design-decisions.md:113`. Decidir: corrigir as docs ou parar de publicar.~~
 - [ ] O comentário em `internal/circuitbreaker/circuitbreaker.go:19` diz que o breaker do Redis
       cobre "job state"; `setJobState` (`queue/job.go`) e o recovery chamam o Redis direto. Idem
       os `LRem`/`LPush` de `RecoverStuckJobs`, que ainda ignoram o erro — e o `conventions.md` diz
@@ -509,24 +512,24 @@ Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Nenhum corrigido ainda.
       `notifyWebhook` e `RecoverStuckJobs` usam o logger global e saem sem.
 
 **Riscos de comportamento:**
-- [ ] **Timeout de 45 min da API dimensionado para uma tentativa** (`VideoSettings.cs:9-14`). Job
+- [x] **RESOLVIDO** *(`c6ba3da`: 90 min, pior caso do worker = 80 min travado em `contracts/processing-timeout.json` pelos dois lados; webhook fora de `Processing` agora loga warning. Backlog na fila acima de ~10 min ainda estoura — marcado com `ponytail:`)*. ~~**Timeout de 45 min da API dimensionado para uma tentativa** (`VideoSettings.cs:9-14`). Job
       que usa os retries passa disso → vídeo vira `Failed` → o webhook de sucesso posterior é
-      descartado em silêncio (200).
-- [ ] **`job:<id>` expirado ou apagado** → `SetJobProcessing` (`queue/job.go`) recria o estado sem
-      `callback_url` → o vídeo é processado e ninguém é avisado.
-- [ ] **`MinioUploadCompleted.cs:89-91` publica na fila antes do `SaveChanges`.** Se o save
-      falhar, o job roda e o webhook é ignorado; a reconciliação depois marca `Failed`.
-- [ ] **Falha depois do arquivamento do raw não tem retry possível:** se o publish de sucesso
+      descartado em silêncio (200).~~
+- [x] **RESOLVIDO** *(`16172fc`: `SetJobProcessing` devolve `ErrJobStateMissing` e o worker manda para o DLQ sem processar, raw intacto)*. ~~**`job:<id>` expirado ou apagado** → `SetJobProcessing` (`queue/job.go`) recria o estado sem
+      `callback_url` → o vídeo é processado e ninguém é avisado.~~
+- [x] **RESOLVIDO** *(`94147fd`: save → publish → commit numa transação; publish falho faz rollback e o vídeo fica `PendingUpload` para a reconciliação republicar. API design-decisions #14)*. ~~**`MinioUploadCompleted.cs:89-91` publica na fila antes do `SaveChanges`.** Se o save
+      falhar, o job roda e o webhook é ignorado; a reconciliação depois marca `Failed`.~~
+- [x] **RESOLVIDO** junto com a remoção da `video_success_queue` (`1eaa603`): o publish era o único passo crítico depois do arquivamento. Sobra um caso estreito: Redis fora no fechamento do job. ~~**Falha depois do arquivamento do raw não tem retry possível:** se o publish de sucesso
       falha, `raw/<id>` já foi para `raw-archived/`, todo retry falha no download e o vídeo vira
-      `Failed` com os artefatos no bucket.
+      `Failed` com os artefatos no bucket.~~
 - [ ] **Webhook pode apontar para arquivo inexistente:** `buildJobArtifacts` monta caminho a
       partir do resultado do pipeline, não do upload; e o total de 5 thumbnails está fixo à parte
       do `thumbnail.go:22`.
 - [ ] Órfão esgotado vai para o DLQ **sem webhook** (`queue/client.go`, `RecoverStuckJobs`); a API
       só sabe pelo timeout de 45 min.
 - [ ] Erro permanente (vídeo inválido, acima do limite) é tentado 4 vezes como se fosse transitório.
-- [ ] `WEBHOOK_SECRET` é opcional no worker (`config/config.go:34`) e obrigatório na API: vazio,
-      toda entrega toma 401. Deveria falhar no startup.
+- [x] **RESOLVIDO** *(`85bd281`, `notEmpty`)*. ~~`WEBHOOK_SECRET` é opcional no worker (`config/config.go:34`) e obrigatório na API: vazio,
+      toda entrega toma 401. Deveria falhar no startup.~~
 
 **Sujeira no `internal/worker`** (código movido sem mudança em `1e9b466`):
 - [ ] `Run` (`worker.go:94`) gira sem backoff quando `processNextMessage` falha na hora (Redis
@@ -536,13 +539,30 @@ Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Nenhum corrigido ainda.
 - [ ] `VidroProcessor/docs/agents/architecture.md:64` ainda fala em "5-min hard timeout"; hoje é
       `JobTimeout`.
 
+**Achados da onda B** *(2026-10-05, não corrigidos)*:
+- [ ] `VidroApi/.../BackgroundServices/VideoReconciliationService.cs:120-123` publica antes do save
+      em lote (`:53`) — o mesmo bug do `94147fd`, no caller irmão.
+- [ ] `queue/job.go` — `SetJobDone`/`SetJobFailed` ainda recriam estado ausente sem `callback_url`;
+      `RecoverStuckJobs` pula job no `:processing` sem estado, que fica lá para sempre;
+      `GetJobState` reporta qualquer erro do Redis como "job not found".
+- [ ] `internal/webhook/webhook.go:76` — o ramo `if secret != ""` ficou inalcançável com o
+      `WEBHOOK_SECRET` obrigatório.
+- [ ] `docs/troubleshooting-stuck-video.md:56,87` e `VidroProcessor/docs/GETTING_STARTED.md` falam
+      em 3 tentativas / `retry_count 3`; o real é 4 tentativas e `retry_count` 4.
+- [ ] Front, formulários de vídeo: `.max()` sem mensagem em `EditVideoForm.tsx:32-33` e
+      `UploadVideoForm.tsx:50-51`; descrição sem `trim` em `EditVideoForm.tsx:81` e `?? null` em
+      `UploadVideoForm.tsx:224` (mesmo bug do `2ccf91b`).
+- [ ] `VidroFront/docs/agents/conventions.md` diz que os 8 forms usam `FormField` do shadcn; só
+      `SignInForm`/`SignUpForm` usam.
+- [ ] `uploadVideoFile` (`features/videos/api.ts`) não remove o listener de abort do `signal`.
+
 **Front:**
-- [ ] O mesmo PUT presignado sem checar `ok` em `features/users/api.ts:22` e
-      `features/videos/api.ts:158` (o do avatar de canal foi corrigido em `4df47a8`).
-- [ ] `CreateChannelForm.tsx:53` manda `''` em vez de `null` na descrição vazia (os de edição
-      mandam `null`); `:34` sem mensagem própria no `.max()`.
-- [ ] Visibility sem nome acessível: `<Label>` sem `htmlFor` em `CreatePlaylistForm.tsx:108` e
-      `EditPlaylistForm.tsx:99`.
+- [x] **RESOLVIDO** *(`379955e`)*. ~~O mesmo PUT presignado sem checar `ok` em `features/users/api.ts:22` e
+      `features/videos/api.ts:158` (o do avatar de canal foi corrigido em `4df47a8`).~~
+- [x] **RESOLVIDO** *(`2ccf91b`)*. ~~`CreateChannelForm.tsx:53` manda `''` em vez de `null` na descrição vazia (os de edição
+      mandam `null`); `:34` sem mensagem própria no `.max()`.~~
+- [x] **RESOLVIDO** *(`6ec743a`)*. ~~Visibility sem nome acessível: `<Label>` sem `htmlFor` em `CreatePlaylistForm.tsx:108` e
+      `EditPlaylistForm.tsx:99`.~~
 
 ---
 
@@ -933,20 +953,16 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 ## Ordem sugerida
 
-*(Revista em 2026-10-05, depois da onda A.)* Já fechados: P0, P0.1, P1, a fila combinada de
-2026-09-07, SEO + idioma, o `context` atravessando `queue`/`minio`, P-PERF1 a P-PERF5, o laço do
-worker testável, testes de `channels`/`playlists`, a doc do fluxo ponta a ponta e o `const token`.
-O detalhe de cada um está riscado no corpo e resumido no "Fechado até agora" do topo.
+*(Revista em 2026-10-05, depois da onda B.)* Já fechados: P0, P0.1, P1, a fila combinada de
+2026-09-07, SEO + idioma, P-PERF1 a P-PERF5, laço do worker testável, testes de
+`channels`/`playlists`, doc do fluxo ponta a ponta, e os riscos graves de "Confiabilidade do fluxo".
 
-1. **Confiabilidade do fluxo** (P2, seção nova) — os riscos que perdem vídeo ou webhook em
-   silêncio primeiro: timeout de 45 min × retries, `job:<id>` sem `callback_url`, publish antes
-   do `SaveChanges`, `WEBHOOK_SECRET` opcional. As docs que mentem sobre `video_success_queue`
-   saem baratas junto.
-2. **P-OPT1** (P6) — passos 4–7 do pipeline opcionais por env. Depois dele, **P-PERF6**
-   (benchmark), que só é interpretável com o P-PERF5 fechado.
-3. **PUT presignado sem checagem** em `users` e `videos` no front — mesmo bug já corrigido no
-   avatar do canal.
-4. **Tipos gerados do OpenAPI** (P2, parcial) — o drift perigoso já está travado pelo
-   `contracts/enums.json`; o que sobra é muito trabalho para ganho incremental.
+1. **P-OPT1** (P6) — passos 4–7 do pipeline opcionais por env. Depois dele, **P-PERF6**.
+2. **Resto de "Confiabilidade do fluxo"** (P2) — `VideoReconciliationService` publica antes do save,
+   `SetJobDone`/`SetJobFailed`/`RecoverStuckJobs` com estado ausente, circuit breaker fora do
+   `setJobState`, órfão esgotado sem webhook, erro permanente com retry, backoff no `Run`.
+3. **Sujeira de doc e de front** — "3 tentativas" no runbook, `conventions.md` do front sobre
+   `FormField`, os formulários de vídeo (mesmo bug do `2ccf91b`).
+4. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.
 5. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de
-   observabilidade (collector de traces, ver `docs/observabilidade.md`).
+   observabilidade (collector de traces).
