@@ -33,6 +33,8 @@ canal corrigido), `docs/fluxo-ponta-a-ponta.md`, e o `const token` do MinIO expl
 `video_success_queue` removida, `WEBHOOK_SECRET` obrigatório, job publicado só depois do save, job
 sem estado vai para o DLQ, timeout de `Processing` em 90 min travado por contrato, e três correções
 no front (PUT presignado checado, descrição vazia como `null`, Visibility acessível).
+Onda C: **P-OPT1** (passos 4–7 pulados por `ENABLE_*`), reconciliação de uploads salvando antes de
+publicar, formulários de vídeo (descrição `null`, limite nas mensagens), listener de abort do upload.
 Itens marcados `[x]` trazem o commit e o que ficou no lugar.
 
 **Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
@@ -540,8 +542,8 @@ Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Os riscos graves foram fechad
       `JobTimeout`.
 
 **Achados da onda B** *(2026-10-05, não corrigidos)*:
-- [ ] `VidroApi/.../BackgroundServices/VideoReconciliationService.cs:120-123` publica antes do save
-      em lote (`:53`) — o mesmo bug do `94147fd`, no caller irmão.
+- [x] **RESOLVIDO** *(`6ab1353`)* `VideoReconciliationService` publicava antes do save em lote — o mesmo
+      bug do `94147fd`; agora salva → publica → commit por vídeo, dentro de transação.
 - [ ] `queue/job.go` — `SetJobDone`/`SetJobFailed` ainda recriam estado ausente sem `callback_url`;
       `RecoverStuckJobs` pula job no `:processing` sem estado, que fica lá para sempre;
       `GetJobState` reporta qualquer erro do Redis como "job not found".
@@ -549,12 +551,17 @@ Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Os riscos graves foram fechad
       `WEBHOOK_SECRET` obrigatório.
 - [ ] `docs/troubleshooting-stuck-video.md:56,87` e `VidroProcessor/docs/GETTING_STARTED.md` falam
       em 3 tentativas / `retry_count 3`; o real é 4 tentativas e `retry_count` 4.
-- [ ] Front, formulários de vídeo: `.max()` sem mensagem em `EditVideoForm.tsx:32-33` e
+- [x] **RESOLVIDO** *(`8ecdefb`)* Front, formulários de vídeo: `.max()` sem mensagem em `EditVideoForm.tsx:32-33` e
       `UploadVideoForm.tsx:50-51`; descrição sem `trim` em `EditVideoForm.tsx:81` e `?? null` em
       `UploadVideoForm.tsx:224` (mesmo bug do `2ccf91b`).
-- [ ] `VidroFront/docs/agents/conventions.md` diz que os 8 forms usam `FormField` do shadcn; só
+- [x] **RESOLVIDO** *(`8ecdefb`, doc corrigida)* `VidroFront/docs/agents/conventions.md` dizia que os 8 forms usam `FormField` do shadcn; só
       `SignInForm`/`SignUpForm` usam.
-- [ ] `uploadVideoFile` (`features/videos/api.ts`) não remove o listener de abort do `signal`.
+- [x] **RESOLVIDO** *(`dd1bcf3`)* `uploadVideoFile` não removia o listener de abort do `signal`.
+- [ ] Achados da onda C, não corrigidos: `uploadVideoFile` ignora `signal` já abortado; `<Select>` de
+      canal em `UploadVideoForm.tsx` começa `undefined` (warning controlado/não controlado);
+      `ReconcileStuckProcessingAsync` marca `Failed` em lote sem tratamento por vídeo;
+      `VideoProcessed.Handler` devolve erro que o endpoint ignora (sempre 200); logs "Step N/7" do
+      `processor.go` mentem quando há passos pulados.
 
 **Front:**
 - [x] **RESOLVIDO** *(`379955e`)*. ~~O mesmo PUT presignado sem checar `ok` em `features/users/api.ts:22` e
@@ -759,11 +766,12 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 ### 🟡 Prioridade média
 
-- [ ] **P-OPT1: tornar os passos não-críticos opcionais.** Passos 4–7 não são necessários
+- [x] **RESOLVIDO** *(`98600b7`)* flags `ENABLE_THUMBNAILS/AUDIO/PREVIEW/STREAMING` (padrão ligado), contrato
+      já aceitava artefatos omitidos; `JobBudget` segue o valor com tudo ligado. ~~**P-OPT1: tornar os passos não-críticos opcionais.** Passos 4–7 não são necessários
       para toda superfície do produto: hoje o front toca o **MP4 processado** + thumbnails —
       `GetVideo` monta `videoUrl` a partir de `ProcessedPath` e nunca expõe `hlsPath`.
       Config (flags de env) para **pular** qualquer combinação reduz tempo de FFmpeg e escrita
-      no MinIO. Caminho crítico: validate → analyze → transcode → upload.
+      no MinIO. Caminho crítico: validate → analyze → transcode → upload.~~
       **Coordenação com a API:** payload do webhook / `VideoArtifacts` precisa aceitar caminhos
       omitidos onde já são nullable (`HlsPath`), e o handler `VideoProcessed` + cleanup precisam
       tolerar artefato opcional faltando.
@@ -953,16 +961,15 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 ## Ordem sugerida
 
-*(Revista em 2026-10-05, depois da onda B.)* Já fechados: P0, P0.1, P1, a fila combinada de
+*(Revista em 2026-10-05, depois da onda C.)* Já fechados: P-OPT1, reconciliação salvando antes de publicar, formulários de vídeo, P0, P0.1, P1, a fila combinada de
 2026-09-07, SEO + idioma, P-PERF1 a P-PERF5, laço do worker testável, testes de
 `channels`/`playlists`, doc do fluxo ponta a ponta, e os riscos graves de "Confiabilidade do fluxo".
 
-1. **P-OPT1** (P6) — passos 4–7 do pipeline opcionais por env. Depois dele, **P-PERF6**.
-2. **Resto de "Confiabilidade do fluxo"** (P2) — `VideoReconciliationService` publica antes do save,
+1. **P-PERF6** (P6) — benchmark do pipeline, agora com os passos opcionais.
+2. **Resto de "Confiabilidade do fluxo"** (P2) —
    `SetJobDone`/`SetJobFailed`/`RecoverStuckJobs` com estado ausente, circuit breaker fora do
    `setJobState`, órfão esgotado sem webhook, erro permanente com retry, backoff no `Run`.
-3. **Sujeira de doc e de front** — "3 tentativas" no runbook, `conventions.md` do front sobre
-   `FormField`, os formulários de vídeo (mesmo bug do `2ccf91b`).
+3. **Sujeira de doc** — "3 tentativas" no runbook e no `GETTING_STARTED.md` (real: 4).
 4. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.
 5. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de
    observabilidade (collector de traces).
