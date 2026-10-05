@@ -106,7 +106,8 @@ so these never skip themselves. The tests live inside the package so they can po
 on the one-minute ticker.
 
 - `TestSetJobFailed_IncrementsRetryCountAndPersists`
-- `TestSetJobFailed_WithoutExistingState`
+- `TestSetJobDoneAndFailed_WithoutExistingStateRefuseAndCreateNothing` — same rule as `SetJobProcessing`
+- `TestGetJobState_DistinguishesMissingFromRedisFailure` — Redis down is not "job missing"
 - `TestSetJobProcessing_WithoutExistingStateRefusesAndCreatesNothing` — no state, no callback_url: never recreated
 - `TestShouldRetry_Boundary` — initial attempt + `MaxJobRetries` retries
 - `TestPublishJob_QueuesAndRecordsPending`
@@ -116,8 +117,8 @@ on the one-minute ticker.
 - `TestMoveToDLQ_LandsInDeadQueueOnly`
 - `TestRecoverStuckJobs_RequeuesOrphan`
 - `TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ`
-- `TestRecoverStuckJobs_LeavesHealthyAndUnknownJobsAlone` — fresh job, finished job,
-  job whose state expired
+- `TestRecoverStuckJobs_JobWithoutStateGoesToDLQ` — state expired while parked in `:processing`
+- `TestRecoverStuckJobs_LeavesHealthyJobsAlone` — fresh job, finished job
 - `TestQueueOperations_StopOnCanceledContext` — the 10 public entry points, one canceled
   context each: proves the ctx reaches Redis instead of being swallowed for
   `context.Background()` (see design-decisions #13)
@@ -127,7 +128,6 @@ on the one-minute ticker.
 - `TestNotify_Success`
 - `TestNotify_ContentTypeJSON`
 - `TestNotify_WithHMAC_CorrectSignature`
-- `TestNotify_NoSecret_NoHeader`
 - `TestNotify_RetryOnFailure`
 - `TestNotify_ErrorAfter3Attempts`
 - `TestNotify_InvalidURL`

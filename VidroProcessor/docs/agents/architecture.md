@@ -57,6 +57,7 @@ pending ───────────▶ pending(queued) ──────�
 ```
 
 Retries counted on explicit `SetJobFailed` and implicitly by `RecoverStuckJobs` (increments on orphan recovery).
+`SetJobProcessing`, `SetJobDone` and `SetJobFailed` never create `job:<id>` (the `callback_url` lives only there): they return `ErrJobStateMissing`, as does `GetJobState` (any other Redis error propagates unchanged). The worker dead-letters such a job; `RecoverStuckJobs` dead-letters one parked in `:processing` without state.
 
 ## Per-job execution flow
 

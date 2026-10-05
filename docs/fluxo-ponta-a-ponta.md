@@ -43,9 +43,9 @@ Arquivos da API citados abaixo sem pasta moram em `VidroApi/src/VidroApi.Api/Fea
 | Validade da URL de upload (presigned PUT) | 2 h | `appsettings.json:19` (`MinIO:UploadUrlTtlHours`) |
 | Intervalo da reconciliação | 15 min | `appsettings.json:32` |
 | `Processing` vira `Failed` após | 90 min sem `UpdatedAt` novo (pior caso do worker, 80 min, + folga) | `appsettings.json:34`, `VideoSettings.cs`; pior caso em [`contracts/processing-timeout.json`](../contracts/processing-timeout.json) |
-| TTL do `job:<videoId>` no Redis | 24 h | `RedisJobQueueService.cs:32`, `VidroProcessor/queue/job.go:37` |
-| Tentativas por job no worker | 1 + 3 retries (`MaxJobRetries`) | `VidroProcessor/queue/job.go:35`, `ShouldRetry` em `job.go:148` |
-| Orçamento de um job | 18 min (passos 13 min + 5 min de transferência) × `PROCESSING_TIMEOUT_SCALE` | `JobBudget` em `VidroProcessor/internal/processor/processor.go:40` |
+| TTL do `job:<videoId>` no Redis | 24 h | `RedisJobQueueService.cs:32`, `jobTTL` em `VidroProcessor/queue/job.go` |
+| Tentativas por job no worker | 1 + 3 retries (`MaxJobRetries`) | `MaxJobRetries` e `ShouldRetry` em `VidroProcessor/queue/job.go` |
+| Orçamento de um job | 18 min (passos 13 min + 5 min de transferência) × `PROCESSING_TIMEOUT_SCALE` | `JobBudget` em `VidroProcessor/internal/processor/processor.go` |
 | Lease órfão volta para a fila após | orçamento + 1 min, checado a cada 1 min | `OrphanThreshold` em `internal/worker/worker.go`, `RecoveryInterval` em `queue/client.go` |
 | Webhook `video-processed` | 3 tentativas, timeout 10 s cada, espera 1 s e 4 s | `VidroProcessor/internal/webhook/webhook.go:33,49-58` |
 | Circuit breaker Redis (worker) | abre com 3 falhas seguidas, 30 s aberto | `internal/circuitbreaker/circuitbreaker.go:41-56` |
@@ -166,10 +166,10 @@ Dentro do mesmo handler (`MinioUploadCompleted.cs`, `Handle`), numa transação,
 
 1. Baixa `raw/<videoId>` — `StatObject` + checagem de tamanho + `GetObject`
    (`minio/client.go`, `downloadVideo`).
-2. Pipeline (`processor.ProcessVideo`, `processor.go:138-189`): `validate` e `transcode` são
+2. Pipeline (`processor.ProcessVideo`): `validate` e `transcode` são
    **críticos** (falha = job falha); `analyze` é semi-crítico (falha = sem metadata); thumbnails,
    áudio, preview e HLS são **não-críticos** (falha = log `Warn` e segue sem o artefato). Cada
-   passo tem timeout próprio (`processor.go:22-29`).
+   passo tem timeout próprio (constantes `stepTimeout*` em `processor.go`).
 3. Sobe `processed/<videoId>_processed` (crítico).
 4. Move `raw/<videoId>` → `raw-archived/<videoId>` (copy + remove; falha só loga).
 5. Sobe os opcionais; falha de upload só loga.
@@ -188,7 +188,7 @@ Dentro do mesmo handler (`MinioUploadCompleted.cs`, `Handle`), numa transação,
 | `hls/<videoId>/…` | worker | `.m3u8` + `.ts`; a API ainda não expõe (P6) |
 
 **Falha e retry** (o `defer` de bookkeeping em `processNextMessage`): qualquer erro crítico →
-`SetJobFailed` (`retry_count++`, `error`) → se `retry_count <= 3`, `RequeueJob` (`LPUSH` de novo,
+`SetJobFailed` (`retry_count++`, `error`; nunca recria um `job:<id>` ausente, devolve `ErrJobStateMissing`) → se `retry_count <= 3` (4 tentativas no total), `RequeueJob` (`LPUSH` de novo,
 `status: pending`); senão `LPUSH video_queue:dead` e webhook de falha. Em todos os casos, `LREM`
 do lease. Essas escritas usam um contexto que sobrevive ao cancelamento do job e ao SIGTERM, com
 teto de 10 s (`bookkeepingTimeout`).
@@ -210,11 +210,11 @@ teto de 10 s (`bookkeepingTimeout`).
 
 - **Payload:** os goldens em [`contracts/`](../contracts/README.md) — sucesso completo, sucesso
   mínimo, sucesso sem `processedPath` e falha. Montado por `buildWebhookPayload` a partir do
-  `job:`; o tipo é `webhook.Payload` (`internal/webhook/webhook.go:18-31`), camelCase, opcionais
+  `job:`; o tipo é `webhook.Payload` (`webhook.Payload`), camelCase, opcionais
   omitidos. `success` é `status == done`. `thumbnailPaths` são sempre os 5 nomes fixos.
 - **Headers:** `Content-Type: application/json`; `X-Webhook-Signature: sha256=<hex>` — HMAC-SHA256
-  do corpo cru com `WEBHOOK_SECRET` (`webhook.go:76-80`); `X-Correlation-ID` com o
-  `correlation_id` do job (`webhook.go:72-74`), que a API reaproveita no log dela.
+  do corpo cru com `WEBHOOK_SECRET` (`send` em `webhook.go`; o segredo é obrigatório, a assinatura sempre vai); `X-Correlation-ID` com o
+  `correlation_id` do job (`send` em `webhook.go`), que a API reaproveita no log dela.
 - **Verificação na API:** HMAC do corpo cru com `Webhook:Secret`, comparação em tempo constante
   (`VideoProcessed.cs:46-51,70-78`). Errado ou ausente → 401. No worker o segredo é **obrigatório**
   (`WebhookSecret` em `VidroProcessor/config/config.go`, `notEmpty`): sem ele o worker não sobe —

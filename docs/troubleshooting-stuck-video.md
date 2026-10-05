@@ -21,7 +21,7 @@ There are exactly four handoffs, and the symptom tells you which one to look at 
 | `Processing`, id **not** in any Redis queue, no `job:<id>` key | API → Redis (job never published) | Step 2 |
 | `Processing`, id sitting in `<queue>` | Nothing consuming | Step 4 |
 | `Processing`, id sitting in `<queue>:processing` | Worker holds it — running, or crashed mid-job | Step 3, then Step 4 |
-| `Processing`, id in `<queue>:dead` | Worker gave up after `MaxJobRetries = 3` | Step 3 |
+| `Processing`, id in `<queue>:dead` | Worker gave up after 4 attempts (`MaxJobRetries = 3` retries) | Step 3 |
 | `Processing`, id in `<queue>:dead`, **no** `job:<id>` | The job record expired or was deleted before a worker took it; dead-lettered unprocessed | Step 7 |
 | `Processing`, `job:<id>` says `done` | Worker finished, the webhook never landed | Step 6 |
 | Flipped to `Failed` ~90 min in, no worker error | The API's reconciliation timeout fired | Step 6 |
@@ -54,7 +54,7 @@ docker compose exec redis redis-cli GET job:<videoId> | jq
 {
   "status": "pending | processing | done | failed",
   "error": "...",            // set on failed
-  "retry_count": 0,          // 3 = exhausted, moved to the DLQ
+  "retry_count": 0,          // 4 = exhausted (1st attempt + 3 retries), moved to the DLQ
   "callback_url": "http://api:5000/webhooks/video-processed",
   "created_at": 0, "updated_at": 0
 }
@@ -84,8 +84,9 @@ docker compose exec redis redis-cli LRANGE video_queue:dead 0 -1
 - **In `video_queue:processing`** — a worker took the lease. Either it is genuinely running (normal
   for up to the whole-job budget, 18 min at scale 1) or it died holding it. `StartRecovery` sweeps
   every minute and re-queues anything in flight beyond `jobTimeout + 1min`, so wait that long before
-  concluding anything. See [design-decisions.md #1](../VidroProcessor/docs/agents/design-decisions.md#1-redis-brpoplpush-instead-of-streams--plain-brpop).
-- **In `video_queue:dead`** — three attempts failed. `job:<id>.error` holds the last one. **Nothing
+  concluding anything. An id in `:processing` whose `job:<id>` is gone is dead-lettered by the
+  next sweep (no `callback_url`, nothing to retry), so it will show up in `:dead`. See [design-decisions.md #1](../VidroProcessor/docs/agents/design-decisions.md#1-redis-brpoplpush-instead-of-streams--plain-brpop).
+- **In `video_queue:dead`** — all four attempts failed (the first plus `MaxJobRetries = 3` retries, so `retry_count` is 4). `job:<id>.error` holds the last one. **Nothing
   drains the DLQ automatically, on purpose** ([#2](../VidroProcessor/docs/agents/design-decisions.md#2-retry-in-place-then-dead-letter)):
   a job here is waiting for a human. Do not add an auto-drain — it would hide the bug.
   **No `job:<id>` at all and no retries in the log** means the record was gone when a worker took

@@ -111,7 +111,7 @@ Logs appear in the terminal where you ran `go run main.go`:
 Step 1/7: Validating video
 Step 2/7: Analyzing content
 Step 3/7: Transcoding video
-...
+...   (N/M counts only the enabled steps: with ENABLE_* flags off, M is lower)
 Video processed successfully
 ```
 
@@ -230,7 +230,7 @@ redis-cli SET job:non-existent-video '{"status":"pending","retry_count":0}' EX 8
 redis-cli LPUSH video_queue "non-existent-video"
 ```
 
-The worker will try 3 times and then move the job to the Dead Letter Queue:
+The worker makes 4 attempts (the first plus 3 retries) and then move the job to the Dead Letter Queue:
 
 ```bash
 # View jobs in DLQ
