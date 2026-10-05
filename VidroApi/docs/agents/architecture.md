@@ -119,7 +119,7 @@ VideoProcessor = separate service at `../VidroProcessor`. Integration points:
 
 1. **Upload** — API writes raw video to MinIO at `raw/{videoId}` via presigned PUT URL (client uploads directly, never through API).
 2. **Enqueue** — `IJobQueueService.PublishJobAsync(videoId, callbackUrl, correlationId)` writes `job:{videoId}` key to Redis, pushes `videoId` to `video_queue`. `MinioUploadCompleted` publishes inside the transaction that marks the video `Processing` (save → publish → commit) — [design-decisions.md #14](design-decisions.md#14-the-job-is-published-inside-the-transaction-that-marks-the-video-processing).
-3. **Webhook** — VideoProcessor calls `POST /webhooks/video-processed` when done. Validated with HMAC-SHA256 (`X-Webhook-Signature: sha256=...`). Secret shared via `Webhook:Secret` config. Always answers 200 once the signature is valid (the worker retries any non-2xx): an unknown video or one not in `Processing` is logged and ignored, never an error response.
+3. **Webhook** — VideoProcessor calls `POST /webhooks/video-processed` when done. Validated with HMAC-SHA256 (`X-Webhook-Signature: sha256=...`). Secret shared via `Webhook:Secret` config. Answers 200 once the signature is valid (the worker retries any non-2xx): an unknown video or one not in `Processing` is logged and ignored, never an error response. The only exception is a signed body that is not valid JSON: 400, since no retry can fix it.
 
 ### MinIO object paths (shared contract with VideoProcessor)
 

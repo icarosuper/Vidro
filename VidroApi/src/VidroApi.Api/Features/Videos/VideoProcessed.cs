@@ -47,16 +47,29 @@ public static class VideoProcessed
             if (signatureIsInvalid)
                 return Results.Unauthorized();
 
-            var cmd = JsonSerializer.Deserialize<Command>(rawBody, JsonOptions);
+            var cmd = TryDeserialize(rawBody);
             if (cmd is null)
                 return Results.BadRequest();
 
-            // Always 200: the worker retries any non-2xx (webhook.go), and an unknown video or one
-            // no longer in Processing is a permanent mismatch that a retry cannot fix. The handler
-            // logs why it ignored the payload.
+            // 200 for everything that is not a malformed body: the worker retries any non-2xx
+            // (webhook.go), and an unknown video or one no longer in Processing is a permanent
+            // mismatch that a retry cannot fix. The handler logs why it ignored the payload.
             await mediator.Send(cmd, ct);
             return Results.Ok();
         });
+
+    // A signed but malformed body is permanent: 400 rather than an unhandled JsonException (500).
+    private static Command? TryDeserialize(byte[] rawBody)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<Command>(rawBody, JsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 
     private static async Task<byte[]> ReadRawBodyAsync(HttpContext ctx, CancellationToken ct)
     {

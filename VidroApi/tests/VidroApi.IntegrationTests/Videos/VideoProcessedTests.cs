@@ -167,6 +167,14 @@ public class VideoProcessedTests(ApiFactory factory) : IClassFixture<ApiFactory>
         body.GetProperty("data").GetProperty("status").GetProperty("value").GetString().Should().Be("Failed");
     }
 
+    [Fact]
+    public async Task VideoProcessed_WithSignedMalformedJson_Returns400()
+    {
+        var response = await SendRawWebhookAsync("{ not json", WebhookSecret);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     private async Task<HttpResponseMessage> SendRawWebhookAsync(string payload, string secret)
     {
         var signature = ComputeHmacSignature(Encoding.UTF8.GetBytes(payload), secret);
