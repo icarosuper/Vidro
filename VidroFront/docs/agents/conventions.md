@@ -134,6 +134,10 @@ vê qual botão, o que aparece no erro) sem `QueryClientProvider`, sem servidor 
 - Consulte por papel e nome acessível (`getByRole('button', { name: 'Edit' })`), não por classe.
   Botão que só tem ícone não tem nome acessível — se o teste não consegue encontrá-lo, o leitor de
   tela também não, e a correção é no componente.
+- Componente com `<Link>` do TanStack Router precisa de contexto de router para renderizar.
+  Em vez de montar um router, troque o `Link` por um `<a>` com
+  `vi.mock('@tanstack/react-router', ...)` — exemplo em
+  [`src/tests/playlist-components.test.tsx`](../../src/tests/playlist-components.test.tsx).
 
 Exemplo completo: [`src/tests/comment-list.test.tsx`](../../src/tests/comment-list.test.tsx).
 
