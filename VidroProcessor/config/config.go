@@ -31,7 +31,9 @@ type Config struct {
 	OTelServiceName string `env:"OTEL_SERVICE_NAME" envDefault:"video-processor"` // service name in traces
 
 	// Webhook
-	WebhookSecret string `env:"WEBHOOK_SECRET"` // optional: signs requests with HMAC-SHA256
+	// WebhookSecret signs the callback with HMAC-SHA256. Required: the API rejects every
+	// unsigned delivery with 401, so an empty secret would fail every job notification silently.
+	WebhookSecret string `env:"WEBHOOK_SECRET,notEmpty"`
 
 	// Workers
 	WorkerCount int `env:"WORKER_COUNT" envDefault:"0"`

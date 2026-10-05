@@ -77,7 +77,7 @@ deliberate upper bound — the per-step timeouts are the real limits.
 
 | Variable | Default | Description |
 |---|---|---|
-| `WEBHOOK_SECRET` | `""` = unsigned | Signs the callback with HMAC-SHA256. Empty is fine in local dev; **must** be set in production. There is no `WEBHOOK_URL`: the callback URL arrives per job, in the queue payload, from the API's `Api:BaseUrl` |
+| `WEBHOOK_SECRET` | — **required** | Signs the callback with HMAC-SHA256. **Must match the API's `Webhook:Secret`** (`dev-webhook-secret` in the compose). Required since 2026-10-05: the API rejects unsigned deliveries with 401, so an empty secret meant every webhook failed and every video ended `Failed` by the API's timeout — now the worker refuses to start instead. There is no `WEBHOOK_URL`: the callback URL arrives per job, in the queue payload, from the API's `Api:BaseUrl` |
 
 ## Observability
 

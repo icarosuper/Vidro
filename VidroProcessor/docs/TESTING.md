@@ -19,7 +19,8 @@ pipeline-step tests skip themselves and the number reads lower.
 | `metrics` | — (no statements) | Unit |
 | `test/integration` | — | Integration |
 
-**No tests**: `config`
+`config` has one test, `TestConfig_RequiresWebhookSecret` (the `notEmpty` tag via `env.Parse`);
+`LoadConfig` itself calls `log.Fatalf` and stays untested.
 
 ---
 
