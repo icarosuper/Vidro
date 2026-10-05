@@ -15,6 +15,9 @@ public class FakeJobQueueService(AppDbContext db) : IJobQueueService
     /// <summary>Video ids whose publish throws, standing in for Redis being down.</summary>
     public static readonly HashSet<string> FailingVideoIds = [];
 
+    /// <summary>Video ids whose publish is cancelled, standing in for a shutdown mid-publish.</summary>
+    public static readonly HashSet<string> CancellingVideoIds = [];
+
     public async Task PublishJobAsync(string videoId, string callbackUrl, string correlationId, CancellationToken ct = default)
     {
         bool publishFails;
@@ -22,6 +25,12 @@ public class FakeJobQueueService(AppDbContext db) : IJobQueueService
             publishFails = FailingVideoIds.Contains(videoId);
         if (publishFails)
             throw new InvalidOperationException($"Simulated Redis failure publishing {videoId}");
+
+        bool publishIsCancelled;
+        lock (CancellingVideoIds)
+            publishIsCancelled = CancellingVideoIds.Contains(videoId);
+        if (publishIsCancelled)
+            throw new OperationCanceledException();
 
         var savedStatus = await db.Videos.AsNoTracking()
             .Where(v => v.Id == Guid.Parse(videoId))

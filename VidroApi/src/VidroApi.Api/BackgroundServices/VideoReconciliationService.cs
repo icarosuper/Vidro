@@ -149,7 +149,7 @@ public class VideoReconciliationService(
                 await db.SaveChangesAsync(ct);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Drop the unsaved change, or the next video's SaveChanges would persist it anyway.
             db.Entry(video).State = EntityState.Detached;

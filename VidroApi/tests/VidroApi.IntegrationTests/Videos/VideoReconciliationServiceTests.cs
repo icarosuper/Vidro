@@ -50,6 +50,19 @@ public class VideoReconciliationServiceTests(ApiFactory factory) : IClassFixture
     }
 
     [Fact]
+    public async Task ReconcileStaleUploads_WhenCancelledMidVideo_PropagatesCancellationInsteadOfLoggingAnError()
+    {
+        var videoId = await CreateStaleVideoWithRawObject();
+        lock (FakeJobQueueService.CancellingVideoIds)
+            FakeJobQueueService.CancellingVideoIds.Add(videoId.ToString());
+
+        var run = () => RunReconciliationAsync();
+
+        await run.Should().ThrowAsync<OperationCanceledException>();
+        (await ReadStatusAsync(videoId)).Should().Be(VideoStatus.PendingUpload);
+    }
+
+    [Fact]
     public async Task ReconcileStaleUploads_WithoutRawObject_MarksVideoFailed()
     {
         var videoId = await CreateStaleVideo();
