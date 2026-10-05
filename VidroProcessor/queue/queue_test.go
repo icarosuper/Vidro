@@ -347,6 +347,37 @@ func TestRecoverStuckJobs_FailedRequeueIsRetriedOnNextSweep(t *testing.T) {
 	}
 }
 
+// TestRecoverStuckJobs_FailedDeadLetterMoveIsRetriedOnNextSweep: same rule as the re-queue
+// branch. A Failed state written before a failed move would strand the job in :processing.
+func TestRecoverStuckJobs_FailedDeadLetterMoveIsRetriedOnNextSweep(t *testing.T) {
+	mr := setupRedis(t)
+	parkInProcessing(t, "vid", JobStatusProcessing, MaxJobRetries, time.Hour)
+
+	mr.Server().SetPreHook(func(c *server.Peer, cmd string, args ...string) bool {
+		if cmd == "EXEC" {
+			c.Close()
+			return true
+		}
+		return false
+	})
+	RecoverStuckJobs(t.Context(), 30*time.Minute)
+
+	state, err := GetJobState(t.Context(), "vid")
+	if err != nil {
+		t.Fatalf("GetJobState: %v", err)
+	}
+	if state.Status != JobStatusProcessing {
+		t.Fatalf("Status = %q after failed move, want %q", state.Status, JobStatusProcessing)
+	}
+
+	mr.Server().SetPreHook(nil)
+	RecoverStuckJobs(t.Context(), 30*time.Minute)
+
+	if got := listOf(t, deadLetterQueueName()); len(got) != 1 || got[0] != "vid" {
+		t.Fatalf("dead letter queue = %v, want [vid] after the second sweep", got)
+	}
+}
+
 // TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ covers the mirror of the
 // worker's failure path: a video that hangs the worker orphans every time, so
 // without a budget check recovery would re-queue it forever.

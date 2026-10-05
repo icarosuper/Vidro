@@ -130,12 +130,14 @@ func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration) {
 			log.Error().Str("videoID", videoID).Int("retry_count", state.RetryCount).Msg("Orphan job exhausted retries, moving to dead letter queue")
 			state.Status = JobStatusFailed
 			state.Error = "orphaned repeatedly: retries exhausted during recovery"
-			if err := setJobState(ctx, videoID, *state); err != nil {
-				log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update state during recovery")
-				continue
-			}
+			// Move first, state second, same reason as the re-queue branch below: a Failed
+			// state left in :processing after a failed move would be skipped by the sweep forever.
 			if err := moveFromProcessing(ctx, videoID, deadLetterQueueName()); err != nil {
 				log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to move orphan job to dead letter queue")
+				continue
+			}
+			if err := setJobState(ctx, videoID, *state); err != nil {
+				log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update state after dead-lettering orphan job")
 			}
 			continue
 		}
