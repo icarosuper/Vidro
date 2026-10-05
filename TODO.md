@@ -27,6 +27,9 @@ build**, os quatro verdes.
 SEO (`head` por rota) + UI fixada em inglês, nome acessível nos controles só de ícone, teste
 de carga com k6, primeiros testes de renderização (`CommentList`), planos de fase concluída
 apagados, e o bug do `cancelBookkeeping` no worker corrigido.
+*(2026-10-05)* laço do worker testável em `internal/worker` (regressão do #13 e crash → recovery
+travados por teste), testes de `channels`/`playlists` no front (com o bug do upload do avatar do
+canal corrigido), `docs/fluxo-ponta-a-ponta.md`, e o `const token` do MinIO explicado.
 Itens marcados `[x]` trazem o commit e o que ficou no lugar.
 
 **Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
@@ -290,7 +293,13 @@ Os 7 steps do pipeline têm todos `_test.go`, o que faz parecer bem coberto. Mas
 - [x] ~~**`queue/` (283 linhas, `client.go` + `job.go`) — zero testes unitários.**~~
       **RESOLVIDO** — `VidroProcessor` `8d1b98d`. 12 testes em `queue/queue_test.go`,
       cobertura 0% → **60.3%**, rodando em 8ms.
-- [ ] **O laço do worker mora no `package main`, então nada consegue testá-lo** *(achado em
+- [x] ~~**O laço do worker mora no `package main`, então nada consegue testá-lo**~~ **RESOLVIDO**
+      *(2026-10-05, `1e9b466`)* — o laço virou `internal/worker` (`worker.New` + `Run`; o `main.go`
+      ficou só com a fiação). Seam: interface `storage` com as 5 chamadas de MinIO e o pipeline
+      como campo `processVideo`; Redis continua real via `miniredis`. Três testes em
+      `internal/worker/worker_test.go` travam o #13 (job falho sai do `:processing` e reentra ou vai
+      para o DLQ; job concluído é ackado) e o caminho de crash (ver o item abaixo). **Verificado por
+      mutação:** recolocar o `defer cancelBookkeeping()` no pai derruba os três. *(achado em
       2026-09-13)*. `test/integration` não importa `main`, e dirigir `processNextMessage` pede Redis
       **e** MinIO. Foi por isso que o bug do `cancelBookkeeping` (design-decisions #13 do Processor)
       passou: o pai cancelava o contexto que a goroutine ainda usava para fechar o job — job falho
@@ -298,7 +307,11 @@ Os 7 steps do pipeline têm todos `_test.go`, o que faz parecer bem coberto. Mas
       orphan recovery reprocessá-lo. Corrigido e verificado na stack, mas a regressão só tem
       **check manual** (`VidroProcessor/docs/TESTING.md`). Mover o laço para um pacote importável é
       o que destrava um teste de verdade — e destrava junto o item logo abaixo.
-- [ ] Os testes de integração de fila (`test/integration/queue_test.go`) cobrem só
+- [x] ~~Os testes de integração de fila cobrem só caminho feliz~~ **RESOLVIDO** *(2026-10-05)* pelo
+      `TestWorker_CrashMidJobIsRecoveredAndReprocessed`: worker trava no meio → job sobrevive no
+      `:processing` → `queue.RecoverStuckJobs` (exportado para o teste) reenfileira → outro worker
+      conclui. O `test/integration/queue_test.go` continua testando a biblioteca, sem valor novo.
+      Texto original: os testes de integração de fila (`test/integration/queue_test.go`) cobrem só
       caminho feliz: `PublishAndConsume`, `MultipleMessages`, `EmptyQueue`,
       `SuccessQueue`. Nenhum de falha — e **nenhum deles importa o pacote `queue`**:
       falam com o `go-redis` direto, ou seja, testam a biblioteca, não o nosso código.
@@ -350,7 +363,12 @@ Os 7 steps do pipeline têm todos `_test.go`, o que faz parecer bem coberto. Mas
       React resolve pela condição `react-server` e chega ao teste com o dispatcher de hooks nulo —
       todo `render` morre em `useState`. O config de teste carrega só `tsconfigPaths` + `viteReact`.
       Padrão registrado em `VidroFront/docs/agents/conventions.md` (seção "Teste de componente").
-- [~] Features **`channels` e `playlists` continuam sem teste nenhum**; `comments` passou a ter os
+- [x] ~~Features `channels` e `playlists` sem teste~~ **RESOLVIDO** *(2026-10-05, `b6c81c9`)* —
+      32 testes em 4 arquivos (API + componentes), 12 mutações verificadas. Achou um bug real,
+      corrigido em `4df47a8`: `uploadChannelAvatar` não checava a resposta do PUT presignado e um
+      403 do storage virava sucesso. **O mesmo PUT sem checagem segue em
+      `features/users/api.ts:22` e `features/videos/api.ts:158`.**
+      Histórico: `comments` passou a ter os
       4 de renderização do `CommentList.tsx`, que é o componente mais complexo do app.
       Cobertos: Edit/Delete só no comentário do próprio usuário (o `isOwner`, que já esteve quebrado
       por `currentUserId` errado), comentário apagado como lápide sem ações, deslogado sem form nem
@@ -474,6 +492,58 @@ migração destrava".
       stack — mas cada lado testa o próprio nome de campo, que é exatamente a classe de drift que só
       um golden pega. Candidato natural a `contracts/job-state.json`.)*
 
+### Confiabilidade do fluxo — achados da doc ponta a ponta *(2026-10-05)*
+
+Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Nenhum corrigido ainda.
+
+**Doc/comentário que mente:**
+- [ ] **Ninguém consome `video_success_queue`.** O worker publica (`VidroProcessor/queue/client.go`,
+      `PublishSuccessMessage`), nenhum código da API lê. Afirmam o contrário:
+      `docs/troubleshooting-stuck-video.md:164,192`, `VidroProcessor/docs/agents/architecture.md:39`,
+      `design-decisions.md:113`. Decidir: corrigir as docs ou parar de publicar.
+- [ ] O comentário em `internal/circuitbreaker/circuitbreaker.go:19` diz que o breaker do Redis
+      cobre "job state"; `setJobState` (`queue/job.go`) e o recovery chamam o Redis direto. Idem
+      os `LRem`/`LPush` de `RecoverStuckJobs`, que ainda ignoram o erro — e o `conventions.md` diz
+      que toda chamada Redis passa pelo breaker.
+- [ ] `docs/observabilidade.md` diz que os logs do worker levam `correlationID`; os de
+      `notifyWebhook` e `RecoverStuckJobs` usam o logger global e saem sem.
+
+**Riscos de comportamento:**
+- [ ] **Timeout de 45 min da API dimensionado para uma tentativa** (`VideoSettings.cs:9-14`). Job
+      que usa os retries passa disso → vídeo vira `Failed` → o webhook de sucesso posterior é
+      descartado em silêncio (200).
+- [ ] **`job:<id>` expirado ou apagado** → `SetJobProcessing` (`queue/job.go`) recria o estado sem
+      `callback_url` → o vídeo é processado e ninguém é avisado.
+- [ ] **`MinioUploadCompleted.cs:89-91` publica na fila antes do `SaveChanges`.** Se o save
+      falhar, o job roda e o webhook é ignorado; a reconciliação depois marca `Failed`.
+- [ ] **Falha depois do arquivamento do raw não tem retry possível:** se o publish de sucesso
+      falha, `raw/<id>` já foi para `raw-archived/`, todo retry falha no download e o vídeo vira
+      `Failed` com os artefatos no bucket.
+- [ ] **Webhook pode apontar para arquivo inexistente:** `buildJobArtifacts` monta caminho a
+      partir do resultado do pipeline, não do upload; e o total de 5 thumbnails está fixo à parte
+      do `thumbnail.go:22`.
+- [ ] Órfão esgotado vai para o DLQ **sem webhook** (`queue/client.go`, `RecoverStuckJobs`); a API
+      só sabe pelo timeout de 45 min.
+- [ ] Erro permanente (vídeo inválido, acima do limite) é tentado 4 vezes como se fosse transitório.
+- [ ] `WEBHOOK_SECRET` é opcional no worker (`config/config.go:34`) e obrigatório na API: vazio,
+      toda entrega toma 401. Deveria falhar no startup.
+
+**Sujeira no `internal/worker`** (código movido sem mudança em `1e9b466`):
+- [ ] `Run` (`worker.go:94`) gira sem backoff quando `processNextMessage` falha na hora (Redis
+      fora, breaker aberto).
+- [ ] `worker.go:117` — `if msg == nil` é inalcançável; `worker.go:129,299` têm chamada inline
+      dentro do `if` (regra de legibilidade da raiz).
+- [ ] `VidroProcessor/docs/agents/architecture.md:64` ainda fala em "5-min hard timeout"; hoje é
+      `JobTimeout`.
+
+**Front:**
+- [ ] O mesmo PUT presignado sem checar `ok` em `features/users/api.ts:22` e
+      `features/videos/api.ts:158` (o do avatar de canal foi corrigido em `4df47a8`).
+- [ ] `CreateChannelForm.tsx:53` manda `''` em vez de `null` na descrição vazia (os de edição
+      mandam `null`); `:34` sem mensagem própria no `.max()`.
+- [ ] Visibility sem nome acessível: `<Label>` sem `htmlFor` em `CreatePlaylistForm.tsx:108` e
+      `EditPlaylistForm.tsx:99`.
+
 ---
 
 ## P3 — UI / UX do frontend
@@ -584,7 +654,11 @@ toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerent
 
 - [x] **README na raiz** *(2026-08-30)* — o que é o Vidro, os três serviços, como subir o stack,
       portas/credenciais, testes, convenções e índice das docs da raiz.
-- [ ] **Não existe doc do fluxo ponta a ponta.** Cada serviço documenta a própria caixa;
+- [x] ~~**Não existe doc do fluxo ponta a ponta.**~~ **RESOLVIDO** *(2026-10-05, `9fec5e8`)* —
+      [`docs/fluxo-ponta-a-ponta.md`](docs/fluxo-ponta-a-ponta.md): estados, tempos e limites, as 8
+      passagens com payload/idempotência/falha, e "quem conserta o quê". Escrevê-la achou 11
+      divergências e riscos — ver "Confiabilidade do fluxo" no P2.
+      Texto original: não existia doc do fluxo ponta a ponta. Cada serviço documenta a própria caixa;
       o caminho que importa — upload → presigned PUT → webhook `minio-upload-completed`
       → fila Redis → pipeline → webhook `video-processed` → HLS no player — atravessa
       os três. É a coisa mais difícil de reconstruir sozinho.
@@ -848,7 +922,9 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
       > **60.3% → 75.8%**. **Verificado por mutação:** voltar o `client.Get` do `GetJobState`
       > para `context.Background()` quebra o subteste de `GetJobState`.
 
-- [ ] `VidroProcessor/minio/client.go:34` — `const token = "" // TODO: Ver se precisa
+- [x] ~~`VidroProcessor/minio/client.go:34` — `const token = ""`~~ **RESOLVIDO** *(2026-10-05,
+      `9969632`)* — virou `staticCredentialsSessionToken`, com o porquê (session token só vale
+      para credencial temporária do STS). Texto original: `const token = "" // TODO: Ver se precisa
       adicionar esse token`. **É o único marcador TODO/FIXME/HACK/BUG em todo o
       código dos três repos** (varredura em `.cs`, `.ts`, `.tsx`, `.go`, `.json`,
       `.css`) — o código é limpo nesse aspecto; os bugs registrados estavam só nos docs.
@@ -857,23 +933,20 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 ## Ordem sugerida
 
-*(Revista em 2026-10-05.)* Já fechados: P0, P0.1, P1, a fila combinada de 2026-09-07, SEO +
-idioma, o `context` atravessando `queue`/`minio`, P-PERF1 a P-PERF5. O detalhe de cada um está
-riscado no corpo e resumido no "Fechado até agora" do topo.
+*(Revista em 2026-10-05, depois da onda A.)* Já fechados: P0, P0.1, P1, a fila combinada de
+2026-09-07, SEO + idioma, o `context` atravessando `queue`/`minio`, P-PERF1 a P-PERF5, o laço do
+worker testável, testes de `channels`/`playlists`, a doc do fluxo ponta a ponta e o `const token`.
+O detalhe de cada um está riscado no corpo e resumido no "Fechado até agora" do topo.
 
-1. **Tirar o laço do worker do `package main`** (P2, Processor). Maior retorno: o bug do
-   `cancelBookkeeping` passou porque nada alcança `processNextMessage`, e a regressão só tem
-   check manual. Destrava junto o teste de falha ponta a ponta da fila (worker morre no meio →
-   job sobrevive no `:processing` → recovery pega).
+1. **Confiabilidade do fluxo** (P2, seção nova) — os riscos que perdem vídeo ou webhook em
+   silêncio primeiro: timeout de 45 min × retries, `job:<id>` sem `callback_url`, publish antes
+   do `SaveChanges`, `WEBHOOK_SECRET` opcional. As docs que mentem sobre `video_success_queue`
+   saem baratas junto.
 2. **P-OPT1** (P6) — passos 4–7 do pipeline opcionais por env. Depois dele, **P-PERF6**
    (benchmark), que só é interpretável com o P-PERF5 fechado.
-3. **Doc do fluxo ponta a ponta** (P4) — shape de cada payload, retries e o que acontece quando
-   cada handoff falha. O mapa já está no `README.md` da raiz.
-4. **Cobertura do front** (P2) — `channels` e `playlists` sem teste nenhum; o harness de
-   renderização já existe.
-5. **Sujeira:** o `const token` em `VidroProcessor/minio/client.go:34`.
-6. **Tipos gerados do OpenAPI** (P2, parcial) — o drift perigoso já está travado pelo
-   `contracts/enums.json`; o que sobra (respostas declaradas nas 43 features, schema ID por
-   feature, enums com valores) é muito trabalho para ganho incremental.
-7. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de
+3. **PUT presignado sem checagem** em `users` e `videos` no front — mesmo bug já corrigido no
+   avatar do canal.
+4. **Tipos gerados do OpenAPI** (P2, parcial) — o drift perigoso já está travado pelo
+   `contracts/enums.json`; o que sobra é muito trabalho para ganho incremental.
+5. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de
    observabilidade (collector de traces, ver `docs/observabilidade.md`).
