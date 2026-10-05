@@ -143,4 +143,14 @@ já cobre não é "de passagem", é o trabalho.
 2. **Atualizar as docs afetadas na mesma leva** — o gatilho de cada arquivo está no `CLAUDE.md` do
    serviço. Doc desatualizada custa mais que código faltando: o `TODO.md` desta raiz tem uma seção
    inteira ("Documentação que mente") que só existiu por isso.
+   As docs da **raiz** também têm gatilho:
+   - **`TODO.md`** — a task fecha, avança ou descobre um item: riscar/atualizar o item no corpo
+     **e** o resumo "Fechado até agora" do topo **e** a "Ordem sugerida" do fim. Os três juntos —
+     riscar só o corpo foi o que deixou a ordem sugerida apontando para trabalho já feito.
+   - **`docs/observabilidade.md`, `docs/padroes-a-importar.md`, `docs/MONOREPO.md`** — fechou um
+     furo, degrau ou item que eles listam: marcar ✅ lá também, inclusive na "Ordem sugerida" e
+     na seção "O que já existe" quando houver.
+   - **`README.md`** — mudou porta, comando, fluxo entre serviços ou arquivo de doc da raiz.
+   - Antes de sugerir o commit, `grep` pelo nome do item/arquivo nas docs da raiz e do serviço:
+     doc que ainda o chama de "falta" ou "próximo" está mentindo.
 3. **Sugerir o título do commit** e parar.

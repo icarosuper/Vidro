@@ -19,12 +19,24 @@ fail-fast vs. anomalia+ACK** escrita no `conventions.md` da API, o **Biome ligad
 front** (lint + formatter, com a regra de ternário da raiz relaxada para permitir uma linha)
 e o **`noUncheckedIndexedAccess`**. O workflow do front hoje roda **lint → typecheck → test →
 build**, os quatro verdes.
+*(2026-09-09)* golden dos seis enums em `contracts/enums.json` + `openapi/v1.json` versionado
+(parcial do item de tipos gerados), `context` do job atravessando `queue/` e `minio/`
+(`contextcheck` ligado), log do worker em JSON filtrável por `videoID`/`workerID`,
+`X-Correlation-ID` em toda chamada do front, pacotes com vulnerabilidade alta atualizados.
+*(2026-09-13)* métricas da API no Prometheus, correlation id da API até os logs do worker,
+SEO (`head` por rota) + UI fixada em inglês, nome acessível nos controles só de ícone, teste
+de carga com k6, primeiros testes de renderização (`CommentList`), planos de fase concluída
+apagados, e o bug do `cancelBookkeeping` no worker corrigido.
 Itens marcados `[x]` trazem o commit e o que ficou no lugar.
 
 **Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
-API 100% marcado, Processor ~95%). O que falta não é feature — é ~~(a) os três nunca rodarem
-juntos~~ *(resolvido em 2026-08-29: compose único na raiz, E2E verificado)*, (b) documentação
-que mente, (c) lacunas de teste na lógica de confiabilidade, (d) acabamento de UX.
+API 100% marcado, Processor ~95%). O que falta não é feature: (a) lacunas de teste na lógica
+de confiabilidade (o laço do worker, o E2E), (b) performance do pipeline (P6), (c) a doc do
+fluxo ponta a ponta e (d) produto (P5). ~~Os três nunca rodarem juntos~~ e ~~documentação que
+mente~~ estão resolvidos.
+
+**Manutenção deste arquivo:** fechou um item → riscar no corpo **e** atualizar o
+"Fechado até agora" acima e a "Ordem sugerida" no fim, no mesmo commit. Ver o `CLAUDE.md` da raiz.
 
 ---
 
@@ -845,26 +857,23 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 ## Ordem sugerida
 
-1. ✅ ~~BUG-1~~, ✅ ~~BUG-2~~ e ✅ ~~CORS + porta 5000~~ (feitos em 2026-08-29).
-   **P0 está fechado.**
-2. ✅ ~~P0.1 inteiro~~ (docs mentirosas) — feito em 2026-08-29.
-3. ✅ ~~P1 inteiro~~ — feito em 2026-08-29.
-4. ✅ ~~Testes de `queue/`~~ (2026-08-30). Falta `processor.go` (P2) — 253 linhas, zero
-   testes fora do `JobBudget`.
-5. ✅ ~~Ligar busca + ThemeToggle~~ (P3) — feito em 2026-09-07, junto com devtools fora de
-   produção, `gofmt` no CI do Processor, o teste template da API deletado e os três portões do
-   front no CI (**lint → typecheck → test → build**, com `noUncheckedIndexedAccess` ligado).
-5.1. ✅ **Fila combinada de 2026-09-07 fechada inteira:** fixture de contrato do webhook,
-   testes do `processor.go`, `.golangci.yml` no Processor,
-   `errorComponent`/`notFoundComponent` + `isError`, e Header responsivo.
-   **Próximo daqui:** tipos gerados do OpenAPI (mais valor, mais trabalho) e o `context` que não
-   atravessa `queue`/`minio` (ver "Sujeira pequena").
-   Tipos gerados do OpenAPI vêm depois da fixture: mais valor, mais trabalho.
-6. SEO + idioma (P3). **SEO não é acabamento:** exige `head` por rota nas 11 rotas e decidir o
-   idioma antes (`<html lang="pt-BR">` com a UI em inglês) — é trabalho médio.
-7. README raiz + doc do fluxo ponta a ponta (P4).
-8. Histórico/notificações (P5).
-9. Performance do pipeline (P6) — ✅ ~~P-PERF1 a P-PERF4~~ (já estavam no código; marcados
-   em 2026-09-03) e ✅ ~~P-PERF5~~ (2026-09-07). Sobrou **P-OPT1** e, depois dele, **P-PERF6**
-   (benchmark) — que agora finalmente vale a pena: com o P-PERF5 fechado, os processos não se
-   atropelam mais e a medição passa a ser interpretável.
+*(Revista em 2026-10-05.)* Já fechados: P0, P0.1, P1, a fila combinada de 2026-09-07, SEO +
+idioma, o `context` atravessando `queue`/`minio`, P-PERF1 a P-PERF5. O detalhe de cada um está
+riscado no corpo e resumido no "Fechado até agora" do topo.
+
+1. **Tirar o laço do worker do `package main`** (P2, Processor). Maior retorno: o bug do
+   `cancelBookkeeping` passou porque nada alcança `processNextMessage`, e a regressão só tem
+   check manual. Destrava junto o teste de falha ponta a ponta da fila (worker morre no meio →
+   job sobrevive no `:processing` → recovery pega).
+2. **P-OPT1** (P6) — passos 4–7 do pipeline opcionais por env. Depois dele, **P-PERF6**
+   (benchmark), que só é interpretável com o P-PERF5 fechado.
+3. **Doc do fluxo ponta a ponta** (P4) — shape de cada payload, retries e o que acontece quando
+   cada handoff falha. O mapa já está no `README.md` da raiz.
+4. **Cobertura do front** (P2) — `channels` e `playlists` sem teste nenhum; o harness de
+   renderização já existe.
+5. **Sujeira:** o `const token` em `VidroProcessor/minio/client.go:34`.
+6. **Tipos gerados do OpenAPI** (P2, parcial) — o drift perigoso já está travado pelo
+   `contracts/enums.json`; o que sobra (respostas declaradas nas 43 features, schema ID por
+   feature, enums com valores) é muito trabalho para ganho incremental.
+7. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de
+   observabilidade (collector de traces, ver `docs/observabilidade.md`).

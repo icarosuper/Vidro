@@ -8,6 +8,10 @@ Resposta curta: não. A infra toda já está de pé — Loki, Promtail, Promethe
 zerolog, métricas Prometheus no worker e OpenTelemetry instalado. O que falta é o fio condutor:
 nenhum identificador atravessa API → Redis → worker → webhook de forma consultável.
 
+> **Hoje (2026-10-05) a resposta é sim**, pelo `correlation_id`: os degraus 0–3 fecharam F1, F2,
+> F3, F5 e F7. Continuam abertos F4 (spans sem collector), F6 (sink do Loki só em Development) e
+> F7.1. A seção "O que já existe" abaixo foi atualizada; os furos guardam o diagnóstico original.
+
 Os caminhos citados aqui são relativos à **raiz do monorepo**, não a esta pasta.
 
 ---
@@ -65,20 +69,27 @@ Grafana (`:3001`) com datasources Loki + Prometheus provisionados
   `[LogMask]`). **A proteção de PII/segredo em log já está resolvida** e qualquer campo sensível
   novo só precisa do atributo.
 - Sink Loki configurado — só em `appsettings.Development.json` (ver F6).
+- Métricas nativas do .NET (HTTP, Kestrel, rate limiting, Npgsql) em `/metrics`, raspadas pelo job
+  `vidro-api` do Prometheus (degrau 2). Sem dashboard no Grafana ainda.
+- Grava `correlation_id` no `job:<videoId>` do Redis (degrau 3).
 
 ### `VidroProcessor`
 
 - Métricas Prometheus reais em `metrics/metrics.go`: `videos_processed_total{status}`,
   `video_processing_duration_seconds`, `video_processing_step_duration_seconds{step}`,
-  `active_workers`, `queue_size`, `video_size_bytes`. Expostas em `main.go:171` (`/metrics`),
+  `active_workers`, `queue_size`, `video_size_bytes`. Expostas em `main.go:191` (`/metrics`),
   raspadas de 15 em 15s.
 - Tracing OpenTelemetry completo em `internal/telemetry/telemetry.go` — exporter OTLP/HTTP,
   no-op se `OTEL_ENDPOINT` vier vazio. Span raiz `process_job` com atributo `video.id` em
-  `main.go:220`.
+  `main.go:266`.
+- Log JSON (zerolog) com `videoID`, `workerID` e `correlationID` (lido do `correlation_id` do job); o webhook devolve o
+  mesmo valor em `X-Correlation-ID` (degraus 0 e 3).
 
 ### `VidroFront`
 
-Nada. Sem correlation ID, sem sink de erro de browser.
+`shared/lib/correlation-id.ts` gera um `X-Correlation-ID` por requisição (browser e SSR), e o
+`RouteErrorFallback` mostra o id para o usuário citar no suporte (degrau 1). Sem sink de erro de
+browser.
 
 ---
 

@@ -108,7 +108,11 @@ com `Hidden: true` não entra na spec.
 O análogo aqui é direto: os **dois P0 do `TODO.md` foram divergência de contrato entre o
 webhook Go e o handler C#**, e ninguém viu por meses. O monorepo permite um teste que lê o
 struct do payload em Go e o `Request` em C# e falha quando os campos divergem. É a peça que
-o `docs/MONOREPO.md` promete e que hoje só existe como disciplina.
+o `docs/MONOREPO.md` promete.
+
+> **Coberto por outro caminho** *(2026-09-07)*: em vez de AST, o payload do webhook virou golden em
+> `contracts/`, lido pelo teste do worker e pelo da API — pega o mesmo drift com menos código. O
+> que segue só como disciplina é o resto do contrato (nome da fila, `callback_url`, paths no MinIO).
 
 ### 4. Fake tipado, nunca mock (do mamut-api)
 
@@ -281,10 +285,11 @@ travada. Agora está.
 3. ✅ ~~**`typecheck` no front**~~ (item 15) — feito em 2026-09-07 (custou 23 correções, não
    uma linha)
 4. **Seção de logging no `conventions.md` da API** (item 7) — a única seção que falta comparada aos outros dois serviços
-5. **Teste de contrato Go↔C# por AST** (item 3) — o que justifica o monorepo existir
+5. ✅ ~~**Teste de contrato Go↔C# por AST**~~ (item 3) — coberto pelo golden do webhook em
+   `contracts/` (2026-09-07), sem AST
 
 O resto (itens 4, 5, 6, 8, 9, 11, 12, 13, 14, 17) não tem dependência entre si e pode entrar
-conforme se mexe na área correspondente. **Fechados:** 1, 10, 15, 16, 18. O item 2 perdeu
+conforme se mexe na área correspondente. **Fechados:** 1, 3, 10, 15, 16, 18. O item 2 perdeu
 metade do escopo: um dos dois candidatos a checker de AST deixou de existir.
 
 ---

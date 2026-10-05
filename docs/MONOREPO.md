@@ -142,11 +142,12 @@ morde. Se for ligar: use um job `all-green` que sempre roda e depende dos outros
 
 O maior ganho não é build, é **contrato**. Duas coisas que hoje são manuais e já custaram bug:
 
-- **API ↔ Front — tipos gerados.** O `types.ts` do front espelha as shapes do backend **na mão**,
-  enums inclusive (`VideoStatus`, `VideoVisibility`, `ReactionType`). O P0.1 do `TODO.md` ("docs que
-  mentem", 4 rotas erradas no `features-index.md`) é esse problema se manifestando. A API já tem
-  `MapOpenApi()` no `Program.cs` — hoje só em Development, o que basta para gerar tipos em dev/CI com
-  `openapi-typescript` e falhar o CI quando front e API divergirem.
+- **API ↔ Front — tipos gerados.** ✅ *(2026-09-09, parcial)* O `types.ts` do front espelha as
+  shapes do backend **na mão**. Os seis enums viraram golden em
+  [`contracts/enums.json`](../contracts/README.md), testado dos dois lados, e as 43 rotas estão
+  travadas pelo `VidroApi/openapi/v1.json` versionado, que o CI regenera e compara. **Falta** gerar
+  os tipos de request/response: o documento OpenAPI ainda não descreve as respostas (os handlers
+  devolvem `IResult`) — ver o item no P2 do `TODO.md`.
 - **API ↔ Processor — teste de contrato.** ✅ *(2026-09-07, parcial)* O payload do webhook
   `video-processed` virou golden versionado em [`contracts/`](../contracts/README.md), testado dos
   dois lados: o worker prova que serializa exatamente aquilo, a API prova que aceita exatamente
