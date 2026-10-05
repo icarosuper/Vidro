@@ -99,6 +99,11 @@ export function uploadVideoFile(
   signal?: AbortSignal,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason)
+      return
+    }
+
     const xhr = new XMLHttpRequest()
     xhr.open('PUT', uploadUrl)
     xhr.setRequestHeader('Content-Type', file.type || 'video/mp4')

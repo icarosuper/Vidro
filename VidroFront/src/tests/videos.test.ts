@@ -210,6 +210,15 @@ describe('uploadVideoFile', () => {
     expect(xhr.abort).toHaveBeenCalledOnce()
   })
 
+  it('rejects without sending when the signal is already aborted', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    const { xhr, promise } = await startUpload(controller.signal)
+
+    await expect(promise).rejects.toBe(controller.signal.reason)
+    expect(xhr.send).not.toHaveBeenCalled()
+  })
+
   it.each([
     ['success', (xhr: FakeXhr) => xhr.onload?.()],
     ['network error', (xhr: FakeXhr) => xhr.onerror?.()],
