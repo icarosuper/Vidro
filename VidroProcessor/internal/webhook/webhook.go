@@ -35,7 +35,7 @@ var httpClient = &http.Client{Timeout: 10 * time.Second}
 var sleepFn = time.Sleep
 
 // Notify sends the payload to callbackURL with up to 3 attempts and exponential backoff.
-// If secret is non-empty, signs the body with HMAC-SHA256 in the X-Webhook-Signature header.
+// Signs the body with HMAC-SHA256 in the X-Webhook-Signature header (WEBHOOK_SECRET is mandatory).
 // If correlationID is non-empty, it goes out as X-Correlation-ID — the API reuses an inbound
 // value, so the callback lands in its log under the same ID as the upload that started the job.
 // Returns an error only if all attempts fail.
@@ -73,11 +73,9 @@ func send(url, secret, correlationID string, body []byte) error {
 		req.Header.Set("X-Correlation-ID", correlationID)
 	}
 
-	if secret != "" {
-		mac := hmac.New(sha256.New, []byte(secret))
-		mac.Write(body)
-		req.Header.Set("X-Webhook-Signature", "sha256="+hex.EncodeToString(mac.Sum(nil)))
-	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(body)
+	req.Header.Set("X-Webhook-Signature", "sha256="+hex.EncodeToString(mac.Sum(nil)))
 
 	resp, err := httpClient.Do(req)
 	if err != nil {

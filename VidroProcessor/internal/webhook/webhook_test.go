@@ -82,21 +82,6 @@ func TestNotify_WithHMAC_CorrectSignature(t *testing.T) {
 	}
 }
 
-func TestNotify_NoSecret_NoHeader(t *testing.T) {
-	var signature string
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		signature = r.Header.Get("X-Webhook-Signature")
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
-	Notify(srv.URL, "", "", Payload{VideoID: "v1", Success: true})
-
-	if signature != "" {
-		t.Fatalf("should not send X-Webhook-Signature without secret, got: '%s'", signature)
-	}
-}
-
 func TestNotify_RetryOnFailure(t *testing.T) {
 	attempts := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
