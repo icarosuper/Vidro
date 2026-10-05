@@ -43,6 +43,12 @@ type Config struct {
 	MaxParallelPostTranscodeSteps int   `env:"MAX_PARALLEL_POST_TRANSCODE_STEPS" envDefault:"4"`
 	HLSSingleCommand              bool  `env:"HLS_SINGLE_COMMAND" envDefault:"true"`
 	HLSSingleCommandFallback      bool  `env:"HLS_SINGLE_COMMAND_FALLBACK" envDefault:"true"`
+	// Non-critical steps (4-7). false skips the step: no FFmpeg run, no MinIO upload, and the
+	// artifact path is absent from the webhook. validate -> analyze -> transcode -> upload always run.
+	EnableThumbnails bool `env:"ENABLE_THUMBNAILS" envDefault:"true"`
+	EnableAudio      bool `env:"ENABLE_AUDIO" envDefault:"true"`
+	EnablePreview    bool `env:"ENABLE_PREVIEW" envDefault:"true"`
+	EnableStreaming  bool `env:"ENABLE_STREAMING" envDefault:"true"`
 	// VideoEncoder: auto (probe NVENC), nvenc (GPU if available, else CPU), cpu (libx264 only).
 	VideoEncoder string `env:"VIDEO_ENCODER" envDefault:"auto"`
 	// NVENCPreset: FFmpeg NVENC preset p1–p7 (Turing+). p5 is a good default for 1080p quality.

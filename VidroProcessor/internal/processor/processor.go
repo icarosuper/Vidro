@@ -35,7 +35,8 @@ const (
 
 // JobBudget returns the whole-job timeout for a given scale: every step timeout
 // plus transfer slack. Steps 4-7 usually run in parallel, so this is an upper
-// bound on purpose — the per-step timeouts are the real limits, this is only the
+// bound on purpose, and it stays the all-steps value when ENABLE_* flags skip steps (the
+// worst case in contracts/processing-timeout.json is derived from it) — the per-step timeouts are the real limits, this is only the
 // backstop for stalls no step timeout can see.
 func JobBudget(scale float64) time.Duration {
 	steps := stepTimeoutValidate + stepTimeoutAnalyze + stepTimeoutTranscode +
@@ -108,6 +109,12 @@ type Options struct {
 	MaxParallelPostTranscodeSteps int
 	HLSSingleCommand              bool
 	HLSSingleCommandFallback      bool
+	// Skip* turn individual non-critical steps (4-7) off: no FFmpeg run, no artifact.
+	// Inverted on purpose (config has ENABLE_*) so the zero value keeps every step on.
+	SkipThumbnails bool
+	SkipAudio      bool
+	SkipPreview    bool
+	SkipStreaming  bool
 	// VideoEncoder is processor_steps.VideoEncoderCPU or VideoEncoderNVENC (resolved before ProcessVideo).
 	VideoEncoder string
 	NVENCPreset  string
@@ -200,7 +207,22 @@ type nonCriticalStep struct {
 	onSuccess func()
 }
 
-// nonCriticalSteps builds steps 4-7 in pipeline order, timeouts already scaled.
+// skips reports whether the options turn the named non-critical step off.
+func (o Options) skips(stepName string) bool {
+	switch stepName {
+	case "thumbnails":
+		return o.SkipThumbnails
+	case "audio":
+		return o.SkipAudio
+	case "preview":
+		return o.SkipPreview
+	case "streaming":
+		return o.SkipStreaming
+	}
+	return false
+}
+
+// nonCriticalSteps builds the enabled steps among 4-7 in pipeline order, timeouts already scaled.
 // Adding a step here wires it into the sequential and the parallel orchestrator at once.
 func nonCriticalSteps(inputPath, transcodedPath, tempDir string, result *ProcessingResult, opts Options) []nonCriticalStep {
 	thumbnailsDir := filepath.Join(tempDir, "thumbnails")
@@ -208,7 +230,7 @@ func nonCriticalSteps(inputPath, transcodedPath, tempDir string, result *Process
 	previewPath := filepath.Join(tempDir, "preview.mp4")
 	streamingDir := filepath.Join(tempDir, "streaming")
 
-	return []nonCriticalStep{
+	allSteps := []nonCriticalStep{
 		{
 			name:     "thumbnails",
 			startMsg: "Step 4/7: Generating thumbnails",
@@ -255,6 +277,14 @@ func nonCriticalSteps(inputPath, transcodedPath, tempDir string, result *Process
 			onSuccess: func() { result.StreamingDir = streamingDir },
 		},
 	}
+
+	enabledSteps := make([]nonCriticalStep, 0, len(allSteps))
+	for _, step := range allSteps {
+		if !opts.skips(step.name) {
+			enabledSteps = append(enabledSteps, step)
+		}
+	}
+	return enabledSteps
 }
 
 // runNonCriticalStepsSequential runs steps 4-7 one at a time. A failing step is logged and

@@ -31,7 +31,7 @@ No success queue: completion is reported only by the `video-processed` webhook.
 
 ## Processing pipeline
 
-Orchestrator: `internal/processor/processor.go` (`ProcessVideo`). 7 steps w/ individual timeouts + OTel spans via `runStep`.
+Orchestrator: `internal/processor/processor.go` (`ProcessVideo`). 7 steps w/ individual timeouts + OTel spans via `runStep`. Steps 4-7 individually skippable by `ENABLE_*` env flags (`Options.Skip*`, filtered in `nonCriticalSteps`).
 
 | Step | File | Critical? | Timeout | Purpose |
 |---|---|---|---|---|

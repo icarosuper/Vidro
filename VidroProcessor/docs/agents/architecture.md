@@ -90,6 +90,8 @@ On error, `defer` increments retry count, requeues or moves to DLQ, still acknow
 └───────────┘   └──────────┘   └───────────┘   └──────────────────────────────────────────┘
 ```
 
+Each of steps 4-7 can be skipped with `ENABLE_THUMBNAILS|AUDIO|PREVIEW|STREAMING=false` (P-OPT1): `nonCriticalSteps` drops it from the list, so neither orchestrator runs it, `ProcessingResult` keeps that path empty, `UploadDirectory`/upload is not called and the webhook omits the artifact. The whole-job budget is not reduced.
+
 - **Critical steps** (validate, transcode): return errors, abort pipeline.
 - **Soft steps**: log warning, leave artifact path empty on failure; job still completes.
 - **Analyze** semi-critical: errors logged, downstream metadata missing in webhook.

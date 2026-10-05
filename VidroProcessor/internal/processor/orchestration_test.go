@@ -322,3 +322,27 @@ func TestOrchestrators_LogLinesCarryTheJobFields(t *testing.T) {
 		})
 	}
 }
+
+// A skipped step must not exist in the list at all: both orchestrators consume it, so a
+// step filtered here runs no FFmpeg and never reaches onSuccess (no artifact, no upload).
+func TestNonCriticalSteps_SkippedStepsAreDropped(t *testing.T) {
+	opts := DefaultOptions()
+	opts.SkipAudio = true
+	opts.SkipStreaming = true
+
+	steps := nonCriticalSteps("input.mp4", "output.mp4", t.TempDir(), &ProcessingResult{}, opts)
+
+	var names []string
+	for _, step := range steps {
+		names = append(names, step.name)
+	}
+	if got, want := strings.Join(names, ","), "thumbnails,preview"; got != want {
+		t.Fatalf("steps = %q, want %q", got, want)
+	}
+
+	allSkipped := Options{SkipThumbnails: true, SkipAudio: true, SkipPreview: true, SkipStreaming: true}
+	remaining := nonCriticalSteps("input.mp4", "output.mp4", t.TempDir(), &ProcessingResult{}, allSkipped)
+	if len(remaining) != 0 {
+		t.Fatalf("expected no steps when all are skipped, got %d", len(remaining))
+	}
+}

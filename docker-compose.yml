@@ -127,6 +127,11 @@ services:
       MINIO_BUCKET_NAME: videos
       # Must match the API's Webhook:Secret — it verifies the HMAC on /webhooks/video-processed.
       WEBHOOK_SECRET: dev-webhook-secret
+      # Non-critical pipeline steps (4-7). false = skipped: no FFmpeg, no upload, no path in the webhook.
+      ENABLE_THUMBNAILS: "true"
+      ENABLE_AUDIO: "true"
+      ENABLE_PREVIEW: "true"
+      ENABLE_STREAMING: "true"
     volumes:
       - ./VidroProcessor/tmp:/tmp
     # GPU (NVENC): the default image (Alpine + ffmpeg) has no NVIDIA support.
