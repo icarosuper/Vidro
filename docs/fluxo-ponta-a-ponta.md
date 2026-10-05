@@ -228,8 +228,8 @@ teto de 10 s (`bookkeepingTimeout`).
   descartado — **um vídeo marcado `Failed` por timeout não volta a `Ready`**. Não é mais em
   silêncio: o handler loga `Warning` "Ignoring video-processed webhook" com `VideoId`, status e
   `success`.
-- **Retry:** 3 tentativas, 10 s de timeout cada, espera de 1 s e 4 s; qualquer status fora de 2xx
-  conta como falha (`webhook.go:42-60,88-90`). Roda numa goroutine solta, com
+- **Retry:** 3 tentativas, 10 s de timeout cada, espera de 1 s e 4 s; só erro de rede, 5xx e 429 são
+  repetidos; outro 4xx falha na hora (`Notify`). Roda numa goroutine solta, com
   `context.Background()`: não segura o job nem o shutdown.
 - **Falha:** depois das 3 tentativas (ou na primeira, se for 4xx que não seja 429), só um log `Warn` "Failed to send webhook" (`notifyWebhook`)
   com `videoID` e `callbackURL`. O job já está `done` (ou no DLQ) e não é retentado. A API

@@ -34,7 +34,9 @@ canal corrigido), `docs/fluxo-ponta-a-ponta.md`, e o `const token` do MinIO expl
 sem estado vai para o DLQ, timeout de `Processing` em 90 min travado por contrato, e três correções
 no front (PUT presignado checado, descrição vazia como `null`, Visibility acessível).
 Onda C: **P-OPT1** (passos 4–7 pulados por `ENABLE_*`), reconciliação de uploads salvando antes de
-publicar, formulários de vídeo (descrição `null`, limite nas mensagens), listener de abort do upload.
+publicar, formulários de vídeo (descrição `null`, limite nas mensagens), listener de abort do upload,
+todos os achados das ondas B e C corrigidos, e o **P-PERF6** (benchmark do pipeline; falta variar
+`WORKER_COUNT`).
 Itens marcados `[x]` trazem o commit e o que ficou no lugar.
 
 **Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
@@ -506,7 +508,7 @@ Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Os riscos graves foram fechad
       `PublishSuccessMessage`), nenhum código da API lê. Afirmam o contrário:
       `docs/troubleshooting-stuck-video.md:164,192`, `VidroProcessor/docs/agents/architecture.md:39`,
       `design-decisions.md:113`. Decidir: corrigir as docs ou parar de publicar.~~
-- [ ] O comentário em `internal/circuitbreaker/circuitbreaker.go:19` diz que o breaker do Redis
+- [x] **RESOLVIDO (doc)** *(`6581924`)*: só `ConsumeMessage`/`AcknowledgeMessage` passam pelo breaker, e a doc agora diz isso; envolver o resto é decisão aberta (bookkeeping não pode parar com breaker aberto). `LRem`/`LPush` do `RecoverStuckJobs` agora checam erro (`96ce073`, `ed9adac`, `2d97407`). Antes: O comentário em `internal/circuitbreaker/circuitbreaker.go:19` diz que o breaker do Redis
       cobre "job state"; `setJobState` (`queue/job.go`) e o recovery chamam o Redis direto. Idem
       os `LRem`/`LPush` de `RecoverStuckJobs`, que ainda ignoram o erro — e o `conventions.md` diz
       que toda chamada Redis passa pelo breaker.
@@ -541,15 +543,15 @@ Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Os riscos graves foram fechad
 - [ ] `VidroProcessor/docs/agents/architecture.md:64` ainda fala em "5-min hard timeout"; hoje é
       `JobTimeout`.
 
-**Achados da onda B** *(2026-10-05, não corrigidos)*:
+**Achados das ondas B e C** *(2026-10-05)* — todos corrigidos; o que sobrou está no fim da lista:
 - [x] **RESOLVIDO** *(`6ab1353`)* `VideoReconciliationService` publicava antes do save em lote — o mesmo
       bug do `94147fd`; agora salva → publica → commit por vídeo, dentro de transação.
-- [ ] `queue/job.go` — `SetJobDone`/`SetJobFailed` ainda recriam estado ausente sem `callback_url`;
+- [x] **RESOLVIDO** *(`cf24aa3`; requeue `96ce073`)* `queue/job.go` — `SetJobDone`/`SetJobFailed` ainda recriam estado ausente sem `callback_url`;
       `RecoverStuckJobs` pula job no `:processing` sem estado, que fica lá para sempre;
       `GetJobState` reporta qualquer erro do Redis como "job not found".
-- [ ] `internal/webhook/webhook.go:76` — o ramo `if secret != ""` ficou inalcançável com o
+- [x] **RESOLVIDO** *(`49c4d4d`)* `internal/webhook/webhook.go:76` — o ramo `if secret != ""` ficou inalcançável com o
       `WEBHOOK_SECRET` obrigatório.
-- [ ] `docs/troubleshooting-stuck-video.md:56,87` e `VidroProcessor/docs/GETTING_STARTED.md` falam
+- [x] **RESOLVIDO** *(`35a1aba`)* `docs/troubleshooting-stuck-video.md:56,87` e `VidroProcessor/docs/GETTING_STARTED.md` falam
       em 3 tentativas / `retry_count 3`; o real é 4 tentativas e `retry_count` 4.
 - [x] **RESOLVIDO** *(`8ecdefb`)* Front, formulários de vídeo: `.max()` sem mensagem em `EditVideoForm.tsx:32-33` e
       `UploadVideoForm.tsx:50-51`; descrição sem `trim` em `EditVideoForm.tsx:81` e `?? null` em
@@ -557,11 +559,12 @@ Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Os riscos graves foram fechad
 - [x] **RESOLVIDO** *(`8ecdefb`, doc corrigida)* `VidroFront/docs/agents/conventions.md` dizia que os 8 forms usam `FormField` do shadcn; só
       `SignInForm`/`SignUpForm` usam.
 - [x] **RESOLVIDO** *(`dd1bcf3`)* `uploadVideoFile` não removia o listener de abort do `signal`.
-- [ ] Achados da onda C, não corrigidos: `uploadVideoFile` ignora `signal` já abortado; `<Select>` de
-      canal em `UploadVideoForm.tsx` começa `undefined` (warning controlado/não controlado);
-      `ReconcileStuckProcessingAsync` marca `Failed` em lote sem tratamento por vídeo;
-      `VideoProcessed.Handler` devolve erro que o endpoint ignora (sempre 200); logs "Step N/7" do
-      `processor.go` mentem quando há passos pulados.
+- [x] **RESOLVIDO** *(`7066c3b`, `c930a66`, `5a78508`, `beb8b1c`, `65a38d6`, `904c9ff`, `c346e34`, `6725b88`, `cd3dca4`, `e262309`, `d8fc3a1`)*
+      Achados da onda C: `signal` já abortado, `<Select>` de canal controlado, resgate de `Processing` por vídeo,
+      resultado morto do handler do webhook, logs "Step N/M", JSON malformado → 400, cancelamento não logado
+      como erro, webhook sem retry em 4xx permanente, `GenerateTestVideo` respeitando a duração, infos do Biome.
+- [ ] **Ainda aberto:** `moveFromProcessing` não desfaz o `LREM` se o `LPUSH` falhar por erro de execução
+      (WRONGTYPE); `AcknowledgeMessage`/`RequeueJob` e as escritas de estado seguem sem breaker (decisão).
 
 **Front:**
 - [x] **RESOLVIDO** *(`379955e`)*. ~~O mesmo PUT presignado sem checar `ok` em `features/users/api.ts:22` e
@@ -741,7 +744,7 @@ concluído lá não foi copiado: quem quer saber o que existe lê
 **Estado em 2026-09-03:** P-PERF1 a P-PERF4 estão **implementados no código** e estavam
 marcados `[ ]` aqui — mesma classe de drift do P0.1 ("documentação que mente"), agora do lado
 do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a meta de
-"~2–3 min" continua sendo estimativa de papel, ninguém rodou antes/depois (ver P-PERF6).
+"~2–3 min" continua sendo estimativa de papel, só o paralelismo (P-PERF3) foi medido, em clipe sintético (ver P-PERF6).
 
 **Custo original:** um vídeo de ~500 MB / 1080p levava vários minutos.
 
@@ -762,7 +765,7 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
       Testes: `internal/processor/workers_test.go` — a invariante é
       `workers × passos paralelos ≤ cores`. **Verificado por mutação:** trocar
       `processesPerJob` por `1` quebra 2 dos 4 testes.
-      **Continua não medido:** o número é raciocinado, não medido — é o P-PERF6 que confirma.
+      **Continua não medido:** o P-PERF6 não variou `WORKER_COUNT`.
 
 ### 🟡 Prioridade média
 
@@ -784,19 +787,15 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 ### 🟢 Prioridade baixa
 
-- [ ] **P-PERF6: benchmark de transcode — escopo enxuto.** `VidroProcessor/docs/TESTING.md:198`
-      já lista "Transcoding + throughput benchmarks" como lacuna. O que vale: um
-      `go test -bench` sobre `TranscodeVideo` com um clipe fixo de ~10s versionado, medindo
-      **uma variável de cada vez** (`WORKER_COUNT`, depois `MAX_PARALLEL_POST_TRANSCODE_STEPS`),
-      num host só. Serve para (a) confirmar o default escolhido no P-PERF5 e (b) finalmente
-      medir o ganho de P-PERF1/2/3, que hoje é só estimativa.
-      **O que não vale: matriz de perfis de hardware** (RAM × cores × GPU) para "otimizar para
-      cada caso". É especulativo enquanto há um worker, um host e deploy manual — auto-scaling e
-      escala horizontal estão abertos aqui embaixo, e são o pré-requisito de fazer sentido.
-      E o instrumento já existe: `metrics/metrics.go` expõe
-      `video_processing_step_duration_seconds{step}`, `video_processing_duration_seconds` e
-      `video_size_bytes` — medição por passo, com input real e carga real. Olhar o que já está
-      instalado ganha de um harness sintético, e custa zero código.
+- [x] **P-PERF6 — benchmark feito, parcial** *(2026-10-05)*. `internal/processor/pipeline_bench_test.go`
+      (`go test ./internal/processor -run '^$' -bench . -benchtime 3x -count 3`; tabela e como rodar em
+      `VidroProcessor/docs/TESTING.md`). Clipe sintético de 10 s, 8 cores/16 threads, ffmpeg 9.0.2:
+      transcode 0,45 s; passos 4–7 sequencial 1,48 s, paralelo max=1 1,47 s, max=2 1,00 s, max=4 0,97 s;
+      `ProcessVideo` com tudo ligado 1,47 s contra 0,50 s com `ENABLE_*` desligados.
+      **Confirma:** P-PERF3 (~1,5× com paralelo; quase todo o ganho já em max=2) e P-OPT1 (−66%).
+      **Não confirma:** P-PERF1/2 (sem antes/depois, já são o código), P-PERF5 (`WORKER_COUNT` não foi
+      variado), nem o "~2–3 min" — 10 s sintéticos não são 500 MB reais. **Falta:** benchmark que varie
+      `WORKER_COUNT` e um vídeo real.
 
 ### ~~Concluído~~ ✅ — P-PERF1 a P-PERF4 *(marcados em 2026-09-03; código já estava lá)*
 
@@ -961,15 +960,14 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 ## Ordem sugerida
 
-*(Revista em 2026-10-05, depois da onda C.)* Já fechados: P-OPT1, reconciliação salvando antes de publicar, formulários de vídeo, P0, P0.1, P1, a fila combinada de
+*(Revista em 2026-10-05, depois da onda C.)* Já fechados: P-OPT1, P-PERF6 (primeira metade), todos os achados das ondas B e C, formulários de vídeo, P0, P0.1, P1, a fila combinada de
 2026-09-07, SEO + idioma, P-PERF1 a P-PERF5, laço do worker testável, testes de
 `channels`/`playlists`, doc do fluxo ponta a ponta, e os riscos graves de "Confiabilidade do fluxo".
 
-1. **P-PERF6** (P6) — benchmark do pipeline, agora com os passos opcionais.
-2. **Resto de "Confiabilidade do fluxo"** (P2) —
-   `SetJobDone`/`SetJobFailed`/`RecoverStuckJobs` com estado ausente, circuit breaker fora do
-   `setJobState`, órfão esgotado sem webhook, erro permanente com retry, backoff no `Run`.
-3. **Sujeira de doc** — "3 tentativas" no runbook e no `GETTING_STARTED.md` (real: 4).
-4. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.
-5. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de
+1. **Resto de "Confiabilidade do fluxo"** (P2) — órfão esgotado sem webhook, erro permanente com
+   retry, backoff no `Run`, caminho do webhook vs. arquivo inexistente, `worker.go:117/129/299`,
+   `architecture.md:64` ("5-min hard timeout"), logs sem `correlationID` em `notifyWebhook`/recovery.
+2. **P-PERF6, segunda metade** — benchmark variando `WORKER_COUNT` e um vídeo real.
+3. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.
+4. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de
    observabilidade (collector de traces).
