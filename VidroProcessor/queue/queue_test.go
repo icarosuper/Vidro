@@ -74,15 +74,42 @@ func TestSetJobFailed_IncrementsRetryCountAndPersists(t *testing.T) {
 	}
 }
 
-func TestSetJobFailed_WithoutExistingState(t *testing.T) {
-	setupRedis(t)
+// Same rule as SetJobProcessing: a state recreated here would have no callback_url.
+func TestSetJobDoneAndFailed_WithoutExistingStateRefuseAndCreateNothing(t *testing.T) {
+	mr := setupRedis(t)
 
-	state, err := SetJobFailed(t.Context(), "ghost", errBoom)
-	if err != nil {
-		t.Fatalf("SetJobFailed: %v", err)
+	_, failedErr := SetJobFailed(t.Context(), "ghost", errBoom)
+	doneErr := SetJobDone(t.Context(), "ghost", JobArtifacts{}, nil)
+
+	if !errors.Is(failedErr, ErrJobStateMissing) {
+		t.Errorf("SetJobFailed error = %v, want %v", failedErr, ErrJobStateMissing)
 	}
-	if state.RetryCount != 1 {
-		t.Fatalf("RetryCount = %d, want 1", state.RetryCount)
+	if !errors.Is(doneErr, ErrJobStateMissing) {
+		t.Errorf("SetJobDone error = %v, want %v", doneErr, ErrJobStateMissing)
+	}
+	stateWasCreated := mr.Exists(jobKey("ghost"))
+	if stateWasCreated {
+		t.Errorf("a status write created %s without a callback_url", jobKey("ghost"))
+	}
+}
+
+// A Redis failure says nothing about whether the state exists, so it must not read as "missing":
+// callers dead-letter on ErrJobStateMissing.
+func TestGetJobState_DistinguishesMissingFromRedisFailure(t *testing.T) {
+	mr := setupRedis(t)
+
+	_, missingErr := GetJobState(t.Context(), "ghost")
+	if !errors.Is(missingErr, ErrJobStateMissing) {
+		t.Fatalf("missing state error = %v, want %v", missingErr, ErrJobStateMissing)
+	}
+
+	mr.Close()
+	_, redisDownErr := GetJobState(t.Context(), "ghost")
+	if redisDownErr == nil {
+		t.Fatal("expected an error with Redis down")
+	}
+	if errors.Is(redisDownErr, ErrJobStateMissing) {
+		t.Fatalf("Redis failure reported as missing state: %v", redisDownErr)
 	}
 }
 
@@ -192,6 +219,9 @@ func TestAcknowledgeMessage_RemovesOneOccurrence(t *testing.T) {
 func TestRequeueJob_BackToRequestQueueAsPending(t *testing.T) {
 	setupRedis(t)
 
+	if err := setJobState(t.Context(), "vid", JobState{Status: JobStatusProcessing}); err != nil {
+		t.Fatalf("setJobState: %v", err)
+	}
 	if _, err := SetJobFailed(t.Context(), "vid", errBoom); err != nil {
 		t.Fatalf("SetJobFailed: %v", err)
 	}
@@ -307,7 +337,28 @@ func TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ(t *testing.T) {
 	}
 }
 
-func TestRecoverStuckJobs_LeavesHealthyAndUnknownJobsAlone(t *testing.T) {
+// A job parked in :processing whose job:<id> expired has nobody to notify and no age to judge
+// by. Leaving it there meant it stayed forever: recovery skipped it on every sweep.
+func TestRecoverStuckJobs_JobWithoutStateGoesToDLQ(t *testing.T) {
+	setupRedis(t)
+	if err := client.LPush(context.Background(), processingQueueName(), "vid").Err(); err != nil {
+		t.Fatalf("LPush: %v", err)
+	}
+
+	RecoverStuckJobs(t.Context(), 30*time.Minute)
+
+	if got := listOf(t, deadLetterQueueName()); len(got) != 1 || got[0] != "vid" {
+		t.Fatalf("dead letter queue = %v, want [vid]", got)
+	}
+	if got := listOf(t, processingQueueName()); len(got) != 0 {
+		t.Fatalf("processing queue = %v, want empty", got)
+	}
+	if got := listOf(t, cfg.ProcessingRequestQueue); len(got) != 0 {
+		t.Fatalf("request queue = %v, want empty", got)
+	}
+}
+
+func TestRecoverStuckJobs_LeavesHealthyJobsAlone(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		setup  func(t *testing.T)
@@ -322,15 +373,6 @@ func TestRecoverStuckJobs_LeavesHealthyAndUnknownJobsAlone(t *testing.T) {
 			name:   "job already finished",
 			setup:  func(t *testing.T) { parkInProcessing(t, "vid", JobStatusDone, 0, time.Hour) },
 			reason: "a done job lingering in the list must not be reprocessed",
-		},
-		{
-			name: "job with no state in Redis",
-			setup: func(t *testing.T) {
-				if err := client.LPush(context.Background(), processingQueueName(), "vid").Err(); err != nil {
-					t.Fatalf("LPush: %v", err)
-				}
-			},
-			reason: "an expired state must neither drop nor duplicate the job",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

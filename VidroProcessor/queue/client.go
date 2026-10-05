@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -107,7 +108,13 @@ func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration) {
 	threshold := time.Now().Add(-stuckTimeout).Unix()
 	for _, videoID := range videoIDs {
 		state, err := GetJobState(ctx, videoID)
-		if err != nil || state == nil {
+		stateMissing := errors.Is(err, ErrJobStateMissing)
+		if stateMissing {
+			deadLetterOrphanWithoutState(ctx, videoID)
+			continue
+		}
+		if err != nil {
+			log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to read job state during recovery")
 			continue
 		}
 		if state.Status != JobStatusProcessing || state.UpdatedAt >= threshold {
@@ -145,6 +152,19 @@ func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration) {
 		client.LRem(ctx, processingQueueName(), 1, videoID)
 		client.LPush(ctx, cfg.ProcessingRequestQueue, videoID)
 	}
+}
+
+// deadLetterOrphanWithoutState handles a job parked in :processing whose job:<id> expired or was
+// deleted. Without the state there is no callback_url and no age to judge it by, so requeueing
+// would only make the worker dead-letter it on the next pop (same outcome as the worker's
+// deadLetterJobWithoutState): do it now instead of leaving it in :processing forever.
+func deadLetterOrphanWithoutState(ctx context.Context, videoID string) {
+	log.Error().Str("videoID", videoID).Msg("Orphan job has no state (expired or deleted), moving to dead letter queue")
+	if err := MoveToDLQ(ctx, videoID); err != nil {
+		log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to move stateless orphan job to dead letter queue")
+		return
+	}
+	client.LRem(ctx, processingQueueName(), 1, videoID)
 }
 
 // GetQueueSize returns the number of jobs waiting in the request queue.

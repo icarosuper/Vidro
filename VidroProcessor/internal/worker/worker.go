@@ -189,6 +189,8 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 
 		defer func() {
 			if jobErr != nil {
+				// state is nil when the state is missing or Redis failed: no retry budget to
+				// consult and no callback_url to notify, so the job goes to the DLQ below.
 				state, err := queue.SetJobFailed(bookkeepingCtx, videoID, jobErr)
 				if err != nil {
 					jobLogger.Warn().Err(err).Msg("Failed to update job state to failed")
@@ -307,7 +309,10 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 		}
 
 		// Notify the API about success
-		if state, err := queue.GetJobState(bookkeepingCtx, videoID); err == nil && state != nil && state.CallbackURL != "" {
+		state, stateErr := queue.GetJobState(bookkeepingCtx, videoID)
+		if stateErr != nil {
+			jobLogger.Warn().Err(stateErr).Msg("Failed to read job state, webhook not sent")
+		} else if state.CallbackURL != "" {
 			//nolint:contextcheck // detached on purpose: the notification must survive the job
 			// context being canceled — bounded by the webhook client's own 10s timeout (webhook.send)
 			go notifyWebhook(state.CallbackURL, w.cfg.WebhookSecret, videoID, state)

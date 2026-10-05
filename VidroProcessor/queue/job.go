@@ -101,10 +101,6 @@ var ErrJobStateMissing = errors.New("job state missing")
 // It returns ErrJobStateMissing in that case so the worker can dead-letter the job instead.
 func SetJobProcessing(ctx context.Context, videoID string) error {
 	existing, err := GetJobState(ctx, videoID)
-	stateMissing := errors.Is(err, redis.Nil)
-	if stateMissing {
-		return ErrJobStateMissing
-	}
 	if err != nil {
 		return err
 	}
@@ -112,11 +108,12 @@ func SetJobProcessing(ctx context.Context, videoID string) error {
 	return setJobState(ctx, videoID, *existing)
 }
 
-// SetJobDone updates the job state to done with the generated artifacts and metadata.
+// SetJobDone updates the job state to done with the generated artifacts and metadata. Like
+// SetJobProcessing it never creates the state: it returns ErrJobStateMissing instead.
 func SetJobDone(ctx context.Context, videoID string, artifacts JobArtifacts, metadata *VideoMetadata) error {
-	existing, _ := GetJobState(ctx, videoID)
-	if existing == nil {
-		existing = &JobState{CreatedAt: time.Now().Unix()}
+	existing, err := GetJobState(ctx, videoID)
+	if err != nil {
+		return err
 	}
 	existing.Status = JobStatusDone
 	existing.Artifacts = &artifacts
@@ -126,11 +123,12 @@ func SetJobDone(ctx context.Context, videoID string, artifacts JobArtifacts, met
 }
 
 // SetJobFailed updates the job state to failed, increments the retry counter,
-// and returns the updated state so the caller can decide between retry and DLQ.
+// and returns the updated state so the caller can decide between retry and DLQ. It never
+// creates the state: it returns ErrJobStateMissing instead.
 func SetJobFailed(ctx context.Context, videoID string, jobErr error) (*JobState, error) {
-	existing, _ := GetJobState(ctx, videoID)
-	if existing == nil {
-		existing = &JobState{CreatedAt: time.Now().Unix()}
+	existing, err := GetJobState(ctx, videoID)
+	if err != nil {
+		return nil, err
 	}
 	existing.Status = JobStatusFailed
 	existing.Error = jobErr.Error()
@@ -168,11 +166,17 @@ func MoveToDLQ(ctx context.Context, videoID string) error {
 	return client.LPush(ctx, deadLetterQueueName(), videoID).Err()
 }
 
-// GetJobState returns the current state of a job. Returns nil if the job does not exist.
+// GetJobState returns the current state of a job. A job that does not exist yields
+// ErrJobStateMissing; any other error (Redis down, canceled context) is a read failure and says
+// nothing about whether the state exists.
 func GetJobState(ctx context.Context, videoID string) (*JobState, error) {
 	data, err := client.Get(ctx, jobKey(videoID)).Bytes()
+	stateMissing := errors.Is(err, redis.Nil)
+	if stateMissing {
+		return nil, fmt.Errorf("job %s: %w", videoID, ErrJobStateMissing)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("job not found: %w", err)
+		return nil, fmt.Errorf("failed to read job state: %w", err)
 	}
 	var state JobState
 	if err := json.Unmarshal(data, &state); err != nil {
