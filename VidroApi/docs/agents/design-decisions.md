@@ -199,7 +199,7 @@ Multipart upload is planned, not implemented — it is an item in the root `TODO
 
 ### 14. The job is published inside the transaction that marks the video `Processing`
 
-`Features/Videos/MinioUploadCompleted.cs`.
+`Features/Videos/MinioUploadCompleted.cs` and `BackgroundServices/VideoReconciliationService.cs`.
 
 - **Order: save → publish → commit.** Until 2026-10-05 it was publish → save: a save that failed
   left a job running for a video still `PendingUpload`, and `VideoProcessed` ignores the webhook of a
@@ -211,5 +211,7 @@ Multipart upload is planned, not implemented — it is an item in the root `TODO
   `UploadExpiresAt` passes, as it did before.
 - **What is left:** a commit that fails after a good publish. That is the old failure, narrowed to
   the commit itself.
-- **Not applied to `VideoReconciliationService`**, which still publishes before its single
-  `SaveChangesAsync` for the whole batch.
+- **Also applied to `VideoReconciliationService.ReconcileStaleUploadsAsync`** (2026-10-05), per
+  video: save → publish → commit, so a failed publish leaves that video `PendingUpload` and the next
+  tick retries it. Saves are per video, not one batch — a rolled-back video is detached so the next
+  video's save cannot persist it as `Processing` anyway. Covered by `VideoReconciliationServiceTests`.

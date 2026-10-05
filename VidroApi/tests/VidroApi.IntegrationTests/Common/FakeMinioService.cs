@@ -19,8 +19,14 @@ public class FakeMinioService : IMinioService
         return Task.FromResult(fakeUrl);
     }
 
-    public Task<bool> ObjectExistsAsync(string objectKey, CancellationToken ct = default) =>
-        Task.FromResult(false);
+    /// <summary>Object keys that exist in the fake bucket; everything else does not.</summary>
+    public static readonly HashSet<string> ExistingKeys = [];
+
+    public Task<bool> ObjectExistsAsync(string objectKey, CancellationToken ct = default)
+    {
+        lock (ExistingKeys)
+            return Task.FromResult(ExistingKeys.Contains(objectKey));
+    }
 
     public Task DeleteObjectAsync(string objectKey, CancellationToken ct = default) =>
         Task.CompletedTask;

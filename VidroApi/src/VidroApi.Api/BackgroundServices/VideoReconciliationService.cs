@@ -26,7 +26,7 @@ public class VideoReconciliationService(
         }
     }
 
-    private async Task ReconcileStaleUploadsAsync(CancellationToken ct)
+    public async Task ReconcileStaleUploadsAsync(CancellationToken ct)
     {
         logger.LogInformation("Starting video upload reconciliation");
 
@@ -47,10 +47,8 @@ public class VideoReconciliationService(
 
             foreach (var video in staleVideos)
             {
-                await ReconcileVideoAsync(video, minio, jobQueue, clock, ct);
+                await ReconcileVideoAsync(video, db, minio, jobQueue, clock, ct);
             }
-
-            await db.SaveChangesAsync(ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -96,6 +94,7 @@ public class VideoReconciliationService(
 
     private async Task ReconcileVideoAsync(
         Domain.Entities.Video video,
+        AppDbContext db,
         IMinioService minio,
         IJobQueueService jobQueue,
         IDateTimeProvider clock,
@@ -120,8 +119,15 @@ public class VideoReconciliationService(
 
                 video.MarkAsProcessing(clock.UtcNow);
 
+                // Save first, publish second, commit last (design-decisions.md #14). A publish that
+                // fails rolls the save back, so the video stays PendingUpload and the next tick retries.
+                await using var tx = await db.Database.BeginTransactionAsync(ct);
+                await db.SaveChangesAsync(ct);
+
                 var callbackUrl = $"{apiOptions.Value.BaseUrl}/webhooks/video-processed";
                 await jobQueue.PublishJobAsync(video.Id.ToString(), callbackUrl, correlationId, ct);
+
+                await tx.CommitAsync(ct);
             }
             else
             {
@@ -130,10 +136,13 @@ public class VideoReconciliationService(
                     video.Id);
 
                 video.MarkAsFailed(clock.UtcNow);
+                await db.SaveChangesAsync(ct);
             }
         }
         catch (Exception ex)
         {
+            // Drop the unsaved change, or the next video's SaveChanges would persist it anyway.
+            db.Entry(video).State = EntityState.Detached;
             logger.LogError(ex, "Failed to reconcile video {VideoId}", video.Id);
         }
     }
