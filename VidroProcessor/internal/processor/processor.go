@@ -154,8 +154,11 @@ func ProcessVideo(ctx context.Context, inputPath, outputPath string, opts Option
 
 	result := &ProcessingResult{TempDir: tempDir}
 
+	steps := nonCriticalSteps(inputPath, outputPath, tempDir, result, opts)
+	totalSteps := fixedStepCount + len(steps)
+
 	// 1. Validation
-	zerolog.Ctx(ctx).Info().Msg("Step 1/7: Validating video")
+	zerolog.Ctx(ctx).Info().Msg(stepMessage(1, totalSteps, "Validating video"))
 	if err := runStep(ctx, "validate", opts.step(stepTimeoutValidate), func(stepCtx context.Context) error {
 		return processor_steps.ValidateVideo(stepCtx, inputPath)
 	}); err != nil {
@@ -163,7 +166,7 @@ func ProcessVideo(ctx context.Context, inputPath, outputPath string, opts Option
 	}
 
 	// 2. Content analysis
-	zerolog.Ctx(ctx).Info().Msg("Step 2/7: Analyzing content")
+	zerolog.Ctx(ctx).Info().Msg(stepMessage(2, totalSteps, "Analyzing content"))
 	_ = runStep(ctx, "analyze", opts.step(stepTimeoutAnalyze), func(stepCtx context.Context) error {
 		metadata, err := processor_steps.AnalyzeContent(stepCtx, inputPath)
 		if err != nil {
@@ -175,16 +178,13 @@ func ProcessVideo(ctx context.Context, inputPath, outputPath string, opts Option
 	})
 
 	// 3. Transcoding (critical step)
-	zerolog.Ctx(ctx).Info().Msg("Step 3/7: Transcoding video")
+	zerolog.Ctx(ctx).Info().Msg(stepMessage(3, totalSteps, "Transcoding video"))
 	if err := runStep(ctx, "transcode", opts.step(stepTimeoutTranscode), func(stepCtx context.Context) error {
 		return processor_steps.TranscodeVideo(stepCtx, inputPath, outputPath, opts.VideoEncoder, opts.NVENCPreset)
 	}); err != nil {
 		return result, fmt.Errorf("transcoding failed: %w", err)
 	}
 
-	transcodedPath := outputPath
-
-	steps := nonCriticalSteps(inputPath, transcodedPath, tempDir, result, opts)
 	if opts.ParallelNonCriticalSteps {
 		runNonCriticalStepsParallel(ctx, steps, clampParallelSteps(opts.MaxParallelPostTranscodeSteps))
 	} else {
@@ -193,6 +193,15 @@ func ProcessVideo(ctx context.Context, inputPath, outputPath string, opts Option
 
 	zerolog.Ctx(ctx).Info().Msg("Processing pipeline completed successfully")
 	return result, nil
+}
+
+// fixedStepCount is the steps that always run: validate, analyze, transcode.
+const fixedStepCount = 3
+
+// stepMessage is the "Step N/M" log line. M counts only the steps that will run, so skipping
+// steps with ENABLE_* flags does not leave gaps like "Step 7/7" after "Step 4/7".
+func stepMessage(position, totalSteps int, description string) string {
+	return fmt.Sprintf("Step %d/%d: %s", position, totalSteps, description)
 }
 
 // nonCriticalStep is one of the post-transcode steps (4-7). It may fail without failing
@@ -223,6 +232,7 @@ func (o Options) skips(stepName string) bool {
 }
 
 // nonCriticalSteps builds the enabled steps among 4-7 in pipeline order, timeouts already scaled.
+// Each startMsg carries its real position among the steps that will run.
 // Adding a step here wires it into the sequential and the parallel orchestrator at once.
 func nonCriticalSteps(inputPath, transcodedPath, tempDir string, result *ProcessingResult, opts Options) []nonCriticalStep {
 	thumbnailsDir := filepath.Join(tempDir, "thumbnails")
@@ -233,7 +243,7 @@ func nonCriticalSteps(inputPath, transcodedPath, tempDir string, result *Process
 	allSteps := []nonCriticalStep{
 		{
 			name:     "thumbnails",
-			startMsg: "Step 4/7: Generating thumbnails",
+			startMsg: "Generating thumbnails",
 			failMsg:  "Failed to generate thumbnails",
 			timeout:  opts.step(stepTimeoutThumbnails),
 			run: func(stepCtx context.Context) error {
@@ -243,7 +253,7 @@ func nonCriticalSteps(inputPath, transcodedPath, tempDir string, result *Process
 		},
 		{
 			name:     "audio",
-			startMsg: "Step 5/7: Extracting audio",
+			startMsg: "Extracting audio",
 			failMsg:  "Audio extraction failed",
 			timeout:  opts.step(stepTimeoutAudio),
 			run: func(stepCtx context.Context) error {
@@ -253,7 +263,7 @@ func nonCriticalSteps(inputPath, transcodedPath, tempDir string, result *Process
 		},
 		{
 			name:     "preview",
-			startMsg: "Step 6/7: Generating preview",
+			startMsg: "Generating preview",
 			failMsg:  "Preview generation failed",
 			timeout:  opts.step(stepTimeoutPreview),
 			run: func(stepCtx context.Context) error {
@@ -263,7 +273,7 @@ func nonCriticalSteps(inputPath, transcodedPath, tempDir string, result *Process
 		},
 		{
 			name:     "streaming",
-			startMsg: "Step 7/7: Segmenting for streaming",
+			startMsg: "Segmenting for streaming",
 			failMsg:  "Streaming segmentation failed",
 			timeout:  opts.step(stepTimeoutStreaming),
 			run: func(stepCtx context.Context) error {
@@ -283,6 +293,11 @@ func nonCriticalSteps(inputPath, transcodedPath, tempDir string, result *Process
 		if !opts.skips(step.name) {
 			enabledSteps = append(enabledSteps, step)
 		}
+	}
+	totalSteps := fixedStepCount + len(enabledSteps)
+	for index := range enabledSteps {
+		position := fixedStepCount + index + 1
+		enabledSteps[index].startMsg = stepMessage(position, totalSteps, enabledSteps[index].startMsg)
 	}
 	return enabledSteps
 }

@@ -346,3 +346,23 @@ func TestNonCriticalSteps_SkippedStepsAreDropped(t *testing.T) {
 		t.Fatalf("expected no steps when all are skipped, got %d", len(remaining))
 	}
 }
+
+// Skipping steps with ENABLE_* flags must renumber the log lines: "Step 4/5" and "Step 5/5",
+// never "Step 7/7" for the second step that runs after transcode.
+func TestNonCriticalSteps_StartMessagesUseRealPositionAmongEnabledSteps(t *testing.T) {
+	opts := DefaultOptions()
+	opts.SkipThumbnails = true
+	opts.SkipPreview = true
+
+	steps := nonCriticalSteps("input.mp4", "output.mp4", t.TempDir(), &ProcessingResult{}, opts)
+
+	wantMessages := []string{"Step 4/5: Extracting audio", "Step 5/5: Segmenting for streaming"}
+	if len(steps) != len(wantMessages) {
+		t.Fatalf("got %d steps, want %d", len(steps), len(wantMessages))
+	}
+	for index, want := range wantMessages {
+		if steps[index].startMsg != want {
+			t.Errorf("step %d startMsg = %q, want %q", index, steps[index].startMsg, want)
+		}
+	}
+}
