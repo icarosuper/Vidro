@@ -25,7 +25,7 @@ async function fetchAuthApi<T>(
     [CORRELATION_ID_HEADER]: newCorrelationId(),
   }
   if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`
+    headers.Authorization = `Bearer ${accessToken}`
   }
 
   const response = await fetch(`${API_URL}${path}`, {

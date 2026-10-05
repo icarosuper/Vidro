@@ -265,46 +265,43 @@ export function ReplyList({
         </Button>
       )}
 
-      {isAuthenticated && (
-        <>
-          {showReplyForm ? (
-            <div className="space-y-2">
-              <Textarea
-                value={replyContent}
-                onChange={(e) => setReplyContent(e.target.value)}
-                placeholder="Add a reply…"
-                rows={2}
-                className="text-sm"
-              />
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={handleSubmitReply}
-                  disabled={addComment.isPending}
-                >
-                  Reply
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setShowReplyForm(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
+      {isAuthenticated &&
+        (showReplyForm ? (
+          <div className="space-y-2">
+            <Textarea
+              value={replyContent}
+              onChange={(e) => setReplyContent(e.target.value)}
+              placeholder="Add a reply…"
+              rows={2}
+              className="text-sm"
+            />
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={handleSubmitReply}
+                disabled={addComment.isPending}
+              >
+                Reply
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowReplyForm(false)}
+              >
+                Cancel
+              </Button>
             </div>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs"
-              onClick={() => setShowReplyForm(true)}
-            >
-              Reply
-            </Button>
-          )}
-        </>
-      )}
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs"
+            onClick={() => setShowReplyForm(true)}
+          >
+            Reply
+          </Button>
+        ))}
     </div>
   )
 }

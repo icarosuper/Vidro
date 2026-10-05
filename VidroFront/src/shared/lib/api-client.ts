@@ -44,7 +44,7 @@ async function request<T>(
     [CORRELATION_ID_HEADER]: correlationId,
   }
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+    headers.Authorization = `Bearer ${token}`
   }
 
   const response = await fetch(`${BASE_URL}${path}`, {
@@ -107,7 +107,7 @@ async function uploadRequest<T>(
     [CORRELATION_ID_HEADER]: correlationId,
   }
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+    headers.Authorization = `Bearer ${token}`
   }
   // Do NOT set Content-Type — browser sets it with the multipart boundary
 

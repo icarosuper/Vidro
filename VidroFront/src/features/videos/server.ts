@@ -15,7 +15,7 @@ export async function fetchVideoSsr(
     [CORRELATION_ID_HEADER]: newCorrelationId(),
   }
   if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`
+    headers.Authorization = `Bearer ${accessToken}`
   }
 
   const response = await fetch(`${API_URL}/v1/videos/${videoId}`, { headers })
