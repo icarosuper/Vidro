@@ -103,11 +103,12 @@ Numerados por dor, não por esforço.
 passo 4 manda `docker compose logs worker | grep <videoId>`.
 
 Mas os passos do pipeline usam o logger global, sem campo nenhum:
-`VidroProcessor/internal/processor/processor.go:151` (`Step 1/7: Validating video`), `:159`, `:171`,
-`:187`, e os dois orquestradores de passo não-crítico em `:264` e `:290`. O `videoID` só aparece nas
-linhas de `main.go` (`:213`, `:216`, `:241`...), que são a moldura, não o pipeline.
+`VidroProcessor/internal/processor/processor.go` (`ProcessVideo`, passos 1-3 via `stepMessage`) e os
+dois orquestradores de passo não-crítico (`runNonCriticalStepsSequential` / `runNonCriticalStepsParallel`).
+O `videoID` só aparecia nas linhas da moldura (`processNextMessage`), não no pipeline. O `N/M` do
+`Step N/M` conta só os passos habilitados (flags `ENABLE_*`), então `M` nem sempre é 7.
 
-**Consequência:** com `WORKER_COUNT > 1`, `Step 3/7: Transcoding video` de dois vídeos concorrentes
+**Consequência:** com `WORKER_COUNT > 1`, `Step 3/N: Transcoding video` de dois vídeos concorrentes
 é indistinguível. O passo 4 do runbook falha exatamente sob a carga em que se precisa dele.
 
 > **RESOLVIDO** — degrau 0. `processNextMessage` monta o `jobLogger` uma vez

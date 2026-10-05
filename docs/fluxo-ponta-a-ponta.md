@@ -189,7 +189,7 @@ Dentro do mesmo handler (`MinioUploadCompleted.cs`, `Handle`), numa transação,
 
 **Falha e retry** (o `defer` de bookkeeping em `processNextMessage`): qualquer erro crítico →
 `SetJobFailed` (`retry_count++`, `error`; nunca recria um `job:<id>` ausente, devolve `ErrJobStateMissing`) → se `retry_count <= 3` (4 tentativas no total), `RequeueJob` (`LPUSH` de novo,
-`status: pending`); senão `LPUSH video_queue:dead` e webhook de falha. Em todos os casos, `LREM`
+`status: pending`; se o estado sumiu ou não dá para lê-lo, não enfileira e o worker manda o job para o DLQ); senão `LPUSH video_queue:dead` e webhook de falha. Em todos os casos, `LREM`
 do lease. Essas escritas usam um contexto que sobrevive ao cancelamento do job e ao SIGTERM, com
 teto de 10 s (`bookkeepingTimeout`).
 

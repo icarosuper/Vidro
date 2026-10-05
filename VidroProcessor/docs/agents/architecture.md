@@ -77,7 +77,7 @@ Order of operations:
 8. `notifyWebhook` — fires only if `callbackURL` set on job state.
 9. `defer`: local temp files removed; job acknowledged (`LREM` from `:processing`).
 
-On error, `defer` increments retry count, requeues or moves to DLQ, still acknowledges (prevents double-processing). Metrics counter `videos_processed_total{status=error}` bumped at failure site.
+On error, `defer` increments retry count, requeues (`RequeueJob` never recreates a missing state; if it fails the job goes to the DLQ) or moves to DLQ, still acknowledges (prevents double-processing). Metrics counter `videos_processed_total{status=error}` bumped at failure site.
 
 ## Processing pipeline
 

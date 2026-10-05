@@ -27,12 +27,12 @@ This file is Go-specific.
   ctx = jobLogger.WithContext(ctx)
 
   // pipeline steps — anywhere a ctx is in scope
-  zerolog.Ctx(ctx).Info().Msg("Step 3/7: Transcoding video")
+  zerolog.Ctx(ctx).Info().Msg("Step 3/7: Transcoding video") // N/M: M counts only enabled steps
   ```
 
   This is what the runbook's `grep <videoId>` relies on
   ([`../docs/troubleshooting-stuck-video.md`](../../../docs/troubleshooting-stuck-video.md), step 4):
-  with `WORKER_COUNT > 1`, a bare `Step 3/7` line from two concurrent jobs is indistinguishable.
+  with `WORKER_COUNT > 1`, a bare `Step 3/N` line from two concurrent jobs is indistinguishable.
   `main.go` sets `zerolog.DefaultContextLogger`, so a call site reached without an injected
   logger still logs instead of going silent.
 - The global `github.com/rs/zerolog/log` is for **startup and out-of-job** code only:
