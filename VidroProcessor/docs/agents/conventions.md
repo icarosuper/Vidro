@@ -16,12 +16,12 @@ This file is Go-specific.
 
 - Use `zerolog`. No stdlib `log` in worker code (exception: `config/config.go` startup).
 - **Inside a job, log through the context, never the global logger.** `processNextMessage`
-  (`main.go`) builds the job logger once and injects it with `jobLogger.WithContext(ctx)`;
+  (`internal/worker/worker.go`) builds the job logger once and injects it with `jobLogger.WithContext(ctx)`;
   everything downstream reads it back, so `videoID` and `workerID` land on every line without
   being threaded through any signature:
 
   ```go
-  // main.go — the frame, once per job. correlationID joins the frame when the job envelope
+  // internal/worker/worker.go — the frame, once per job. correlationID joins the frame when the job envelope
   // carries one (the API stamps it); a job without one logs without the field.
   jobLogger := log.With().Int("workerID", workerID).Str("videoID", videoID).Logger()
   ctx = jobLogger.WithContext(ctx)
@@ -80,7 +80,7 @@ Most important rule in `internal/processor`:
 ## Tracing
 
 - All pipeline steps via `runStep` — opens `step/<name>` span, records errors. No direct `telemetry.Tracer().Start` inside step.
-- Root span `process_job` opened in `main.go`; children in `processor.ProcessVideo` and `runStep`. Pass `ctx` through.
+- Root span `process_job` opened in `internal/worker/worker.go`; children in `processor.ProcessVideo` and `runStep`. Pass `ctx` through.
 
 ## External calls
 

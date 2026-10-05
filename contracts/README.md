@@ -26,7 +26,7 @@ pelo id real do seu teste — é o único campo que o teste pode alterar.
 
 Quem testa:
 
-- `VidroProcessor/webhook_contract_test.go` — `buildWebhookPayload` a partir de um `queue.JobState`.
+- `VidroProcessor/webhook_contract_test.go` — `worker.BuildWebhookPayload` a partir de um `queue.JobState`.
 - `VidroApi/tests/VidroApi.IntegrationTests/Videos/VideoProcessedTests.cs` — POST assinado no endpoint real.
 
 ## `enums.json` — os seis enums que o front espelha à mão

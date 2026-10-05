@@ -91,12 +91,15 @@ func StartRecovery(ctx context.Context, stuckTimeout time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			recoverStuckJobs(ctx, stuckTimeout)
+			RecoverStuckJobs(ctx, stuckTimeout)
 		}
 	}
 }
 
-func recoverStuckJobs(ctx context.Context, stuckTimeout time.Duration) {
+// RecoverStuckJobs runs one recovery sweep: orphans older than stuckTimeout go back to the
+// request queue, or to the DLQ once their retry budget is spent. StartRecovery calls it
+// every minute; it is exported so the worker tests can drive a crash-and-recover cycle.
+func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration) {
 	videoIDs, err := client.LRange(ctx, processingQueueName(), 0, -1).Result()
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to check processing queue for recovery")

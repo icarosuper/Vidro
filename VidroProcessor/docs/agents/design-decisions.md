@@ -41,7 +41,7 @@ A new entry takes the **next number** (highest today is **#13**) plus one line h
 
 - **Why**: transient failures (MinIO blip, FFmpeg deadlock) should self-heal, but looping forever on truly broken video wastes workers + hides bugs.
 - **No automatic DLQ drain**: jobs in `:dead` need human attention. Auto-retry would mask underlying problem.
-- **Retries counted in two places**: explicit `SetJobFailed` and implicit `recoverStuckJobs` (orphan recovery). Both increment `RetryCount` so repeatedly-crashing worker eventually gives up.
+- **Retries counted in two places**: explicit `SetJobFailed` and implicit `RecoverStuckJobs` (orphan recovery). Both increment `RetryCount` so repeatedly-crashing worker eventually gives up.
 
 ### 3. Critical vs non-critical pipeline steps
 
@@ -53,7 +53,7 @@ A new entry takes the **next number** (highest today is **#13**) plus one line h
 
 ### 4. Whole-job timeout derived from the step timeouts
 
-`main.go` (`jobTimeout`) plus per-step timeouts in `internal/processor/processor.go`.
+`internal/worker/worker.go` (`JobTimeout`) plus per-step timeouts in `internal/processor/processor.go`.
 
 - **Why**: defence in depth. Per-step timeout prevents one FFmpeg hang from monopolising worker. Whole-job timeout catches everything else (download stalls, upload stalls, recoverable bugs that never raise error).
 - **Derived, not hardcoded**: `processor.JobBudget(scale)` = sum of all seven step timeouts + 5 min transfer slack (18 min at scale 1). It was a hardcoded 5 min against 13 min of steps, so any large video died mid-pipeline and went to the DLQ. Deriving it makes the invariant unbreakable — `internal/processor/timeout_test.go` asserts it.
@@ -111,7 +111,7 @@ A new entry takes the **next number** (highest today is **#13**) plus one line h
 - **Why**: VidroApi (producer) is .NET service whose JSON serialiser produces camelCase. Matching contract here avoids custom converter on API side.
 - **HMAC signature is optional**: `WEBHOOK_SECRET` empty = no signing. Off in local dev, must be set in prod.
 - **Delivery is background-only**: webhook failures logged but never fail job. API can always recover state from `ProcessingFinishedQueue` or by polling `job:<id>`.
-- **The contract is pinned by goldens, not by prose**: `../contracts/video-processed-*.json` (monorepo root) are tested from both sides — `webhook_contract_test.go` proves `buildWebhookPayload` serialises exactly them, `VideoProcessedTests.cs` proves the API accepts exactly them. Renaming a field means editing the golden, which turns both services red in the same CI run. Both P0 bugs in `../../../TODO.md` were divergences on this boundary; the goldens are the net that would have caught them.
+- **The contract is pinned by goldens, not by prose**: `../contracts/video-processed-*.json` (monorepo root) are tested from both sides — `webhook_contract_test.go` proves `worker.BuildWebhookPayload` serialises exactly them, `VideoProcessedTests.cs` proves the API accepts exactly them. Renaming a field means editing the golden, which turns both services red in the same CI run. Both P0 bugs in `../../../TODO.md` were divergences on this boundary; the goldens are the net that would have caught them.
 
 ### 11. Single bucket, path-based namespacing
 
@@ -129,7 +129,7 @@ A new entry takes the **next number** (highest today is **#13**) plus one line h
 
 ### 13. Job context cancels the work; bookkeeping runs on a context that cannot be canceled
 
-`main.go`, `queue/`, `minio/`.
+`internal/worker/worker.go`, `queue/`, `minio/`.
 
 - **Why**: every public function in `queue/` and `minio/` takes a `context.Context` and passes it to
   Redis/MinIO. They used to call `context.Background()` internally, so blowing the job budget or
@@ -153,7 +153,9 @@ A new entry takes the **next number** (highest today is **#13**) plus one line h
   a job that failed to download logged three `context canceled` warnings, stayed in
   `:processing`, never reached the DLQ and kept `retry_count: 0`. A finished job was worse — the
   ack failed the same way, so a **successful** job sat in `:processing` waiting to be reprocessed
-  by the orphan recovery.
+  by the orphan recovery. Now pinned by `internal/worker/worker_test.go`
+  (`TestProcessNextMessage_FailedJobIsClosedOut`, `TestProcessNextMessage_CompletedJobIsAcked`):
+  moving the `defer` back to the parent turns both red.
 - **Exception**: `notifyWebhook` stays detached (`context.Background()` inside `webhook.send`),
   bounded by the HTTP client's own 10s timeout. It usually runs from a defer with the job context
   already canceled, and inheriting it would drop the notification the API is waiting for. The two

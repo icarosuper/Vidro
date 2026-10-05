@@ -2,19 +2,20 @@
 
 ## Current Coverage
 
-Measured with `go test ./... -cover` on 2026-09-07, with ffmpeg installed — without it the
+Measured with `go test ./... -cover` on 2026-10-05, with ffmpeg installed — without it the
 pipeline-step tests skip themselves and the number reads lower.
 
 | Package | Coverage | Type |
 |---|---|---|
 | `internal/webhook` | 96.8% | Unit |
 | `internal/telemetry` | 91.3% | Unit |
-| `internal/processor/processor-steps` | 67.6% | Unit |
+| `internal/processor/processor-steps` | 68.0% | Unit |
 | `queue` | 75.8% | Unit |
 | `internal/circuitbreaker` | 33.3% | Unit |
 | `internal/processor` | 78.0% | Unit |
-| `main` | 11.1% | Unit (webhook contract only) |
-| `minio` | 4.4% | Unit |
+| `internal/worker` | 59.1% | Unit (miniredis + fake MinIO/pipeline) |
+| `main` | 0.0% | Unit (hosts the webhook contract test, which exercises `internal/worker`) |
+| `minio` | 4.7% | Unit |
 | `metrics` | — (no statements) | Unit |
 | `test/integration` | — | Integration |
 
@@ -100,7 +101,7 @@ go test -v ./test/integration/... -timeout 10m
 
 Runs against [miniredis](https://github.com/alicebob/miniredis) — in-process, no Docker,
 so these never skip themselves. The tests live inside the package so they can point the
-`client`/`cfg` globals at the fake and call `recoverStuckJobs` directly instead of waiting
+`client`/`cfg` globals at the fake and call `RecoverStuckJobs` directly instead of waiting
 on the one-minute ticker.
 
 - `TestSetJobFailed_IncrementsRetryCountAndPersists`
@@ -131,6 +132,24 @@ on the one-minute ticker.
 - `TestNotify_InvalidURL`
 - `TestNotify_ServerUnavailable`
 - `TestPayload_JSONSerialization`
+
+### `internal/worker/worker_test.go`
+
+Drives `processNextMessage` — the job loop — against miniredis (through `queue.InitRedisClient`)
+with a typed fake for MinIO (`fakeStorage`) and for the FFmpeg pipeline. No Docker, no ffmpeg.
+The ack runs in the job goroutine's defers, which can outlive `processNextMessage`, so the tests
+poll until `:processing` drains (2s ceiling) instead of asserting right after the return.
+
+- `TestProcessNextMessage_FailedJobIsClosedOut` — the design-decisions #13 regression: a failed
+  job leaves `:processing` with `retry_count` incremented, requeued as `pending` while budget is
+  left, dead-lettered once it is spent
+- `TestProcessNextMessage_CompletedJobIsAcked` — the other half of #13: a successful job is acked
+  (`done`, success message published) instead of waiting for orphan recovery
+- `TestWorker_CrashMidJobIsRecoveredAndReprocessed` — the queue's failure path end to end: a worker
+  dies mid-job (its goroutine never reaches the bookkeeping), the job survives in `:processing`,
+  `queue.RecoverStuckJobs` requeues it with `retry_count` 1, and a second worker finishes it
+
+Mutation-checked: moving `defer cancelBookkeeping()` back into the parent turns all three red.
 
 ### `webhook_contract_test.go` (package `main`)
 - `TestBuildWebhookPayload_MatchesContractGoldens` — one sub-test per golden in
@@ -235,32 +254,11 @@ FFmpeg is not available - skipping test
 
 - `config.LoadConfig()` — incl. behavior without `.env`
 - `minio.DownloadVideo()` and `UploadVideo()`
-- `main.processNextMessage()` — worker orchestration (`buildWebhookPayload` is covered by
-  `webhook_contract_test.go`)
 - `internal/processor/processor.go` — the FFmpeg happy path of `ProcessVideo` (steps 2 and 3
   onwards with a real video). The orchestration policy around it is covered by
   `orchestration_test.go`
 - `queue`: `InitRedisClient` (`log.Fatal`) and `StartRecovery`'s ticker loop — the remaining 24.2%
-- `main.go`'s split between `processCtx` and `bookkeepingCtx` (design-decisions #13): the rule is
-  only exercised end to end by `test/integration`, which needs Docker. The `queue`-side half of it
-  is covered by `TestQueueOperations_StopOnCanceledContext`.
-  **The ownership half has no automated test at all**, and that is why the 2026-09-13 bug (the
-  parent cancelling the bookkeeping context while the goroutine was still closing the job out)
-  shipped: the worker loop lives in `package main`, which `test/integration` cannot import, and
-  driving it needs Redis *and* MinIO. Until the loop moves to an importable package, the check is
-  manual, against a running stack:
-
-  ```bash
-  docker compose exec redis redis-cli SET job:stuck-check \
-    '{"status":"pending","retry_count":0,"created_at":1757800000,"updated_at":1757800000}'
-  docker compose exec redis redis-cli LPUSH video_queue stuck-check
-  # the object does not exist in MinIO, so the job must fail fast and close itself out:
-  docker compose exec redis redis-cli LRANGE video_queue:processing 0 -1   # must be empty
-  docker compose exec redis redis-cli LRANGE video_queue:dead 0 -1         # must hold stuck-check
-  docker compose exec redis redis-cli GET job:stuck-check                  # status failed, retry_count 4
-  ```
-
-  Any `context canceled` in the worker log during that run is the bug back.
+- `internal/worker`: the bare `Run` loop, webhook dispatch and the optional-artifact uploads
 - Transcoding + throughput benchmarks
 
 ---
@@ -274,5 +272,5 @@ separate `gofmt` and `go vet` steps — both are inside the golangci-lint config
 
 ---
 
-**Last Updated**: 2026-09-07
+**Last Updated**: 2026-10-05
 **Current Coverage**: see the table at the top — measured, not estimated

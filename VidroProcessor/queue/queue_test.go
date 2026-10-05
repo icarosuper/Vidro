@@ -256,7 +256,7 @@ func TestRecoverStuckJobs_RequeuesOrphan(t *testing.T) {
 	setupRedis(t)
 	parkInProcessing(t, "vid", JobStatusProcessing, 1, time.Hour)
 
-	recoverStuckJobs(t.Context(), 30*time.Minute)
+	RecoverStuckJobs(t.Context(), 30*time.Minute)
 
 	if got := listOf(t, processingQueueName()); len(got) != 0 {
 		t.Fatalf("processing queue = %v, want empty", got)
@@ -283,7 +283,7 @@ func TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ(t *testing.T) {
 	setupRedis(t)
 	parkInProcessing(t, "vid", JobStatusProcessing, MaxJobRetries, time.Hour)
 
-	recoverStuckJobs(t.Context(), 30*time.Minute)
+	RecoverStuckJobs(t.Context(), 30*time.Minute)
 
 	if got := listOf(t, deadLetterQueueName()); len(got) != 1 || got[0] != "vid" {
 		t.Fatalf("dead letter queue = %v, want [vid]", got)
@@ -333,7 +333,7 @@ func TestRecoverStuckJobs_LeavesHealthyAndUnknownJobsAlone(t *testing.T) {
 			setupRedis(t)
 			tc.setup(t)
 
-			recoverStuckJobs(t.Context(), 30*time.Minute)
+			RecoverStuckJobs(t.Context(), 30*time.Minute)
 
 			if got := listOf(t, processingQueueName()); len(got) != 1 {
 				t.Fatalf("processing queue = %v, want [vid]: %s", got, tc.reason)
@@ -394,7 +394,7 @@ func TestRecoverStuckJobs_StopsOnCanceledContext(t *testing.T) {
 	canceled, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	recoverStuckJobs(canceled, 30*time.Minute)
+	RecoverStuckJobs(canceled, 30*time.Minute)
 
 	// Nothing moved: the LRange that starts the sweep failed on the canceled context.
 	if got := listOf(t, processingQueueName()); len(got) != 1 {

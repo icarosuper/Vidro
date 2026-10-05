@@ -24,7 +24,7 @@ Worker stateless; all durable state (queue, in-flight jobs, job metadata, artifa
 ## Worker lifecycle
 
 1. `main.go` loads config, probes video encoder (NVENC vs CPU), initializes OTel, MinIO, Redis, HTTP server (`/health`, `/metrics`).
-2. Spawns `WORKER_COUNT` goroutines (default: cores / FFmpeg processes per job, floor 1 — `processor.DefaultWorkerCount`). Each loops on `processNextMessage`.
+2. Spawns `WORKER_COUNT` goroutines (default: cores / FFmpeg processes per job, floor 1 — `processor.DefaultWorkerCount`). Each runs `worker.Run` (`internal/worker/worker.go`), which loops on `processNextMessage`.
 3. Background goroutine (`queue.StartRecovery`) scans `:processing` queue every minute, re-queues jobs in-flight beyond the job budget + 1 min (crash recovery).
 4. Another goroutine publishes `queue_size` into Prometheus every 30s.
 5. On `SIGINT`/`SIGTERM`, root context cancelled; workers finish current job or killed after 30s grace.
@@ -55,11 +55,11 @@ pending ───────────▶ pending(queued) ──────�
                      webhook success              RequeueJob → pending     MoveToDLQ + webhook failure
 ```
 
-Retries counted on explicit `SetJobFailed` and implicitly by `recoverStuckJobs` (increments on orphan recovery).
+Retries counted on explicit `SetJobFailed` and implicitly by `RecoverStuckJobs` (increments on orphan recovery).
 
 ## Per-job execution flow
 
-Every job runs inside `processNextMessage` under:
+Every job runs inside `processNextMessage` (`internal/worker/worker.go`) under:
 - Root OTel span `process_job` (tagged `video.id`).
 - 5-min hard timeout context for whole job.
 

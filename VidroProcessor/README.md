@@ -61,7 +61,8 @@ VidroProcessor/
 │   │   ├── processor.go           # Pipeline orchestrator
 │   │   └── processor-steps/       # The 7 steps
 │   ├── telemetry/                 # OpenTelemetry tracing
-│   └── webhook/                   # Completion callback to the API
+│   ├── webhook/                   # Completion callback to the API
+│   └── worker/                    # Job loop: queue → pipeline → MinIO → state/ack/webhook
 ├── metrics/                       # Prometheus metrics
 ├── minio/                         # MinIO client
 ├── queue/                         # Redis client and job state

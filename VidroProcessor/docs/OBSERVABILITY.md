@@ -155,7 +155,7 @@ otherwise. Running the worker from a shell gives colorized lines; under `docker 
 output is JSON, which is what lets Promtail/Loki filter by field instead of by substring.
 
 **Every log line of a job carries these fields**, including the pipeline steps: the job logger
-is built once in `processNextMessage` and injected into the context, and the steps read it back
+is built once in `processNextMessage` (`internal/worker/worker.go`) and injected into the context, and the steps read it back
 with `zerolog.Ctx(ctx)` — see `docs/agents/conventions.md`, "Logging".
 
 - `workerID` — worker that took the job

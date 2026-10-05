@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"video-processor/internal/worker"
 	"video-processor/queue"
 )
 
@@ -84,7 +85,7 @@ func TestBuildWebhookPayload_MatchesContractGoldens(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.golden, func(t *testing.T) {
-			payload := buildWebhookPayload(contractVideoID, &tc.state)
+			payload := worker.BuildWebhookPayload(contractVideoID, &tc.state)
 
 			// Indented to match the golden byte for byte; the wire body is the same JSON
 			// compacted by json.Marshal inside webhook.Notify.

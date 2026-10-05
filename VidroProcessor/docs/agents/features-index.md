@@ -8,7 +8,7 @@ Map features/modules → files. Update when add module, pipeline step, or extern
 |---|---|---|
 | Worker pool, graceful shutdown, signal handling | `main.go` (`workerCount`) + `processor.DefaultWorkerCount` | Spawns `WORKER_COUNT` workers; `0` derives it from the cores divided by the FFmpeg processes one job can spawn; 30s shutdown timeout |
 | HTTP server (metrics + health) | `main.go` (`startHTTPServer`, `healthCheckHandler`) | `GET /health`, `GET /metrics` on `HTTP_PORT` |
-| Per-job orchestration | `main.go` (`processNextMessage`) | Download → process → upload artifacts → publish success → webhook |
+| Per-job orchestration | `internal/worker/worker.go` (`Run`, `processNextMessage`) | Download → process → upload artifacts → publish success → webhook |
 | Config loading | `config/config.go` | `caarlos0/env` + `godotenv`; required vars have `notEmpty` tag |
 
 ## Queue and job state
@@ -16,7 +16,7 @@ Map features/modules → files. Update when add module, pipeline step, or extern
 | Feature | File | Notes |
 |---|---|---|
 | Atomic queue consumption | `queue/client.go` (`ConsumeMessage`) | `BRPOPLPUSH` to a `:processing` sibling queue |
-| Orphan recovery | `queue/client.go` (`StartRecovery`, `recoverStuckJobs`) | Every 1 min; re-queues jobs stuck in processing > `stuckTimeout` (`jobTimeout(cfg)+1min` from `main.go`) |
+| Orphan recovery | `queue/client.go` (`StartRecovery`, `RecoverStuckJobs`) | Every 1 min; re-queues jobs stuck in processing > `stuckTimeout` (`worker.JobTimeout(cfg)+1min` from `main.go`) |
 | Ack on completion | `queue/client.go` (`AcknowledgeMessage`) | Removes from `:processing` after success or DLQ |
 | Success fan-out | `queue/client.go` (`PublishSuccessMessage`) | LPush to `ProcessingFinishedQueue` |
 | Job state (pending → processing → done/failed) | `queue/job.go` | Stored under `job:<videoID>` in Redis, TTL 24h |
@@ -75,11 +75,11 @@ Object layout inside bucket:
 | Feature | File | Notes |
 |---|---|---|
 | Payload contract | `internal/webhook/webhook.go` (`Payload`) | camelCase keys, matches VidroApi `VideoProcessed` |
-| Payload mapping | `main.go` (`buildWebhookPayload`) | `queue.JobState` → `Payload`; optional artifacts and the metadata block may be absent |
+| Payload mapping | `internal/worker/worker.go` (`BuildWebhookPayload`) | `queue.JobState` → `Payload`; optional artifacts and the metadata block may be absent |
 | Contract goldens | `../contracts/video-processed-*.json` (monorepo root) | Shared with VidroApi — both sides test the same files, see `../contracts/README.md` |
 | Delivery with retry | `internal/webhook/webhook.go` (`Notify`) | 3 attempts, exponential backoff, 10s HTTP timeout |
 | HMAC signature | `internal/webhook/webhook.go` (`send`) | `X-Webhook-Signature: sha256=<hex>` when `WEBHOOK_SECRET` set |
-| Caller wiring | `main.go` (`notifyWebhook`) | Fires on success + permanent DLQ failure |
+| Caller wiring | `internal/worker/worker.go` (`notifyWebhook`) | Fires on success + permanent DLQ failure |
 
 ## Resilience
 
