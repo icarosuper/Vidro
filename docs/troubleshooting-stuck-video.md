@@ -159,8 +159,8 @@ The video never reached the worker at all; the queue is irrelevant here.
 
 ## Step 6 — Worker finished but the API disagrees
 
-`job:<id>` says `done` while the API still says `Processing` — the webhook was lost. Two safety nets
-exist, and knowing which one fired tells you what actually broke:
+`job:<id>` says `done` while the API still says `Processing` — the webhook was lost. The webhook is
+the only channel from worker to API, and one safety net backs it:
 
 - **Webhook delivery is fire-and-forget.** A failed POST is logged and never fails the job
   ([#10](../VidroProcessor/docs/agents/design-decisions.md#10-webhook-contract-uses-camelcase-to-match-the-net-api)). Grep the
@@ -189,14 +189,15 @@ processing is idempotent per `videoID` (uploads overwrite), so replaying a job i
 docker compose exec redis redis-cli LREM video_queue:processing 0 <videoId>
 docker compose exec redis redis-cli LREM video_queue:dead 0 <videoId>
 
-# requeue with the callback the API expects
-docker compose exec redis redis-cli DEL job:<videoId>
+# rewrite the job record with the callback the API expects, then requeue
+docker compose exec redis redis-cli SET job:<videoId> \
+  '{"status":"pending","callback_url":"http://api:5000/webhooks/video-processed","retry_count":0}' EX 86400
 docker compose exec redis redis-cli LPUSH video_queue <videoId>
 ```
 
-Pushing the raw id like this leaves `callback_url` empty, so the API is notified only through
-`video_success_queue`. To exercise the webhook too, write the job record first with the same shape
-`PublishJob` uses (`status: "pending"`, `callback_url: "http://api:5000/webhooks/video-processed"`).
+The job record is **required**: a bare `LPUSH` without `job:<videoId>` is dead-lettered unprocessed,
+because the `callback_url` lives only there and the worker will not process a job nobody would hear
+about. The API only accepts the webhook while the video is still `Processing`.
 
 If the raw object was already archived (`raw-archived/<id>`, 30-day lifecycle —
 [#7](../VidroProcessor/docs/agents/design-decisions.md#7-raw-videos-soft-archived-then-deleted-by-lifecycle-rule)), copy it back to

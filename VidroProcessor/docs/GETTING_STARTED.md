@@ -164,13 +164,13 @@ Access `http://localhost:9001` and browse the `videos` bucket:
 | `hls/my-video/360p/` | HLS 360p segments |
 | `hls/my-video/720p/` | HLS 720p segments (if original resolution allows) |
 
-### Success queue
+### Job state
 
-When the job completes successfully, the processed video ID is published to `video_success_queue`:
+When the job completes, `job:<videoID>` holds `status: "done"` with the artifact paths and metadata,
+and the worker POSTs the `video-processed` webhook to the job's `callback_url`:
 
 ```bash
-redis-cli BRPOP video_success_queue 10
-# Returns: "my-video_processed"
+redis-cli GET job:my-video
 ```
 
 ### Prometheus metrics
@@ -207,7 +207,6 @@ cd .. && docker compose up -d --build
 |---|---|---|
 | `REDIS_HOST` | `localhost:6379` | Redis address |
 | `PROCESSING_REQUEST_QUEUE` | `video_queue` | Job input queue |
-| `PROCESSING_FINISHED_QUEUE` | `video_success_queue` | Completed jobs queue |
 | `MINIO_ENDPOINT` | `localhost:9000` | MinIO address |
 | `MINIO_ROOT_USER` | `minioadmin` | MinIO user |
 | `MINIO_ROOT_PASSWORD` | `minioadmin` | MinIO password |

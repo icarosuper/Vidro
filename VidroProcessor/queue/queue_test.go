@@ -23,9 +23,8 @@ func setupRedis(t *testing.T) *miniredis.Miniredis {
 	mr := miniredis.RunT(t)
 	client = redis.NewClient(&redis.Options{Addr: mr.Addr()})
 	cfg = &config.Config{
-		RedisHost:               mr.Addr(),
-		ProcessingRequestQueue:  "videos",
-		ProcessingFinishedQueue: "videos:done",
+		RedisHost:              mr.Addr(),
+		ProcessingRequestQueue: "videos",
 	}
 	t.Cleanup(func() { client.Close() })
 	return mr
@@ -230,17 +229,6 @@ func TestMoveToDLQ_LandsInDeadQueueOnly(t *testing.T) {
 	}
 }
 
-func TestPublishSuccessMessage(t *testing.T) {
-	setupRedis(t)
-
-	if err := PublishSuccessMessage(t.Context(), "vid"); err != nil {
-		t.Fatalf("PublishSuccessMessage: %v", err)
-	}
-	if got := listOf(t, cfg.ProcessingFinishedQueue); len(got) != 1 || got[0] != "vid" {
-		t.Fatalf("finished queue = %v, want [vid]", got)
-	}
-}
-
 // --- orphan recovery --------------------------------------------------------
 
 // parkInProcessing puts a job in the processing list with a hand-written state,
@@ -376,17 +364,16 @@ func TestQueueOperations_StopOnCanceledContext(t *testing.T) {
 	cancel()
 
 	operations := map[string]func() error{
-		"PublishJob":            func() error { return PublishJob(canceled, "vid", "", "") },
-		"SetJobProcessing":      func() error { return SetJobProcessing(canceled, "vid") },
-		"SetJobDone":            func() error { return SetJobDone(canceled, "vid", JobArtifacts{}, nil) },
-		"SetJobFailed":          func() error { _, err := SetJobFailed(canceled, "vid", errBoom); return err },
-		"RequeueJob":            func() error { return RequeueJob(canceled, "vid") },
-		"MoveToDLQ":             func() error { return MoveToDLQ(canceled, "vid") },
-		"GetJobState":           func() error { _, err := GetJobState(canceled, "vid"); return err },
-		"AcknowledgeMessage":    func() error { return AcknowledgeMessage(canceled, "vid") },
-		"PublishSuccessMessage": func() error { return PublishSuccessMessage(canceled, "vid") },
-		"GetQueueSize":          func() error { _, err := GetQueueSize(canceled); return err },
-		"HealthCheck":           func() error { return HealthCheck(canceled) },
+		"PublishJob":         func() error { return PublishJob(canceled, "vid", "", "") },
+		"SetJobProcessing":   func() error { return SetJobProcessing(canceled, "vid") },
+		"SetJobDone":         func() error { return SetJobDone(canceled, "vid", JobArtifacts{}, nil) },
+		"SetJobFailed":       func() error { _, err := SetJobFailed(canceled, "vid", errBoom); return err },
+		"RequeueJob":         func() error { return RequeueJob(canceled, "vid") },
+		"MoveToDLQ":          func() error { return MoveToDLQ(canceled, "vid") },
+		"GetJobState":        func() error { _, err := GetJobState(canceled, "vid"); return err },
+		"AcknowledgeMessage": func() error { return AcknowledgeMessage(canceled, "vid") },
+		"GetQueueSize":       func() error { _, err := GetQueueSize(canceled); return err },
+		"HealthCheck":        func() error { return HealthCheck(canceled) },
 	}
 
 	for name, operation := range operations {

@@ -8,7 +8,7 @@ Map features/modules → files. Update when add module, pipeline step, or extern
 |---|---|---|
 | Worker pool, graceful shutdown, signal handling | `main.go` (`workerCount`) + `processor.DefaultWorkerCount` | Spawns `WORKER_COUNT` workers; `0` derives it from the cores divided by the FFmpeg processes one job can spawn; 30s shutdown timeout |
 | HTTP server (metrics + health) | `main.go` (`startHTTPServer`, `healthCheckHandler`) | `GET /health`, `GET /metrics` on `HTTP_PORT` |
-| Per-job orchestration | `internal/worker/worker.go` (`Run`, `processNextMessage`) | Download → process → upload artifacts → publish success → webhook |
+| Per-job orchestration | `internal/worker/worker.go` (`Run`, `processNextMessage`) | Download → process → upload artifacts → job `done` → webhook |
 | Config loading | `config/config.go` | `caarlos0/env` + `godotenv`; required vars have `notEmpty` tag |
 
 ## Queue and job state
@@ -27,7 +27,8 @@ Queue names (all derived from `ProcessingRequestQueue`):
 - Main: `ProcessingRequestQueue`
 - In-flight: `<queue>:processing`
 - Dead letter: `<queue>:dead`
-- Success notifications: `ProcessingFinishedQueue`
+
+No success queue: completion is reported only by the `video-processed` webhook.
 
 ## Processing pipeline
 

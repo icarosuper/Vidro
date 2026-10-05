@@ -288,13 +288,6 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 			}
 		}
 
-		if err := queue.PublishSuccessMessage(processCtx, processedID); err != nil {
-			jobErr = fmt.Errorf("failed to publish success message: %w", err)
-			metrics.VideosProcessedTotal.WithLabelValues("error").Inc()
-			done <- jobErr
-			return
-		}
-
 		// Record final state and success metrics
 		artifacts := buildJobArtifacts(videoID, processedID, result)
 		metadata := toJobMetadata(result)

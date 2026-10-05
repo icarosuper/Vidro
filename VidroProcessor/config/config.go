@@ -12,9 +12,8 @@ import (
 
 type Config struct {
 	// Redis
-	RedisHost               string `env:"REDIS_HOST,notEmpty"`
-	ProcessingRequestQueue  string `env:"PROCESSING_REQUEST_QUEUE,notEmpty"`
-	ProcessingFinishedQueue string `env:"PROCESSING_FINISHED_QUEUE,notEmpty"`
+	RedisHost              string `env:"REDIS_HOST,notEmpty"`
+	ProcessingRequestQueue string `env:"PROCESSING_REQUEST_QUEUE,notEmpty"`
 
 	// MinIO
 	MinioEndpoint     string `env:"MINIO_ENDPOINT,notEmpty"`

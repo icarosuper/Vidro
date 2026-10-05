@@ -16,7 +16,6 @@ first (`godotenv`, missing file is fine — Docker injects the vars instead), th
 |---|---|---|
 | `REDIS_HOST` | — **required** | `host:port`. Holds the queues **and** the job records (`job:<videoID>`). It is the only durable state the worker touches besides MinIO |
 | `PROCESSING_REQUEST_QUEUE` | — **required** | Main queue. VidroApi `LPUSH`es video ids here, the worker `BRPOPLPUSH`es them out. **Shared contract** — must match the API's `JobQueueSettings:QueueName` (`video_queue` in the stack). Two sibling keys are derived from it and never configured: `<queue>:processing` (in-flight lease) and `<queue>:dead` (DLQ) — see [design-decisions.md #1](design-decisions.md#1-redis-brpoplpush-instead-of-streams--plain-brpop) |
-| `PROCESSING_FINISHED_QUEUE` | — **required** | Queue the worker pushes finished job ids onto, consumed by the API. The webhook is the primary channel; this queue is the recovery path when the webhook fails ([#10](design-decisions.md#10-webhook-contract-uses-camelcase-to-match-the-net-api)) |
 
 ## MinIO — required
 

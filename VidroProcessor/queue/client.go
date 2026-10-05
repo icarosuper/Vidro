@@ -73,12 +73,10 @@ func AcknowledgeMessage(ctx context.Context, videoID string) error {
 	return err
 }
 
-func PublishSuccessMessage(ctx context.Context, videoID string) error {
-	_, err := circuitbreaker.Redis.Execute(func() (interface{}, error) {
-		return nil, client.LPush(ctx, cfg.ProcessingFinishedQueue, videoID).Err()
-	})
-	return err
-}
+// RecoveryInterval is how often StartRecovery sweeps the processing queue. It is part of the
+// worst case an orphaned job can take, which the API's processing timeout must cover
+// (contracts/processing-timeout.json).
+const RecoveryInterval = time.Minute
 
 // StartRecovery starts a goroutine that periodically checks the processing queue
 // and re-queues stuck jobs (worker crash) back to the main queue.

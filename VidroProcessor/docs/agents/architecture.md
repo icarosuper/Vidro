@@ -36,7 +36,8 @@ Shared contract with VidroApi. Do not change queue names or job layout without c
 - **Main queue**: `ProcessingRequestQueue` (LPush by API, BRPopLPush by worker).
 - **In-flight queue**: `<ProcessingRequestQueue>:processing`. Populated atomically by `BRPOPLPUSH`, acts as visibility/lease list. Workers `LREM` on completion (`AcknowledgeMessage`).
 - **Dead letter queue**: `<ProcessingRequestQueue>:dead`. Jobs land here after `MaxJobRetries = 3` failed attempts.
-- **Success queue**: `ProcessingFinishedQueue`. Consumed by API to react to completed jobs (plus webhook).
+
+Completion reaches the API only through the `video-processed` webhook. There is no success queue: `video_success_queue` was published to and never consumed, and was removed on 2026-10-05.
 
 Each job: bare `videoID` string in queue. Full job state under Redis key `job:<videoID>` (`JobState` JSON, 24h TTL) — status, retry count, callback URL, **correlation ID**, artifacts, extracted metadata.
 
@@ -71,10 +72,9 @@ Order of operations:
 4. `minio.UploadVideo(tmpOutput, processed, "<id>_processed")` — primary MP4.
 5. `minio.ArchiveRawVideo(videoID)` — soft delete: copy `raw/id` → `raw-archived/id`, remove original. Non-fatal.
 6. Optional artifacts (thumbnails dir, audio, preview, HLS dir) uploaded if step succeeded.
-7. `queue.PublishSuccessMessage(processedID)` — notifies API via finished queue.
-8. `queue.SetJobDone` with artifacts + metadata.
-9. `notifyWebhook` — fires only if `callbackURL` set on job state.
-10. `defer`: local temp files removed; job acknowledged (`LREM` from `:processing`).
+7. `queue.SetJobDone` with artifacts + metadata.
+8. `notifyWebhook` — fires only if `callbackURL` set on job state.
+9. `defer`: local temp files removed; job acknowledged (`LREM` from `:processing`).
 
 On error, `defer` increments retry count, requeues or moves to DLQ, still acknowledges (prevents double-processing). Metrics counter `videos_processed_total{status=error}` bumped at failure site.
 

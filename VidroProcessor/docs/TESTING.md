@@ -114,12 +114,11 @@ on the one-minute ticker.
 - `TestAcknowledgeMessage_RemovesOneOccurrence`
 - `TestRequeueJob_BackToRequestQueueAsPending`
 - `TestMoveToDLQ_LandsInDeadQueueOnly`
-- `TestPublishSuccessMessage`
 - `TestRecoverStuckJobs_RequeuesOrphan`
 - `TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ`
 - `TestRecoverStuckJobs_LeavesHealthyAndUnknownJobsAlone` — fresh job, finished job,
   job whose state expired
-- `TestQueueOperations_StopOnCanceledContext` — the 11 public entry points, one canceled
+- `TestQueueOperations_StopOnCanceledContext` — the 10 public entry points, one canceled
   context each: proves the ctx reaches Redis instead of being swallowed for
   `context.Background()` (see design-decisions #13)
 - `TestRecoverStuckJobs_StopsOnCanceledContext` — a shutdown stops the sweep mid-scan
@@ -146,7 +145,7 @@ poll until `:processing` drains (2s ceiling) instead of asserting right after th
   job leaves `:processing` with `retry_count` incremented, requeued as `pending` while budget is
   left, dead-lettered once it is spent
 - `TestProcessNextMessage_CompletedJobIsAcked` — the other half of #13: a successful job is acked
-  (`done`, success message published) instead of waiting for orphan recovery
+  (`done`, with its artifacts) instead of waiting for orphan recovery
 - `TestWorker_CrashMidJobIsRecoveredAndReprocessed` — the queue's failure path end to end: a worker
   dies mid-job (its goroutine never reaches the bookkeeping), the job survives in `:processing`,
   `queue.RecoverStuckJobs` requeues it with `retry_count` 1, and a second worker finishes it
@@ -215,7 +214,7 @@ Use **testcontainers-go** — spins real Redis + MinIO.
 ### Pipeline tests (`pipeline_test.go`)
 - `TestPipeline_ValidateStep`
 - `TestPipeline_TranscodeStep`
-- `TestPipeline_FullWorkflow` — Redis → download → FFmpeg → upload → success queue
+- `TestPipeline_FullWorkflow` — Redis → download → FFmpeg → upload
 - `TestPipeline_ThumbnailGeneration`
 
 ---

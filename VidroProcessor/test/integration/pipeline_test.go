@@ -213,7 +213,6 @@ func TestPipeline_FullWorkflow(t *testing.T) {
 	_ = minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
 
 	requestQueue := "processing_request_queue"
-	successQueue := "processing_finished_queue"
 
 	// Generate and upload test video
 	videoContent := generateTestVideo(t)
@@ -279,22 +278,6 @@ func TestPipeline_FullWorkflow(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("Failed to upload processed video: %v", err)
-	}
-
-	// Step 6: Add to success queue
-	err = redisClient.LPush(ctx, successQueue, processedID).Err()
-	if err != nil {
-		t.Fatalf("Failed to add to success queue: %v", err)
-	}
-
-	// Verify success queue
-	successResult, err := redisClient.BRPop(ctx, 5*time.Second, successQueue).Result()
-	if err != nil {
-		t.Fatalf("Failed to consume from success queue: %v", err)
-	}
-
-	if successResult[1] != processedID {
-		t.Errorf("Expected processedID '%s', got '%s'", processedID, successResult[1])
 	}
 
 	// Verify processed video exists in MinIO
