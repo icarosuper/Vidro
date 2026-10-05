@@ -96,12 +96,12 @@ export function EditPlaylistForm({ playlist, onSuccess }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label>Visibility</Label>
+        <Label htmlFor="edit-playlist-visibility">Visibility</Label>
         <Select
           defaultValue={String(playlist.visibility.id)}
           onValueChange={(v) => setValue('visibility', Number(v))}
         >
-          <SelectTrigger>
+          <SelectTrigger id="edit-playlist-visibility">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -105,12 +105,12 @@ export function CreatePlaylistForm({ channelId, onSuccess }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label>Visibility</Label>
+        <Label htmlFor="playlist-visibility">Visibility</Label>
         <Select
           defaultValue={String(PlaylistVisibility.Public)}
           onValueChange={(v) => setValue('visibility', Number(v))}
         >
-          <SelectTrigger>
+          <SelectTrigger id="playlist-visibility">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

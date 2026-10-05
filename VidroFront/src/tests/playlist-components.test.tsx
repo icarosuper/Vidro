@@ -10,9 +10,14 @@ import {
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CreatePlaylistForm } from '#/features/playlists/components/CreatePlaylistForm'
+import { EditPlaylistForm } from '#/features/playlists/components/EditPlaylistForm'
 import { PlaylistCard } from '#/features/playlists/components/PlaylistCard'
 import { PlaylistItemList } from '#/features/playlists/components/PlaylistItemList'
-import type { PlaylistItem, PlaylistSummary } from '#/features/playlists/types'
+import type {
+  Playlist,
+  PlaylistItem,
+  PlaylistSummary,
+} from '#/features/playlists/types'
 import { PlaylistScope, PlaylistVisibility } from '#/shared/types'
 
 // Link needs a router context; a plain anchor is enough to render what sits inside it.
@@ -30,6 +35,11 @@ vi.mock('#/features/playlists/hooks', () => ({
   }),
   useCreatePlaylist: () => ({
     mutate: createMutate,
+    isPending: false,
+    error: null,
+  }),
+  useUpdatePlaylist: () => ({
+    mutate: vi.fn(),
     isPending: false,
     error: null,
   }),
@@ -186,5 +196,30 @@ describe('CreatePlaylistForm', () => {
     submitWithName('Watch later')
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledWith('pl-9'))
+  })
+
+  it('names the visibility select after its label', () => {
+    render(<CreatePlaylistForm />)
+
+    expect(screen.getByRole('combobox', { name: 'Visibility' })).toBeDefined()
+  })
+})
+
+describe('EditPlaylistForm', () => {
+  it('names the visibility select after its label', () => {
+    const playlist: Playlist = {
+      playlistId: 'pl-1',
+      name: 'Favorites',
+      description: null,
+      visibility: { id: PlaylistVisibility.Private, value: 'Private' },
+      scope: { id: PlaylistScope.User, value: 'User' },
+      videoCount: 0,
+      channelId: null,
+      createdAt: '2024-01-01T00:00:00Z',
+      items: [],
+    }
+    render(<EditPlaylistForm playlist={playlist} />)
+
+    expect(screen.getByRole('combobox', { name: 'Visibility' })).toBeDefined()
   })
 })
