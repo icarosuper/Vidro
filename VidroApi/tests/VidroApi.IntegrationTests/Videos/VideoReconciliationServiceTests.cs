@@ -59,15 +59,73 @@ public class VideoReconciliationServiceTests(ApiFactory factory) : IClassFixture
         (await ReadStatusAsync(videoId)).Should().Be(VideoStatus.Failed);
     }
 
+    [Fact]
+    public async Task ReconcileStuckProcessing_MarksStuckVideoFailed()
+    {
+        var videoId = await CreateStuckProcessingVideo();
+
+        await RunStuckReconciliationAsync();
+
+        (await ReadStatusAsync(videoId)).Should().Be(VideoStatus.Failed);
+    }
+
+    [Fact]
+    public async Task ReconcileStuckProcessing_WhenOneSaveFails_OthersStillMarkedFailed()
+    {
+        var failingVideoId = await CreateStuckProcessingVideo();
+        var healthyVideoId = await CreateStuckProcessingVideo();
+        var triggerName = $"fail_{failingVideoId:N}";
+        await ExecuteSqlAsync($@"
+            CREATE FUNCTION {triggerName}() RETURNS trigger AS $$
+            BEGIN RAISE EXCEPTION 'simulated save failure'; END $$ LANGUAGE plpgsql;
+            CREATE TRIGGER {triggerName} BEFORE UPDATE ON videos
+            FOR EACH ROW WHEN (OLD.id = '{failingVideoId}') EXECUTE FUNCTION {triggerName}();");
+        try
+        {
+            await RunStuckReconciliationAsync();
+        }
+        finally
+        {
+            await ExecuteSqlAsync($@"DROP TRIGGER {triggerName} ON videos; DROP FUNCTION {triggerName}();");
+        }
+
+        // One bad save must not abort the sweep, and the failed entity must not leak into the
+        // next video's SaveChanges.
+        (await ReadStatusAsync(failingVideoId)).Should().Be(VideoStatus.Processing);
+        (await ReadStatusAsync(healthyVideoId)).Should().Be(VideoStatus.Failed);
+    }
+
+    private async Task<Guid> CreateStuckProcessingVideo()
+    {
+        var videoId = await CreateStaleVideo();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var longAgo = DateTimeOffset.UtcNow.AddDays(-1);
+        await db.Videos.Where(v => v.Id == videoId).ExecuteUpdateAsync(s => s
+            .SetProperty(v => v.Status, VideoStatus.Processing)
+            .SetProperty(v => v.UpdatedAt, longAgo));
+        return videoId;
+    }
+
+    private async Task ExecuteSqlAsync(string sql)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.ExecuteSqlRawAsync(sql);
+    }
+
+    private async Task RunStuckReconciliationAsync() =>
+        await CreateService().ReconcileStuckProcessingAsync(CancellationToken.None);
+
+    private VideoReconciliationService CreateService() => new(
+        factory.Services.GetRequiredService<IServiceScopeFactory>(),
+        Options.Create(new VideoSettings()),
+        Options.Create(new ApiSettings { BaseUrl = "http://localhost" }),
+        NullLogger<VideoReconciliationService>.Instance);
+
     private async Task RunReconciliationAsync()
     {
-        var service = new VideoReconciliationService(
-            factory.Services.GetRequiredService<IServiceScopeFactory>(),
-            Options.Create(new VideoSettings()),
-            Options.Create(new ApiSettings { BaseUrl = "http://localhost" }),
-            NullLogger<VideoReconciliationService>.Instance);
-
-        await service.ReconcileStaleUploadsAsync(CancellationToken.None);
+        await CreateService().ReconcileStaleUploadsAsync(CancellationToken.None);
     }
 
     private async Task<Guid> CreateStaleVideoWithRawObject()

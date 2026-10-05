@@ -59,7 +59,7 @@ public class VideoReconciliationService(
     // Safety net for BUG-1's failure shape: the Processor acks the job, then its webhook
     // never lands (API error, crash, network) — nothing retries and the video would sit in
     // Processing forever.
-    private async Task ReconcileStuckProcessingAsync(CancellationToken ct)
+    public async Task ReconcileStuckProcessingAsync(CancellationToken ct)
     {
         try
         {
@@ -82,9 +82,19 @@ public class VideoReconciliationService(
                 stuckVideos.Count, videoOptions.Value.ProcessingTimeoutMinutes);
 
             foreach (var video in stuckVideos)
-                video.MarkAsFailed(now);
-
-            await db.SaveChangesAsync(ct);
+            {
+                try
+                {
+                    video.MarkAsFailed(now);
+                    await db.SaveChangesAsync(ct);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // Drop the unsaved change, or the next video's SaveChanges would persist it anyway.
+                    db.Entry(video).State = EntityState.Detached;
+                    logger.LogError(ex, "Failed to mark stuck video {VideoId} as failed", video.Id);
+                }
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
