@@ -142,13 +142,18 @@ func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration) {
 
 		log.Warn().Str("videoID", videoID).Int("retry_count", state.RetryCount).Msg("Orphan job detected, re-queuing")
 
-		state.Status = JobStatusPending
-		if err := setJobState(ctx, videoID, *state); err != nil {
-			log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update state during recovery")
-			continue
-		}
+		// Move first, state second. If the move fails the state is still "processing" and
+		// old, so the next sweep tries again. The reverse order stranded the job: a pending
+		// state in :processing is skipped by the status check above, forever. If the state
+		// write fails after the move the job is already requeued and the worker that pops it
+		// does not look at the status; only the retry_count increment is lost.
 		if err := moveFromProcessing(ctx, videoID, cfg.ProcessingRequestQueue); err != nil {
 			log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to re-queue orphan job")
+			continue
+		}
+		state.Status = JobStatusPending
+		if err := setJobState(ctx, videoID, *state); err != nil {
+			log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update state after re-queuing orphan job")
 		}
 	}
 }

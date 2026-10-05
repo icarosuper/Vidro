@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
+	"github.com/alicebob/miniredis/v2/server"
 	"github.com/redis/go-redis/v9"
 
 	"video-processor/config"
@@ -307,6 +308,42 @@ func TestRecoverStuckJobs_RequeuesOrphan(t *testing.T) {
 	}
 	if state.Status != JobStatusPending {
 		t.Fatalf("Status = %q, want %q", state.Status, JobStatusPending)
+	}
+}
+
+// TestRecoverStuckJobs_FailedRequeueIsRetriedOnNextSweep: when the move fails, the job must
+// still look orphaned (status processing) so the next sweep picks it up. Writing "pending"
+// before the move left it in :processing with a status recovery skips, forever.
+func TestRecoverStuckJobs_FailedRequeueIsRetriedOnNextSweep(t *testing.T) {
+	mr := setupRedis(t)
+	parkInProcessing(t, "vid", JobStatusProcessing, 1, time.Hour)
+
+	mr.Server().SetPreHook(func(c *server.Peer, cmd string, args ...string) bool {
+		if cmd == "EXEC" {
+			// Connection dies before EXEC: the queued LREM/LPUSH are discarded, as in a real outage.
+			c.Close()
+			return true
+		}
+		return false
+	})
+	RecoverStuckJobs(t.Context(), 30*time.Minute)
+
+	if got := listOf(t, processingQueueName()); len(got) != 1 {
+		t.Fatalf("processing queue = %v, want [vid] after failed move", got)
+	}
+	state, err := GetJobState(t.Context(), "vid")
+	if err != nil {
+		t.Fatalf("GetJobState: %v", err)
+	}
+	if state.Status != JobStatusProcessing {
+		t.Fatalf("Status = %q after failed move, want %q", state.Status, JobStatusProcessing)
+	}
+
+	mr.Server().SetPreHook(nil)
+	RecoverStuckJobs(t.Context(), 30*time.Minute)
+
+	if got := listOf(t, cfg.ProcessingRequestQueue); len(got) != 1 || got[0] != "vid" {
+		t.Fatalf("request queue = %v, want [vid] after the second sweep", got)
 	}
 }
 
