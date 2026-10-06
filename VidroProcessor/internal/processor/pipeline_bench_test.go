@@ -21,7 +21,7 @@ import (
 var (
 	clipOnce sync.Once
 	clipPath string
-	clipErr  error
+	errClip  error
 )
 
 func benchClip(b *testing.B) string {
@@ -34,16 +34,16 @@ func benchClip(b *testing.B) string {
 	clipOnce.Do(func() {
 		dir, err := os.MkdirTemp("", "vidro-bench-")
 		if err != nil {
-			clipErr = err
+			errClip = err
 			return
 		}
 		clipPath = filepath.Join(dir, "clip.mp4")
-		clipErr = exec.Command("ffmpeg", "-f", "lavfi", "-i", "testsrc=duration=10:size=1280x720:rate=30",
+		errClip = exec.Command("ffmpeg", "-f", "lavfi", "-i", "testsrc=duration=10:size=1280x720:rate=30",
 			"-f", "lavfi", "-i", "sine=frequency=1000:duration=10",
 			"-pix_fmt", "yuv420p", "-c:v", "libx264", "-c:a", "aac", "-y", clipPath).Run()
 	})
-	if clipErr != nil {
-		b.Fatalf("generating clip: %v", clipErr)
+	if errClip != nil {
+		b.Fatalf("generating clip: %v", errClip)
 	}
 	return clipPath
 }
@@ -52,7 +52,7 @@ func benchClip(b *testing.B) string {
 func BenchmarkTranscodeVideo(b *testing.B) {
 	input := benchClip(b)
 	dir := b.TempDir()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		out := filepath.Join(dir, "out_"+strconv.Itoa(i)+".mp4")
 		if err := processor_steps.TranscodeVideo(context.Background(), input, out, processor_steps.VideoEncoderCPU, ""); err != nil {
 			b.Fatal(err)
@@ -70,7 +70,7 @@ func BenchmarkNonCriticalSteps(b *testing.B) {
 	}
 
 	run := func(b *testing.B, orchestrate func(context.Context, []nonCriticalStep)) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			result := &ProcessingResult{}
 			steps := nonCriticalSteps(input, transcoded, b.TempDir(), result, DefaultOptions())
 			orchestrate(context.Background(), steps)
@@ -102,7 +102,7 @@ func BenchmarkProcessVideo(b *testing.B) {
 	}
 	for name, mutate := range cases {
 		b.Run(name, func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				opts := DefaultOptions()
 				mutate(&opts)
 				dir := b.TempDir()
