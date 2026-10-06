@@ -541,12 +541,12 @@ Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Os riscos graves foram fechad
       toda entrega toma 401. Deveria falhar no startup.~~
 
 **Sujeira no `internal/worker`** (código movido sem mudança em `1e9b466`):
-- [ ] `Run` (`worker.go:94`) gira sem backoff quando `processNextMessage` falha na hora (Redis
-      fora, breaker aberto).
-- [ ] `worker.go:117` — `if msg == nil` é inalcançável; `worker.go:129,299` têm chamada inline
-      dentro do `if` (regra de legibilidade da raiz).
-- [ ] `VidroProcessor/docs/agents/architecture.md:64` ainda fala em "5-min hard timeout"; hoje é
-      `JobTimeout`.
+- [x] **RESOLVIDO** *(2026-10-06)* ~~`Run` gira sem backoff quando `processNextMessage` falha na hora (Redis
+      fora, breaker aberto).~~ Falha de leitura da fila (`errConsume`) pausa 1 s, cortada pelo
+      shutdown; job que falha não pausa. Travado por `TestRun_PausesAfterQueueReadError`.
+- [x] **RESOLVIDO** *(2026-10-06)* ~~`worker.go:117` — `if msg == nil` é inalcançável; `worker.go:129,299` têm chamada inline
+      dentro do `if`~~ — removido e extraído para variáveis nomeadas.
+- [x] **RESOLVIDO** *(2026-10-06)* ~~`architecture.md:64` ainda fala em "5-min hard timeout"~~.
 
 **Achados das ondas B e C** *(2026-10-05)* — todos corrigidos; o que sobrou está no fim da lista:
 - [x] **RESOLVIDO** *(`6ab1353`)* `VideoReconciliationService` publicava antes do save em lote — o mesmo
@@ -969,8 +969,7 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 2026-09-07, SEO + idioma, P-PERF1 a P-PERF5, laço do worker testável, testes de
 `channels`/`playlists`, doc do fluxo ponta a ponta, e os riscos graves de "Confiabilidade do fluxo".
 
-1. **Resto de "Confiabilidade do fluxo"** (P2) — backoff no `Run`, caminho do webhook vs. arquivo inexistente, `worker.go:117/129/299`,
-   `architecture.md:64` ("5-min hard timeout"), logs sem `correlationID` em `notifyWebhook`/recovery.
+1. **Resto de "Confiabilidade do fluxo"** (P2) — caminho do webhook vs. arquivo inexistente, logs sem `correlationID` em `notifyWebhook`/recovery.
 2. **P-PERF6, segunda metade** — benchmark variando `WORKER_COUNT` e um vídeo real.
 3. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.
 4. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de

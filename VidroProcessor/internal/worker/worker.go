@@ -29,6 +29,15 @@ import (
 // these run after cancellation, inside the 30s graceful-shutdown window (design-decisions #12).
 const bookkeepingTimeout = 10 * time.Second
 
+// consumeBackoff is how long Run waits after a failed queue read before trying again. Without it
+// a Redis outage (or an open breaker, which fails instantly) turns the loop into a busy spin that
+// floods the log. The wait is cut short by shutdown.
+const consumeBackoff = time.Second
+
+// errConsume marks a failure to read the queue, as opposed to a job that failed: only the first
+// deserves a pause, because the next job is not affected by it.
+var errConsume = errors.New("consume message")
+
 // storage is the slice of the minio package a job uses. It exists so tests can swap MinIO
 // for a fake; production uses minioStorage.
 type storage interface {
@@ -69,6 +78,8 @@ type Worker struct {
 	videoEncoder string
 	storage      storage
 	processVideo func(ctx context.Context, inputPath, outputPath string, options processor.Options) (*processor.ProcessingResult, error)
+	// pauseAfterConsumeError is consumeBackoff in production; tests shorten it.
+	pauseAfterConsumeError time.Duration
 }
 
 // New returns a Worker wired to MinIO and the real pipeline. queue.InitRedisClient and
@@ -79,6 +90,8 @@ func New(cfg *config.Config, videoEncoder string) *Worker {
 		videoEncoder: videoEncoder,
 		storage:      minioStorage{},
 		processVideo: processor.ProcessVideo,
+
+		pauseAfterConsumeError: consumeBackoff,
 	}
 }
 
@@ -117,9 +130,17 @@ func (w *Worker) Run(ctx context.Context, workerID int) {
 			log.Info().Int("workerID", workerID).Msg("Shutting down worker gracefully")
 			return
 		default:
-			if err := w.processNextMessage(ctx, workerID); err != nil {
-				if !errors.Is(err, context.Canceled) {
-					log.Error().Err(err).Int("workerID", workerID).Msg("Error processing message")
+			err := w.processNextMessage(ctx, workerID)
+			if err == nil {
+				continue
+			}
+			if !errors.Is(err, context.Canceled) {
+				log.Error().Err(err).Int("workerID", workerID).Msg("Error processing message")
+			}
+			if errors.Is(err, errConsume) {
+				select {
+				case <-ctx.Done():
+				case <-time.After(w.pauseAfterConsumeError):
 				}
 			}
 		}
@@ -131,10 +152,7 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 	// BRPOPLPUSH atomically moves the job to the processing queue.
 	msg, err := queue.ConsumeMessage(ctx)
 	if err != nil {
-		return err
-	}
-	if msg == nil {
-		return nil
+		return fmt.Errorf("%w: %w", errConsume, err)
 	}
 
 	videoID := msg.VideoID
@@ -145,10 +163,10 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 	// whole point of the field: it is what ties the user's upload to these lines in Loki.
 	// A job published without one (older job, or a producer that does not set it) just logs
 	// without the field — it must not stop the job.
-	if publishedState, err := queue.GetJobState(ctx, videoID); err == nil && publishedState != nil {
-		if publishedState.CorrelationID != "" {
-			jobFields = jobFields.Str("correlationID", publishedState.CorrelationID)
-		}
+	publishedState, publishedStateErr := queue.GetJobState(ctx, videoID)
+	hasCorrelationID := publishedStateErr == nil && publishedState.CorrelationID != ""
+	if hasCorrelationID {
+		jobFields = jobFields.Str("correlationID", publishedState.CorrelationID)
 	}
 	jobLogger := jobFields.Logger()
 	ctx = jobLogger.WithContext(ctx)
@@ -253,8 +271,9 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 			done <- jobErr
 			return
 		}
-		if info, err := os.Stat(inputPath); err == nil {
-			metrics.VideoSizeBytes.Observe(float64(info.Size()))
+		downloadedInfo, statErr := os.Stat(inputPath)
+		if statErr == nil {
+			metrics.VideoSizeBytes.Observe(float64(downloadedInfo.Size()))
 		}
 
 		result, err := w.processVideo(processCtx, inputPath, outputPath, processor.Options{

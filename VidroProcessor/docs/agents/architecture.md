@@ -63,7 +63,7 @@ Retries counted on explicit `SetJobFailed` and implicitly by `RecoverStuckJobs` 
 
 Every job runs inside `processNextMessage` (`internal/worker/worker.go`) under:
 - Root OTel span `process_job` (tagged `video.id`).
-- 5-min hard timeout context for whole job.
+- Whole-job timeout context (`JobTimeout`, derived from the step timeouts — design-decisions #4).
 
 Order of operations:
 

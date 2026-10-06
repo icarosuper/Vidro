@@ -9,8 +9,10 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
+	"github.com/sony/gobreaker"
 
 	"video-processor/config"
+	"video-processor/internal/circuitbreaker"
 	"video-processor/internal/processor"
 	"video-processor/minio"
 	"video-processor/queue"
@@ -197,6 +199,34 @@ func TestProcessNextMessage_InvalidVideoSkipsRetries(t *testing.T) {
 	}
 	if state := jobState(t); state.Status != queue.JobStatusFailed {
 		t.Fatalf("Status = %q, want %q", state.Status, queue.JobStatusFailed)
+	}
+}
+
+// A queue that cannot be read must not turn Run into a busy loop. Here the request queue holds
+// a string, so BRPOPLPUSH fails instantly with WRONGTYPE — the same shape as an open breaker.
+func TestRun_PausesAfterQueueReadError(t *testing.T) {
+	mr, cfg := setupQueue(t)
+	if err := mr.Set(requestQueue, "not a list"); err != nil {
+		t.Fatalf("Set: %v", err)
+	}
+	// Own breaker: this test must not leave the shared one open for the tests that follow.
+	sharedBreaker := circuitbreaker.Redis
+	circuitbreaker.Redis = gobreaker.NewCircuitBreaker(gobreaker.Settings{Name: "test"})
+	t.Cleanup(func() { circuitbreaker.Redis = sharedBreaker })
+
+	jobWorker := newTestWorker(cfg, fakeStorage{})
+	jobWorker.pauseAfterConsumeError = 100 * time.Millisecond
+	runCtx, stop := context.WithTimeout(t.Context(), 350*time.Millisecond)
+	defer stop()
+
+	commandsBeforeRun := mr.CommandCount()
+	jobWorker.Run(runCtx, 1)
+
+	// 350ms / 100ms: the first read plus at most 3 after the pauses. A spin does thousands.
+	const maxReads = 5
+	reads := mr.CommandCount() - commandsBeforeRun
+	if reads > maxReads {
+		t.Fatalf("worker read the queue %d times in 350ms, want at most %d: no pause after the error", reads, maxReads)
 	}
 }
 
