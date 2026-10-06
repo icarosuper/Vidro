@@ -10,6 +10,10 @@ import (
 	"strings"
 )
 
+// ThumbnailCount is how many thumbnails the step generates. The webhook builds the thumbnail
+// paths from it, so it is the single source for how many files the API will be told exist.
+const ThumbnailCount = 5
+
 // ThumbnailConfig defines the configuration for thumbnail generation.
 type ThumbnailConfig struct {
 	Count  int
@@ -19,7 +23,7 @@ type ThumbnailConfig struct {
 
 // GenerateThumbnails generates thumbnails from the video at multiple timestamps.
 func GenerateThumbnails(ctx context.Context, inputPath, outputDir string) error {
-	config := ThumbnailConfig{Count: 5, Width: 320, Height: 180}
+	config := ThumbnailConfig{Count: ThumbnailCount, Width: 320, Height: 180}
 
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create thumbnails directory: %w", err)

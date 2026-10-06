@@ -30,7 +30,8 @@ var errDownloadFailed = errors.New("object not found")
 // fakeStorage stands in for MinIO. Every call succeeds except DownloadVideo, which runs
 // download when set — that is where each test decides how the job goes.
 type fakeStorage struct {
-	download func(ctx context.Context) error
+	download        func(ctx context.Context) error
+	uploadDirectory func(ctx context.Context) error
 }
 
 func (s fakeStorage) DownloadVideo(ctx context.Context, _ minio.VideoType, _, _ string) error {
@@ -44,7 +45,12 @@ func (fakeStorage) UploadVideo(context.Context, string, minio.VideoType, string)
 
 func (fakeStorage) ArchiveRawVideo(context.Context, string) error { return nil }
 
-func (fakeStorage) UploadDirectory(context.Context, string, string) error { return nil }
+func (s fakeStorage) UploadDirectory(ctx context.Context, _, _ string) error {
+	if s.uploadDirectory == nil {
+		return nil
+	}
+	return s.uploadDirectory(ctx)
+}
 
 func (fakeStorage) UploadFile(context.Context, string, string) error { return nil }
 
@@ -227,6 +233,31 @@ func TestRun_PausesAfterQueueReadError(t *testing.T) {
 	reads := mr.CommandCount() - commandsBeforeRun
 	if reads > maxReads {
 		t.Fatalf("worker read the queue %d times in 350ms, want at most %d: no pause after the error", reads, maxReads)
+	}
+}
+
+// The webhook is built from the job state, so an optional artifact whose upload failed must not
+// be in it: the API would store a path to an object that does not exist.
+func TestProcessNextMessage_FailedOptionalUploadIsNotReported(t *testing.T) {
+	_, cfg := setupQueue(t)
+	publishJob(t)
+	storage := fakeStorage{uploadDirectory: func(context.Context) error { return errors.New("bucket unavailable") }}
+	jobWorker := newTestWorker(cfg, storage)
+	jobWorker.processVideo = func(context.Context, string, string, processor.Options) (*processor.ProcessingResult, error) {
+		return &processor.ProcessingResult{ThumbnailsDir: "thumbs", AudioPath: "audio.mp3"}, nil
+	}
+
+	if err := jobWorker.processNextMessage(t.Context(), 1); err != nil {
+		t.Fatalf("processNextMessage: %v", err)
+	}
+
+	artifacts := jobState(t).Artifacts
+	if artifacts.Thumbnails != "" {
+		t.Errorf("Thumbnails = %q, want empty: the upload failed", artifacts.Thumbnails)
+	}
+	wantAudio := "audio/" + videoID + ".mp3"
+	if artifacts.Audio != wantAudio {
+		t.Errorf("Audio = %q, want %q: its upload succeeded", artifacts.Audio, wantAudio)
 	}
 }
 

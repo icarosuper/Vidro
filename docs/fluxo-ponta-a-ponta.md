@@ -174,7 +174,7 @@ Dentro do mesmo handler (`MinioUploadCompleted.cs`, `Handle`), numa transação,
    passo tem timeout próprio (constantes `stepTimeout*` em `processor.go`).
 3. Sobe `processed/<videoId>_processed` (crítico).
 4. Move `raw/<videoId>` → `raw-archived/<videoId>` (copy + remove; falha só loga).
-5. Sobe os opcionais; falha de upload só loga.
+5. Sobe os opcionais; falha de upload loga e tira aquele artefato do que o webhook reporta.
 6. Grava `status: done` com `artifacts` e `metadata`, e dispara o webhook.
 
 **Layout no bucket** (`buildJobArtifacts`):
@@ -184,7 +184,7 @@ Dentro do mesmo handler (`MinioUploadCompleted.cs`, `Handle`), numa transação,
 | `raw/<videoId>` | browser (passo 2) | some depois do passo 6.4 |
 | `raw-archived/<videoId>` | worker | apagado pelo lifecycle em 30 dias |
 | `processed/<videoId>_processed` | worker | o MP4 que o player toca; `Content-Type: video/mp4` |
-| `thumbnails/<videoId>/thumb_00{1..5}.jpg` | worker | 5 fixos (`thumbnail.go:22`) |
+| `thumbnails/<videoId>/thumb_00{1..5}.jpg` | worker | `processor_steps.ThumbnailCount` (5), fonte única do passo e do webhook |
 | `audio/<videoId>.mp3` | worker | |
 | `preview/<videoId>_preview.mp4` | worker | |
 | `hls/<videoId>/…` | worker | `.m3u8` + `.ts`; a API ainda não expõe (P6) |
@@ -248,9 +248,8 @@ teto de 10 s (`bookkeepingTimeout`).
 - `GetVideo` devolve URLs **presigned GET**: o MP4 de `ProcessedPath` com validade de 4 h e as
   thumbnails com 1 h (`GetVideo.cs:65-78`, `appsettings.json:20-21`). URL expirada no meio da
   reprodução exige recarregar o vídeo.
-- Os caminhos vêm do webhook como estão. Se o upload de um artefato opcional falhou no passo 6.5,
-  o caminho foi para o payload mesmo assim (`buildJobArtifacts` olha o resultado do pipeline, não o
-  do upload) e a URL gerada aponta para um objeto que não existe.
+- Os caminhos vêm do webhook como estão. Um artefato opcional cujo upload falhou no passo 6.5 é
+  tirado do resultado antes do `buildJobArtifacts`, então o webhook o reporta como ausente.
 
 ---
 

@@ -528,9 +528,11 @@ Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Os riscos graves foram fechad
 - [x] **RESOLVIDO** junto com a remoção da `video_success_queue` (`1eaa603`): o publish era o único passo crítico depois do arquivamento. Sobra um caso estreito: Redis fora no fechamento do job. ~~**Falha depois do arquivamento do raw não tem retry possível:** se o publish de sucesso
       falha, `raw/<id>` já foi para `raw-archived/`, todo retry falha no download e o vídeo vira
       `Failed` com os artefatos no bucket.~~
-- [ ] **Webhook pode apontar para arquivo inexistente:** `buildJobArtifacts` monta caminho a
+- [x] **RESOLVIDO** *(2026-10-06)* ~~**Webhook pode apontar para arquivo inexistente:** `buildJobArtifacts` monta caminho a
       partir do resultado do pipeline, não do upload; e o total de 5 thumbnails está fixo à parte
-      do `thumbnail.go:22`.
+      do `thumbnail.go:22`.~~ Upload opcional que falha zera o campo no resultado antes do
+      `buildJobArtifacts`; o 5 virou `processor_steps.ThumbnailCount`, lido pelo passo e pelo webhook.
+      Travado por `TestProcessNextMessage_FailedOptionalUploadIsNotReported`.
 - [x] **RESOLVIDO** *(2026-10-06)* ~~Órfão esgotado vai para o DLQ **sem webhook** (`queue/client.go`, `RecoverStuckJobs`)~~
       — `StartRecovery`/`RecoverStuckJobs` recebem um `onDeadLettered` e o `main.go` o liga a
       `Worker.NotifyDeadLettered` (o mesmo caminho do esgotamento normal). Órfão sem `job:` não tem
@@ -971,7 +973,7 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 2026-09-07, SEO + idioma, P-PERF1 a P-PERF5, laço do worker testável, testes de
 `channels`/`playlists`, doc do fluxo ponta a ponta, e os riscos graves de "Confiabilidade do fluxo".
 
-1. **Resto de "Confiabilidade do fluxo"** (P2) — caminho do webhook vs. arquivo inexistente e o `LREM` do `moveFromProcessing`.
+1. **Resto de "Confiabilidade do fluxo"** (P2) — o `LREM` do `moveFromProcessing`.
 2. **P-PERF6, segunda metade** — benchmark variando `WORKER_COUNT` e um vídeo real.
 3. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.
 4. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de
