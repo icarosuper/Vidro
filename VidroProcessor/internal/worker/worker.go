@@ -196,7 +196,9 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 					jobLogger.Warn().Err(err).Msg("Failed to update job state to failed")
 				}
 				requeued := false
-				if state != nil && state.ShouldRetry() {
+				// An unusable file fails the same way every time: retrying only delays the verdict.
+				retryable := !errors.Is(jobErr, processor.ErrInvalidVideo)
+				if retryable && state != nil && state.ShouldRetry() {
 					if err := queue.RequeueJob(bookkeepingCtx, videoID); err != nil {
 						jobLogger.Warn().Err(err).Msg("Failed to requeue job, moving to dead letter queue")
 					} else {

@@ -2,8 +2,10 @@ package processor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
@@ -17,6 +19,10 @@ import (
 	"video-processor/internal/telemetry"
 	"video-processor/metrics"
 )
+
+// ErrInvalidVideo marks a failure that reprocessing cannot fix: the file itself is unusable.
+// The worker sends such a job straight to the DLQ instead of spending the retry budget.
+var ErrInvalidVideo = errors.New("invalid video")
 
 // Individual timeouts per pipeline step.
 const (
@@ -160,7 +166,14 @@ func ProcessVideo(ctx context.Context, inputPath, outputPath string, opts Option
 	// 1. Validation
 	zerolog.Ctx(ctx).Info().Msg(stepMessage(1, totalSteps, "Validating video"))
 	if err := runStep(ctx, "validate", opts.step(stepTimeoutValidate), func(stepCtx context.Context) error {
-		return processor_steps.ValidateVideo(stepCtx, inputPath)
+		err := processor_steps.ValidateVideo(stepCtx, inputPath)
+		// A step timeout or a missing ffprobe says nothing about the file: only a verdict
+		// that came back from a live ffprobe is permanent.
+		verdictFromFFprobe := err != nil && stepCtx.Err() == nil && !errors.Is(err, exec.ErrNotFound)
+		if verdictFromFFprobe {
+			return fmt.Errorf("%w: %w", ErrInvalidVideo, err)
+		}
+		return err
 	}); err != nil {
 		return result, fmt.Errorf("validation failed: %w", err)
 	}

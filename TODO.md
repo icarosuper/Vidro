@@ -531,7 +531,10 @@ Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Os riscos graves foram fechad
       do `thumbnail.go:22`.
 - [ ] Órfão esgotado vai para o DLQ **sem webhook** (`queue/client.go`, `RecoverStuckJobs`); a API
       só sabe pelo timeout de 45 min.
-- [ ] Erro permanente (vídeo inválido, acima do limite) é tentado 4 vezes como se fosse transitório.
+- [x] **RESOLVIDO** *(2026-10-06)* ~~Erro permanente (vídeo inválido, acima do limite) é tentado 4 vezes como se fosse transitório.~~
+      Vídeo que o ffprobe rejeita vira `processor.ErrInvalidVideo` e o worker vai direto ao DLQ com
+      webhook de falha. Timeout do passo e ffprobe ausente continuam transitórios. O "acima do
+      limite" não tem checagem no worker, então não ganhou classificação.
 - [x] **RESOLVIDO** *(`85bd281`, `notEmpty`)*. ~~`WEBHOOK_SECRET` é opcional no worker (`config/config.go:34`) e obrigatório na API: vazio,
       toda entrega toma 401. Deveria falhar no startup.~~
 
@@ -964,8 +967,7 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 2026-09-07, SEO + idioma, P-PERF1 a P-PERF5, laço do worker testável, testes de
 `channels`/`playlists`, doc do fluxo ponta a ponta, e os riscos graves de "Confiabilidade do fluxo".
 
-1. **Resto de "Confiabilidade do fluxo"** (P2) — órfão esgotado sem webhook, erro permanente com
-   retry, backoff no `Run`, caminho do webhook vs. arquivo inexistente, `worker.go:117/129/299`,
+1. **Resto de "Confiabilidade do fluxo"** (P2) — órfão esgotado sem webhook, backoff no `Run`, caminho do webhook vs. arquivo inexistente, `worker.go:117/129/299`,
    `architecture.md:64` ("5-min hard timeout"), logs sem `correlationID` em `notifyWebhook`/recovery.
 2. **P-PERF6, segunda metade** — benchmark variando `WORKER_COUNT` e um vídeo real.
 3. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.

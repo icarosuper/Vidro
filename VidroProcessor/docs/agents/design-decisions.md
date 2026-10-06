@@ -41,6 +41,7 @@ A new entry takes the **next number** (highest today is **#13**) plus one line h
 
 - **Why**: transient failures (MinIO blip, FFmpeg deadlock) should self-heal, but looping forever on truly broken video wastes workers + hides bugs.
 - **No automatic DLQ drain**: jobs in `:dead` need human attention. Auto-retry would mask underlying problem.
+- **Permanent failures skip the retries**: when ffprobe itself rejects the file, validation wraps the error in `processor.ErrInvalidVideo` and the worker dead-letters on the first failure (webhook included). A step timeout or a missing ffprobe is *not* marked — those say nothing about the file and keep the normal retry path.
 - **Retries counted in two places**: explicit `SetJobFailed` and implicit `RecoverStuckJobs` (orphan recovery). Both increment `RetryCount` so repeatedly-crashing worker eventually gives up.
 
 ### 3. Critical vs non-critical pipeline steps

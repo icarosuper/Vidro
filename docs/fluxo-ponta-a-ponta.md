@@ -193,8 +193,10 @@ Dentro do mesmo handler (`MinioUploadCompleted.cs`, `Handle`), numa transação,
 do lease. Essas escritas usam um contexto que sobrevive ao cancelamento do job e ao SIGTERM, com
 teto de 10 s (`bookkeepingTimeout`).
 
-- **Sem distinção entre erro permanente e transitório:** vídeo inválido ou acima de 5120 MB é
-  tentado 4 vezes antes do DLQ.
+- **Erro permanente vai direto ao DLQ:** se o ffprobe rejeita o arquivo, a validação devolve
+  `processor.ErrInvalidVideo` e o worker não gasta retries (DLQ + webhook de falha na primeira
+  tentativa). Timeout do passo ou ffprobe ausente não contam como permanente. O worker não
+  verifica o limite de 5120 MB — se estourar, não há classificação própria.
 - **Timeout do job** (orçamento estourado): o contexto cancela o FFmpeg em curso, o passo falha e
   entra no mesmo caminho de retry.
 - **Depois do arquivamento (6.4) nenhum passo é crítico:** opcionais e o `SetJobDone` só logam a

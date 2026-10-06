@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -170,6 +171,33 @@ func TestProcessNextMessage_FailedJobIsClosedOut(t *testing.T) {
 			t.Fatalf("request queue = %v, want empty", got)
 		}
 	})
+}
+
+// An unusable file fails the same way every attempt: it goes to the DLQ on the first failure
+// with the retry budget untouched, instead of being tried four times.
+func TestProcessNextMessage_InvalidVideoSkipsRetries(t *testing.T) {
+	mr, cfg := setupQueue(t)
+	publishJob(t)
+	jobWorker := newTestWorker(cfg, fakeStorage{})
+	jobWorker.processVideo = func(context.Context, string, string, processor.Options) (*processor.ProcessingResult, error) {
+		return nil, fmt.Errorf("validation failed: %w", processor.ErrInvalidVideo)
+	}
+
+	err := jobWorker.processNextMessage(t.Context(), 1)
+	if !errors.Is(err, processor.ErrInvalidVideo) {
+		t.Fatalf("processNextMessage error = %v, want ErrInvalidVideo", err)
+	}
+
+	waitForProcessingQueueToDrain(t, mr)
+	if got := listOf(t, mr, deadLetterQueue); len(got) != 1 || got[0] != videoID {
+		t.Fatalf("dead letter queue = %v, want [%s]", got, videoID)
+	}
+	if got := listOf(t, mr, requestQueue); len(got) != 0 {
+		t.Fatalf("request queue = %v, want empty: an invalid video must not be requeued", got)
+	}
+	if state := jobState(t); state.Status != queue.JobStatusFailed {
+		t.Fatalf("Status = %q, want %q", state.Status, queue.JobStatusFailed)
+	}
 }
 
 // TestProcessNextMessage_CompletedJobIsAcked is the other half of #13: with the bug, the ack of

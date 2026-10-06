@@ -277,6 +277,9 @@ func TestProcessVideo_InvalidInputFailsAtValidation(t *testing.T) {
 	if !strings.Contains(err.Error(), "validation failed") {
 		t.Errorf("expected the failure to come from validation, got: %v", err)
 	}
+	if !errors.Is(err, ErrInvalidVideo) {
+		t.Errorf("a file ffprobe rejects must be marked ErrInvalidVideo so the worker skips the retries, got: %v", err)
+	}
 	if result == nil {
 		t.Fatal("the result should come back even on failure, the caller cleans up TempDir")
 	}
