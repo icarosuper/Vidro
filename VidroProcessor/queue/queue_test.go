@@ -291,7 +291,7 @@ func TestRecoverStuckJobs_RequeuesOrphan(t *testing.T) {
 	setupRedis(t)
 	parkInProcessing(t, "vid", JobStatusProcessing, 1, time.Hour)
 
-	RecoverStuckJobs(t.Context(), 30*time.Minute)
+	RecoverStuckJobs(t.Context(), 30*time.Minute, nil)
 
 	if got := listOf(t, processingQueueName()); len(got) != 0 {
 		t.Fatalf("processing queue = %v, want empty", got)
@@ -326,7 +326,7 @@ func TestRecoverStuckJobs_FailedRequeueIsRetriedOnNextSweep(t *testing.T) {
 		}
 		return false
 	})
-	RecoverStuckJobs(t.Context(), 30*time.Minute)
+	RecoverStuckJobs(t.Context(), 30*time.Minute, nil)
 
 	if got := listOf(t, processingQueueName()); len(got) != 1 {
 		t.Fatalf("processing queue = %v, want [vid] after failed move", got)
@@ -340,7 +340,7 @@ func TestRecoverStuckJobs_FailedRequeueIsRetriedOnNextSweep(t *testing.T) {
 	}
 
 	mr.Server().SetPreHook(nil)
-	RecoverStuckJobs(t.Context(), 30*time.Minute)
+	RecoverStuckJobs(t.Context(), 30*time.Minute, nil)
 
 	if got := listOf(t, cfg.ProcessingRequestQueue); len(got) != 1 || got[0] != "vid" {
 		t.Fatalf("request queue = %v, want [vid] after the second sweep", got)
@@ -360,7 +360,7 @@ func TestRecoverStuckJobs_FailedDeadLetterMoveIsRetriedOnNextSweep(t *testing.T)
 		}
 		return false
 	})
-	RecoverStuckJobs(t.Context(), 30*time.Minute)
+	RecoverStuckJobs(t.Context(), 30*time.Minute, nil)
 
 	state, err := GetJobState(t.Context(), "vid")
 	if err != nil {
@@ -371,7 +371,7 @@ func TestRecoverStuckJobs_FailedDeadLetterMoveIsRetriedOnNextSweep(t *testing.T)
 	}
 
 	mr.Server().SetPreHook(nil)
-	RecoverStuckJobs(t.Context(), 30*time.Minute)
+	RecoverStuckJobs(t.Context(), 30*time.Minute, nil)
 
 	if got := listOf(t, deadLetterQueueName()); len(got) != 1 || got[0] != "vid" {
 		t.Fatalf("dead letter queue = %v, want [vid] after the second sweep", got)
@@ -385,7 +385,7 @@ func TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ(t *testing.T) {
 	setupRedis(t)
 	parkInProcessing(t, "vid", JobStatusProcessing, MaxJobRetries, time.Hour)
 
-	RecoverStuckJobs(t.Context(), 30*time.Minute)
+	RecoverStuckJobs(t.Context(), 30*time.Minute, nil)
 
 	if got := listOf(t, deadLetterQueueName()); len(got) != 1 || got[0] != "vid" {
 		t.Fatalf("dead letter queue = %v, want [vid]", got)
@@ -405,6 +405,23 @@ func TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ(t *testing.T) {
 	}
 }
 
+// The API only learns about a dead-lettered orphan through the callback: without it the video
+// stays in Processing until the API's own timeout. A requeued orphan must not fire it.
+func TestRecoverStuckJobs_NotifiesOnlyWhenOrphanIsDeadLettered(t *testing.T) {
+	setupRedis(t)
+	parkInProcessing(t, "exhausted", JobStatusProcessing, MaxJobRetries, time.Hour)
+	parkInProcessing(t, "retryable", JobStatusProcessing, 0, time.Hour)
+
+	notified := map[string]JobStatus{}
+	RecoverStuckJobs(t.Context(), 30*time.Minute, func(videoID string, state *JobState) {
+		notified[videoID] = state.Status
+	})
+
+	if len(notified) != 1 || notified["exhausted"] != JobStatusFailed {
+		t.Fatalf("notified = %v, want only exhausted, with status failed", notified)
+	}
+}
+
 // A job parked in :processing whose job:<id> expired has nobody to notify and no age to judge
 // by. Leaving it there meant it stayed forever: recovery skipped it on every sweep.
 func TestRecoverStuckJobs_JobWithoutStateGoesToDLQ(t *testing.T) {
@@ -413,7 +430,7 @@ func TestRecoverStuckJobs_JobWithoutStateGoesToDLQ(t *testing.T) {
 		t.Fatalf("LPush: %v", err)
 	}
 
-	RecoverStuckJobs(t.Context(), 30*time.Minute)
+	RecoverStuckJobs(t.Context(), 30*time.Minute, nil)
 
 	if got := listOf(t, deadLetterQueueName()); len(got) != 1 || got[0] != "vid" {
 		t.Fatalf("dead letter queue = %v, want [vid]", got)
@@ -447,7 +464,7 @@ func TestRecoverStuckJobs_LeavesHealthyJobsAlone(t *testing.T) {
 			setupRedis(t)
 			tc.setup(t)
 
-			RecoverStuckJobs(t.Context(), 30*time.Minute)
+			RecoverStuckJobs(t.Context(), 30*time.Minute, nil)
 
 			if got := listOf(t, processingQueueName()); len(got) != 1 {
 				t.Fatalf("processing queue = %v, want [vid]: %s", got, tc.reason)
@@ -507,7 +524,7 @@ func TestRecoverStuckJobs_StopsOnCanceledContext(t *testing.T) {
 	canceled, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	RecoverStuckJobs(canceled, 30*time.Minute)
+	RecoverStuckJobs(canceled, 30*time.Minute, nil)
 
 	// Nothing moved: the LRange that starts the sweep failed on the canceled context.
 	if got := listOf(t, processingQueueName()); len(got) != 1 {

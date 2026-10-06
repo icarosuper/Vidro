@@ -90,8 +90,10 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	jobWorker := worker.New(cfg, videoEncoder)
+
 	// Goroutine that re-queues orphan jobs (crash during processing).
-	go queue.StartRecovery(ctx, worker.OrphanThreshold(cfg))
+	go queue.StartRecovery(ctx, worker.OrphanThreshold(cfg), jobWorker.NotifyDeadLettered)
 
 	// Goroutine that updates the queue size metric every 30 seconds
 	go func() {
@@ -116,7 +118,6 @@ func main() {
 	var wg sync.WaitGroup
 
 	// Start workers
-	jobWorker := worker.New(cfg, videoEncoder)
 	for i := range numWorkers {
 		wg.Add(1)
 		go func(workerID int) {

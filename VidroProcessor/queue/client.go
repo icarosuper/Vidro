@@ -79,9 +79,14 @@ func AcknowledgeMessage(ctx context.Context, videoID string) error {
 // (contracts/processing-timeout.json).
 const RecoveryInterval = time.Minute
 
+// DeadLetteredFunc is called by recovery after an orphan is moved to the DLQ, with the Failed
+// state (callback_url included). It is how the worker tells the API, which would otherwise only
+// find out through its own processing timeout. It must not block the sweep.
+type DeadLetteredFunc func(videoID string, state *JobState)
+
 // StartRecovery starts a goroutine that periodically checks the processing queue
-// and re-queues stuck jobs (worker crash) back to the main queue.
-func StartRecovery(ctx context.Context, stuckTimeout time.Duration) {
+// and re-queues stuck jobs (worker crash) back to the main queue. onDeadLettered may be nil.
+func StartRecovery(ctx context.Context, stuckTimeout time.Duration, onDeadLettered DeadLetteredFunc) {
 	ticker := time.NewTicker(RecoveryInterval)
 	defer ticker.Stop()
 	log.Info().Dur("stuck_timeout", stuckTimeout).Msg("Orphan job recovery started")
@@ -90,7 +95,7 @@ func StartRecovery(ctx context.Context, stuckTimeout time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			RecoverStuckJobs(ctx, stuckTimeout)
+			RecoverStuckJobs(ctx, stuckTimeout, onDeadLettered)
 		}
 	}
 }
@@ -98,7 +103,7 @@ func StartRecovery(ctx context.Context, stuckTimeout time.Duration) {
 // RecoverStuckJobs runs one recovery sweep: orphans older than stuckTimeout go back to the
 // request queue, or to the DLQ once their retry budget is spent. StartRecovery calls it
 // every minute; it is exported so the worker tests can drive a crash-and-recover cycle.
-func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration) {
+func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration, onDeadLettered DeadLetteredFunc) {
 	videoIDs, err := client.LRange(ctx, processingQueueName(), 0, -1).Result()
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to check processing queue for recovery")
@@ -138,6 +143,9 @@ func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration) {
 			}
 			if err := setJobState(ctx, videoID, *state); err != nil {
 				log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update state after dead-lettering orphan job")
+			}
+			if onDeadLettered != nil {
+				onDeadLettered(videoID, state)
 			}
 			continue
 		}

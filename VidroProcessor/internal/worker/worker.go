@@ -98,6 +98,17 @@ func OrphanThreshold(cfg *config.Config) time.Duration {
 	return JobTimeout(cfg) + time.Minute
 }
 
+// NotifyDeadLettered tells the API a job reached the DLQ, in the background. The worker calls it
+// when retries run out and queue recovery calls it for an orphan that exhausted them.
+func (w *Worker) NotifyDeadLettered(videoID string, state *queue.JobState) {
+	if state.CallbackURL == "" {
+		return
+	}
+	// Detached on purpose: the notification must survive the job context being canceled —
+	// bounded by the webhook client's own 10s timeout (webhook.send).
+	go notifyWebhook(state.CallbackURL, w.cfg.WebhookSecret, videoID, state)
+}
+
 // Run processes jobs one after another until ctx is canceled (shutdown).
 func (w *Worker) Run(ctx context.Context, workerID int) {
 	for {
@@ -212,10 +223,9 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 					} else {
 						jobLogger.Error().Str("error", jobErr.Error()).Msg("Job moved to dead letter queue after exhausting retries")
 						// Notify the API about the permanent failure (retries exhausted)
-						if state != nil && state.CallbackURL != "" {
-							//nolint:contextcheck // detached on purpose: the notification must survive the job
-							// context being canceled — bounded by the webhook client's own 10s timeout (webhook.send)
-							go notifyWebhook(state.CallbackURL, w.cfg.WebhookSecret, videoID, state)
+						if state != nil {
+							//nolint:contextcheck // the notification is detached on purpose, see NotifyDeadLettered
+							w.NotifyDeadLettered(videoID, state)
 						}
 					}
 				}

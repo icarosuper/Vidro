@@ -313,7 +313,7 @@ func TestWorker_CrashMidJobIsRecoveredAndReprocessed(t *testing.T) {
 	}
 
 	ageJobState(t, mr, time.Hour)
-	queue.RecoverStuckJobs(t.Context(), 30*time.Minute)
+	queue.RecoverStuckJobs(t.Context(), 30*time.Minute, nil)
 
 	if got := listOf(t, mr, requestQueue); len(got) != 1 || got[0] != videoID {
 		t.Fatalf("request queue after recovery = %v, want [%s]", got, videoID)

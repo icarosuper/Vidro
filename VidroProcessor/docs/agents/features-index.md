@@ -16,7 +16,7 @@ Map features/modules → files. Update when add module, pipeline step, or extern
 | Feature | File | Notes |
 |---|---|---|
 | Atomic queue consumption | `queue/client.go` (`ConsumeMessage`) | `BRPOPLPUSH` to a `:processing` sibling queue |
-| Orphan recovery | `queue/client.go` (`StartRecovery`, `RecoverStuckJobs`) | Every `RecoveryInterval` (1 min); re-queues jobs stuck in processing > `stuckTimeout` (`worker.OrphanThreshold(cfg)` = `JobTimeout + 1min`, from `main.go`). Both feed the worst case in `../contracts/processing-timeout.json` |
+| Orphan recovery | `queue/client.go` (`StartRecovery`, `RecoverStuckJobs`) | Every `RecoveryInterval` (1 min); re-queues jobs stuck in processing > `stuckTimeout` (`worker.OrphanThreshold(cfg)` = `JobTimeout + 1min`, from `main.go`). An orphan that exhausts its retries fires the `onDeadLettered` callback (failure webhook). Both feed the worst case in `../contracts/processing-timeout.json` |
 | Ack on completion | `queue/client.go` (`AcknowledgeMessage`) | Removes from `:processing` after success or DLQ |
 | Job state (pending → processing → done/failed) | `queue/job.go` | Stored under `job:<videoID>` in Redis, TTL 24h. Missing at consume → `ErrJobStateMissing`, DLQ unprocessed (`deadLetterJobWithoutState` in `internal/worker/worker.go`) |
 | Retry / DLQ | `queue/job.go` (`SetJobFailed`, `RequeueJob`, `MoveToDLQ`) | Up to `MaxJobRetries = 3` retries (4 attempts), then `:dead` queue; status writes return `ErrJobStateMissing` instead of recreating state |

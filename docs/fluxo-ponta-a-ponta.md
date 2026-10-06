@@ -151,8 +151,10 @@ Dentro do mesmo handler (`MinioUploadCompleted.cs`, `Handle`), numa transação,
 - **Worker morre no meio:** o id fica em `:processing`. `recoverStuckJobs` (`queue/client.go:100-148`)
   roda a cada minuto e devolve para `video_queue` todo job em `processing` com `updated_at` mais
   velho que orçamento + 1 min, incrementando `retry_count`; esgotado, manda para
-  `video_queue:dead` com `error: "orphaned repeatedly..."`. **Esse caminho não chama o webhook** —
-  a API só descobre pela reconciliação de 90 min.
+  `video_queue:dead` com `error: "orphaned repeatedly..."`. Nesse caso o worker também
+  dispara o webhook de falha (callback `onDeadLettered` do `StartRecovery`, que o `main.go` liga a
+  `Worker.NotifyDeadLettered`); se a entrega falhar, a API descobre pela reconciliação de 90 min.
+  Órfão **sem** `job:` não tem `callback_url`, então segue sem webhook.
 - **`job:` sumiu** (TTL de 24 h, ou `DEL` manual): `SetJobProcessing` devolve `ErrJobStateMissing`
   em vez de recriar o estado, e o worker manda o id para `video_queue:dead` **sem processar**, com
   log `Error` "Job state missing" (`deadLetterJobWithoutState`). O `callback_url` só existe no
@@ -260,7 +262,7 @@ teto de 10 s (`bookkeepingTimeout`).
 | Webhook do MinIO perdido | reconciliação de upload (acha `raw/`) | 2 h + até 15 min | job publicado, segue normal |
 | Redis fora ao publicar | reconciliação de upload | 2 h + até 15 min | job publicado, segue normal |
 | Erro crítico no pipeline | retry do worker | imediato, até 4 tentativas | `Ready`, ou DLQ + webhook → `Failed` |
-| Worker morreu com o job | `recoverStuckJobs` | orçamento + 1 min (19 min na escala 1) | retry; esgotado → DLQ **sem** webhook |
+| Worker morreu com o job | `recoverStuckJobs` | orçamento + 1 min (19 min na escala 1) | retry; esgotado → DLQ + webhook → `Failed` |
 | Webhook `video-processed` perdido | reconciliação de processamento | 90 min após o último `UpdatedAt` | `Failed`, mesmo se o worker terminou bem |
 | `job:` expirou antes do consumo | DLQ sem processar, log `Error` no worker | imediato no worker; API pela reconciliação de processamento | `Failed`, `raw/` intacto para reenfileirar |
 

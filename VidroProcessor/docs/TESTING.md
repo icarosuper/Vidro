@@ -118,6 +118,7 @@ on the one-minute ticker.
 - `TestRecoverStuckJobs_RequeuesOrphan`
 - `TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ`
 - `TestRecoverStuckJobs_FailedRequeueIsRetriedOnNextSweep` — move fails: state stays `processing`, next sweep requeues
+- `TestRecoverStuckJobs_NotifiesOnlyWhenOrphanIsDeadLettered` — the `onDeadLettered` callback fires for the exhausted orphan, not the requeued one
 - `TestRecoverStuckJobs_JobWithoutStateGoesToDLQ` — state expired while parked in `:processing`
 - `TestRecoverStuckJobs_LeavesHealthyJobsAlone` — fresh job, finished job
 - `TestQueueOperations_StopOnCanceledContext` — the 10 public entry points, one canceled

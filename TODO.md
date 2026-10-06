@@ -529,8 +529,10 @@ Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Os riscos graves foram fechad
 - [ ] **Webhook pode apontar para arquivo inexistente:** `buildJobArtifacts` monta caminho a
       partir do resultado do pipeline, não do upload; e o total de 5 thumbnails está fixo à parte
       do `thumbnail.go:22`.
-- [ ] Órfão esgotado vai para o DLQ **sem webhook** (`queue/client.go`, `RecoverStuckJobs`); a API
-      só sabe pelo timeout de 45 min.
+- [x] **RESOLVIDO** *(2026-10-06)* ~~Órfão esgotado vai para o DLQ **sem webhook** (`queue/client.go`, `RecoverStuckJobs`)~~
+      — `StartRecovery`/`RecoverStuckJobs` recebem um `onDeadLettered` e o `main.go` o liga a
+      `Worker.NotifyDeadLettered` (o mesmo caminho do esgotamento normal). Órfão sem `job:` não tem
+      `callback_url` e segue sem webhook.
 - [x] **RESOLVIDO** *(2026-10-06)* ~~Erro permanente (vídeo inválido, acima do limite) é tentado 4 vezes como se fosse transitório.~~
       Vídeo que o ffprobe rejeita vira `processor.ErrInvalidVideo` e o worker vai direto ao DLQ com
       webhook de falha. Timeout do passo e ffprobe ausente continuam transitórios. O "acima do
@@ -967,7 +969,7 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 2026-09-07, SEO + idioma, P-PERF1 a P-PERF5, laço do worker testável, testes de
 `channels`/`playlists`, doc do fluxo ponta a ponta, e os riscos graves de "Confiabilidade do fluxo".
 
-1. **Resto de "Confiabilidade do fluxo"** (P2) — órfão esgotado sem webhook, backoff no `Run`, caminho do webhook vs. arquivo inexistente, `worker.go:117/129/299`,
+1. **Resto de "Confiabilidade do fluxo"** (P2) — backoff no `Run`, caminho do webhook vs. arquivo inexistente, `worker.go:117/129/299`,
    `architecture.md:64` ("5-min hard timeout"), logs sem `correlationID` em `notifyWebhook`/recovery.
 2. **P-PERF6, segunda metade** — benchmark variando `WORKER_COUNT` e um vídeo real.
 3. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.
