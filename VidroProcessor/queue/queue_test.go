@@ -322,8 +322,8 @@ func TestRecoverStuckJobs_FailedRequeueIsRetriedOnNextSweep(t *testing.T) {
 	parkInProcessing(t, "vid", JobStatusProcessing, 1, time.Hour)
 
 	mr.Server().SetPreHook(func(c *server.Peer, cmd string, args ...string) bool {
-		if cmd == "EXEC" {
-			// Connection dies before EXEC: the queued LREM/LPUSH are discarded, as in a real outage.
+		if cmd == "EVALSHA" || cmd == "EVAL" {
+			// Connection dies before the move script runs: nothing is applied, as in a real outage.
 			c.Close()
 			return true
 		}
@@ -357,7 +357,7 @@ func TestRecoverStuckJobs_FailedDeadLetterMoveIsRetriedOnNextSweep(t *testing.T)
 	parkInProcessing(t, "vid", JobStatusProcessing, MaxJobRetries, time.Hour)
 
 	mr.Server().SetPreHook(func(c *server.Peer, cmd string, args ...string) bool {
-		if cmd == "EXEC" {
+		if cmd == "EVALSHA" || cmd == "EVAL" {
 			c.Close()
 			return true
 		}
@@ -657,5 +657,23 @@ func TestJobStateLogger_CarriesCorrelationIDWhenPresent(t *testing.T) {
 	}
 	if !strings.Contains(lines[1], `"videoID":"vid"`) || strings.Contains(lines[1], "correlationID") {
 		t.Errorf("line without an ID = %s, want videoID and no correlationID field", lines[1])
+	}
+}
+
+// MULTI/EXEC would apply the LREM even though the LPUSH fails at execution time: the job would
+// vanish from both queues. It must stay in :processing so the next sweep tries again.
+func TestMoveFromProcessing_FailedPushKeepsJobInProcessing(t *testing.T) {
+	mr := setupRedis(t)
+	parkInProcessing(t, "vid", JobStatusProcessing, 0, time.Hour)
+	if err := mr.Set(deadLetterQueueName(), "not a list"); err != nil {
+		t.Fatalf("Set: %v", err)
+	}
+
+	if err := moveFromProcessing(t.Context(), "vid", deadLetterQueueName()); err == nil {
+		t.Fatal("moveFromProcessing returned nil although the destination is not a list")
+	}
+
+	if got := listOf(t, processingQueueName()); len(got) != 1 || got[0] != "vid" {
+		t.Fatalf("processing queue = %v, want [vid]: the job was lost", got)
 	}
 }

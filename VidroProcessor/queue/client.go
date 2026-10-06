@@ -180,15 +180,20 @@ func deadLetterOrphanWithoutState(ctx context.Context, videoID string) {
 	}
 }
 
-// moveFromProcessing takes the job out of :processing and pushes it to destination in one
-// MULTI/EXEC, so a failure between the two can never drop the job.
+// moveScript pushes first and removes second. MULTI/EXEC does not roll back: a LPUSH that fails at
+// execution time (the destination holds another type, WRONGTYPE) would leave the LREM applied and
+// the job gone from both queues. A script that errors on the LPUSH stops before the LREM, so the
+// job stays in :processing for the next sweep.
+var moveScript = redis.NewScript(`
+redis.call('LPUSH', KEYS[2], ARGV[1])
+redis.call('LREM', KEYS[1], 1, ARGV[1])
+return 1
+`)
+
+// moveFromProcessing takes the job out of :processing and pushes it to destination atomically,
+// so a failure between the two can never drop the job.
 func moveFromProcessing(ctx context.Context, videoID, destination string) error {
-	_, err := client.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
-		pipe.LRem(ctx, processingQueueName(), 1, videoID)
-		pipe.LPush(ctx, destination, videoID)
-		return nil
-	})
-	return err
+	return moveScript.Run(ctx, client, []string{processingQueueName(), destination}, videoID).Err()
 }
 
 // GetQueueSize returns the number of jobs waiting in the request queue.

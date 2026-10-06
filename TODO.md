@@ -37,6 +37,10 @@ Onda C: **P-OPT1** (passos 4–7 pulados por `ENABLE_*`), reconciliação de upl
 publicar, formulários de vídeo (descrição `null`, limite nas mensagens), listener de abort do upload,
 todos os achados das ondas B e C corrigidos, e o **P-PERF6** (benchmark do pipeline; falta variar
 `WORKER_COUNT`).
+*(2026-10-06)* **resto de "Confiabilidade do fluxo"**: vídeo inválido direto ao DLQ sem retries, órfão
+esgotado avisa a API por webhook, `Run` com pausa após falha de leitura da fila, webhook sem artefato
+opcional que não subiu, `correlationID` nos logs de recovery/webhook, e o `LREM` atômico do
+`moveFromProcessing`.
 Itens marcados `[x]` trazem o commit e o que ficou no lugar.
 
 **Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
@@ -572,8 +576,11 @@ Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Os riscos graves foram fechad
       Achados da onda C: `signal` já abortado, `<Select>` de canal controlado, resgate de `Processing` por vídeo,
       resultado morto do handler do webhook, logs "Step N/M", JSON malformado → 400, cancelamento não logado
       como erro, webhook sem retry em 4xx permanente, `GenerateTestVideo` respeitando a duração, infos do Biome.
-- [ ] **Ainda aberto:** `moveFromProcessing` não desfaz o `LREM` se o `LPUSH` falhar por erro de execução
-      (WRONGTYPE); `AcknowledgeMessage`/`RequeueJob` e as escritas de estado seguem sem breaker (decisão).
+- [x] **RESOLVIDO** *(2026-10-06)* ~~`moveFromProcessing` não desfaz o `LREM` se o `LPUSH` falhar por erro de execução
+      (WRONGTYPE)~~ — o MULTI/EXEC virou um script Lua que faz `LPUSH` e só depois `LREM`; erro no
+      push aborta antes do remove e o job fica no `:processing` para o próximo sweep. Travado por
+      `TestMoveFromProcessing_FailedPushKeepsJobInProcessing` (verificado por mutação: `LREM` primeiro quebra).
+- [ ] **Ainda aberto (decisão):** `AcknowledgeMessage`/`RequeueJob` e as escritas de estado seguem sem breaker.
 
 **Front:**
 - [x] **RESOLVIDO** *(`379955e`)*. ~~O mesmo PUT presignado sem checar `ok` em `features/users/api.ts:22` e
@@ -969,12 +976,14 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 ## Ordem sugerida
 
-*(Revista em 2026-10-05, depois da onda C.)* Já fechados: P-OPT1, P-PERF6 (primeira metade), todos os achados das ondas B e C, formulários de vídeo, P0, P0.1, P1, a fila combinada de
+*(Revista em 2026-10-06, depois do resto de "Confiabilidade do fluxo".)* Já fechados: P-OPT1, P-PERF6 (primeira metade), todos os achados das ondas B e C, formulários de vídeo, P0, P0.1, P1, a fila combinada de
 2026-09-07, SEO + idioma, P-PERF1 a P-PERF5, laço do worker testável, testes de
-`channels`/`playlists`, doc do fluxo ponta a ponta, e os riscos graves de "Confiabilidade do fluxo".
+`channels`/`playlists`, doc do fluxo ponta a ponta, e todo o bloco "Confiabilidade do fluxo" (sobra só
+a decisão de breaker no `AcknowledgeMessage`/`RequeueJob`).
 
-1. **Resto de "Confiabilidade do fluxo"** (P2) — o `LREM` do `moveFromProcessing`.
-2. **P-PERF6, segunda metade** — benchmark variando `WORKER_COUNT` e um vídeo real.
+1. **P-PERF6, segunda metade** — benchmark variando `WORKER_COUNT` e um vídeo real.
+2. **`contracts/job-state.json`** — o envelope do job (`correlation_id`, `callback_url`, nome da fila)
+   ainda é testado por cada lado com o próprio nome de campo.
 3. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.
 4. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de
    observabilidade (collector de traces).
