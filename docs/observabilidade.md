@@ -82,7 +82,7 @@ Grafana (`:3001`) com datasources Loki + Prometheus provisionados
 - Tracing OpenTelemetry completo em `internal/telemetry/telemetry.go` — exporter OTLP/HTTP,
   no-op se `OTEL_ENDPOINT` vier vazio. Span raiz `process_job` com atributo `video.id` em
   `main.go:266`.
-- Log JSON (zerolog) com `videoID`, `workerID` e `correlationID` (lido do `correlation_id` do job); o webhook devolve o
+- Log JSON (zerolog) com `videoID`, `workerID` e `correlationID` (lido do `correlation_id` do job; as linhas de recovery e de entrega do webhook também, via `JobState.Logger`); o webhook devolve o
   mesmo valor em `X-Correlation-ID` (degraus 0 e 3).
 
 ### `VidroFront`

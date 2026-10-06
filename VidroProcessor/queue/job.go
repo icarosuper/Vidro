@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 // VideoMetadata mirrors the metadata extracted by the pipeline analysis step.
@@ -60,6 +62,17 @@ type JobState struct {
 	CorrelationID string `json:"correlation_id,omitempty"`
 	CreatedAt     int64  `json:"created_at"`
 	UpdatedAt     int64  `json:"updated_at"`
+}
+
+// Logger returns the global logger tagged with the job's videoID and, when the API stamped one,
+// its correlationID — the same fields the worker's job logger carries, so lines written outside
+// the job frame (recovery, webhook) still join the upload's trail in Loki.
+func (s *JobState) Logger(videoID string) zerolog.Logger {
+	fields := log.With().Str("videoID", videoID)
+	if s.CorrelationID != "" {
+		fields = fields.Str("correlationID", s.CorrelationID)
+	}
+	return fields.Logger()
 }
 
 func jobKey(videoID string) string {

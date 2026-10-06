@@ -278,8 +278,9 @@ marcado `Failed` enquanto o worker ainda tentava.)* O que a folga de 10 min não
 
 - **Logs:** API (Serilog → Loki) com `CorrelationId`; worker (zerolog JSON) com `videoID`,
   `workerID` e `correlationID` em toda linha do job. As linhas de `recoverStuckJobs` e de
-  `notifyWebhook` usam o logger global: têm `videoID`, **não** têm `correlationID`. A chave que
-  atravessa tudo — retry, DLQ, reconciliação — é o `videoId`; detalhes em
+  `notifyWebhook` saem de `JobState.Logger(videoID)`: têm `videoID` e `correlationID` (quando o
+  job traz um), sem `workerID`; só o job sem estado, que não tem de onde ler o id, sai só com
+  `videoID`. A chave que atravessa tudo — retry, DLQ, reconciliação — é o `videoId`; detalhes em
   [`observabilidade.md`](observabilidade.md).
 - **Métricas do worker** (`VidroProcessor/metrics/metrics.go`): `videos_processed_total{status}`,
   `video_processing_duration_seconds`, `video_processing_step_duration_seconds{step}`,

@@ -512,8 +512,10 @@ Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Os riscos graves foram fechad
       cobre "job state"; `setJobState` (`queue/job.go`) e o recovery chamam o Redis direto. Idem
       os `LRem`/`LPush` de `RecoverStuckJobs`, que ainda ignoram o erro — e o `conventions.md` diz
       que toda chamada Redis passa pelo breaker.
-- [ ] `docs/observabilidade.md` diz que os logs do worker levam `correlationID`; os de
-      `notifyWebhook` e `RecoverStuckJobs` usam o logger global e saem sem.
+- [x] **RESOLVIDO** *(2026-10-06)* ~~`docs/observabilidade.md` diz que os logs do worker levam `correlationID`; os de
+      `notifyWebhook` e `RecoverStuckJobs` usam o logger global e saem sem.~~ `JobState.Logger(videoID)`
+      monta o logger com `videoID` + `correlationID` e os dois caminhos passaram a usá-lo (mais o
+      log de rejeição permanente do `webhook.Notify`). Órfão sem `job:` não tem de onde ler o id.
 
 **Riscos de comportamento:**
 - [x] **RESOLVIDO** *(`c6ba3da`: 90 min, pior caso do worker = 80 min travado em `contracts/processing-timeout.json` pelos dois lados; webhook fora de `Processing` agora loga warning. Backlog na fila acima de ~10 min ainda estoura — marcado com `ponytail:`)*. ~~**Timeout de 45 min da API dimensionado para uma tentativa** (`VideoSettings.cs:9-14`). Job
@@ -969,7 +971,7 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 2026-09-07, SEO + idioma, P-PERF1 a P-PERF5, laço do worker testável, testes de
 `channels`/`playlists`, doc do fluxo ponta a ponta, e os riscos graves de "Confiabilidade do fluxo".
 
-1. **Resto de "Confiabilidade do fluxo"** (P2) — caminho do webhook vs. arquivo inexistente, logs sem `correlationID` em `notifyWebhook`/recovery.
+1. **Resto de "Confiabilidade do fluxo"** (P2) — caminho do webhook vs. arquivo inexistente e o `LREM` do `moveFromProcessing`.
 2. **P-PERF6, segunda metade** — benchmark variando `WORKER_COUNT` e um vídeo real.
 3. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.
 4. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de

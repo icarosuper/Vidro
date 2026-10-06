@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,8 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/alicebob/miniredis/v2/server"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"video-processor/config"
 )
@@ -627,5 +630,32 @@ func TestMoveFromProcessing_MovesAtomicallyAndReportsFailure(t *testing.T) {
 	mr.Close()
 	if err := moveFromProcessing(t.Context(), "vid", cfg.ProcessingRequestQueue); err == nil {
 		t.Fatal("moveFromProcessing returned nil with Redis down")
+	}
+}
+
+// Lines written outside the job frame (recovery, webhook) must still carry the correlationID,
+// or the upload's trail in Loki breaks exactly when something went wrong.
+func TestJobStateLogger_CarriesCorrelationIDWhenPresent(t *testing.T) {
+	var output bytes.Buffer
+	previous := log.Logger
+	log.Logger = zerolog.New(&output)
+	t.Cleanup(func() { log.Logger = previous })
+
+	withID := JobState{CorrelationID: "req-42"}
+	idLogger := withID.Logger("vid")
+	idLogger.Info().Msg("a")
+	withoutID := JobState{}
+	plainLogger := withoutID.Logger("vid")
+	plainLogger.Info().Msg("b")
+
+	lines := strings.Split(strings.TrimSpace(output.String()), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("got %d log lines, want 2: %q", len(lines), output.String())
+	}
+	if !strings.Contains(lines[0], `"videoID":"vid"`) || !strings.Contains(lines[0], `"correlationID":"req-42"`) {
+		t.Errorf("line with an ID = %s, want videoID and correlationID", lines[0])
+	}
+	if !strings.Contains(lines[1], `"videoID":"vid"`) || strings.Contains(lines[1], "correlationID") {
+		t.Errorf("line without an ID = %s, want videoID and no correlationID field", lines[1])
 	}
 }

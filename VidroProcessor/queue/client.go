@@ -126,23 +126,24 @@ func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration, onDeadLet
 			continue
 		}
 
+		orphanLogger := state.Logger(videoID)
 		state.RetryCount++
 
 		// A job that hangs the worker every time orphans every time. Without this
 		// check recovery would re-queue it forever and it would never reach the DLQ,
 		// unlike the failure path in the worker, which does honour the budget.
 		if !state.ShouldRetry() {
-			log.Error().Str("videoID", videoID).Int("retry_count", state.RetryCount).Msg("Orphan job exhausted retries, moving to dead letter queue")
+			orphanLogger.Error().Int("retry_count", state.RetryCount).Msg("Orphan job exhausted retries, moving to dead letter queue")
 			state.Status = JobStatusFailed
 			state.Error = "orphaned repeatedly: retries exhausted during recovery"
 			// Move first, state second, same reason as the re-queue branch below: a Failed
 			// state left in :processing after a failed move would be skipped by the sweep forever.
 			if err := moveFromProcessing(ctx, videoID, deadLetterQueueName()); err != nil {
-				log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to move orphan job to dead letter queue")
+				orphanLogger.Warn().Err(err).Msg("Failed to move orphan job to dead letter queue")
 				continue
 			}
 			if err := setJobState(ctx, videoID, *state); err != nil {
-				log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update state after dead-lettering orphan job")
+				orphanLogger.Warn().Err(err).Msg("Failed to update state after dead-lettering orphan job")
 			}
 			if onDeadLettered != nil {
 				onDeadLettered(videoID, state)
@@ -150,7 +151,7 @@ func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration, onDeadLet
 			continue
 		}
 
-		log.Warn().Str("videoID", videoID).Int("retry_count", state.RetryCount).Msg("Orphan job detected, re-queuing")
+		orphanLogger.Warn().Int("retry_count", state.RetryCount).Msg("Orphan job detected, re-queuing")
 
 		// Move first, state second. If the move fails the state is still "processing" and
 		// old, so the next sweep tries again. The reverse order stranded the job: a pending
@@ -158,12 +159,12 @@ func RecoverStuckJobs(ctx context.Context, stuckTimeout time.Duration, onDeadLet
 		// write fails after the move the job is already requeued and the worker that pops it
 		// does not look at the status; only the retry_count increment is lost.
 		if err := moveFromProcessing(ctx, videoID, cfg.ProcessingRequestQueue); err != nil {
-			log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to re-queue orphan job")
+			orphanLogger.Warn().Err(err).Msg("Failed to re-queue orphan job")
 			continue
 		}
 		state.Status = JobStatusPending
 		if err := setJobState(ctx, videoID, *state); err != nil {
-			log.Warn().Err(err).Str("videoID", videoID).Msg("Failed to update state after re-queuing orphan job")
+			orphanLogger.Warn().Err(err).Msg("Failed to update state after re-queuing orphan job")
 		}
 	}
 }

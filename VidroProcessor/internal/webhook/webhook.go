@@ -57,7 +57,11 @@ func Notify(callbackURL, secret, correlationID string, payload Payload) error {
 			lastErr = err
 			var statusErr *statusError
 			if errors.As(err, &statusErr) && !statusErr.retryable() {
-				log.Error().Err(err).Int("status", statusErr.code).Msg("Webhook rejected with a permanent status, not retrying")
+				rejectionLog := log.Error().Err(err).Int("status", statusErr.code).Str("videoID", payload.VideoID)
+				if correlationID != "" {
+					rejectionLog = rejectionLog.Str("correlationID", correlationID)
+				}
+				rejectionLog.Msg("Webhook rejected with a permanent status, not retrying")
 				return fmt.Errorf("webhook rejected, not retrying: %w", err)
 			}
 			if attempt < 3 {

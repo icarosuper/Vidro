@@ -467,10 +467,11 @@ func BuildWebhookPayload(videoID string, state *queue.JobState) webhook.Payload 
 // Delivery errors are only logged — they do not affect the job result.
 func notifyWebhook(callbackURL, secret, videoID string, state *queue.JobState) {
 	payload := BuildWebhookPayload(videoID, state)
+	webhookLogger := state.Logger(videoID)
 
 	if err := webhook.Notify(callbackURL, secret, state.CorrelationID, payload); err != nil {
-		log.Warn().Err(err).Str("videoID", videoID).Str("callbackURL", callbackURL).Msg("Failed to send webhook")
+		webhookLogger.Warn().Err(err).Str("callbackURL", callbackURL).Msg("Failed to send webhook")
 	} else {
-		log.Info().Str("videoID", videoID).Str("callbackURL", callbackURL).Msg("Webhook sent successfully")
+		webhookLogger.Info().Str("callbackURL", callbackURL).Msg("Webhook sent successfully")
 	}
 }
