@@ -15,6 +15,8 @@ import (
 // Benchmarks over the real FFmpeg pipeline (P-PERF6). They only run with -bench, and skip
 // when ffmpeg/ffprobe are missing. Run: go test ./internal/processor -run '^$' -bench . -benchtime 3x -count 3
 //
+// Set BENCH_VIDEO=/path/to/video.mp4 to run them on a real file instead of the clip below.
+//
 // The clip is a synthetic 10s 720p testsrc+sine, generated once per run: it is not a
 // 500 MB production video, so absolute numbers say little — read the ratios.
 
@@ -30,6 +32,9 @@ func benchClip(b *testing.B) string {
 		if _, err := exec.LookPath(bin); err != nil {
 			b.Skipf("%s is not available", bin)
 		}
+	}
+	if real := os.Getenv("BENCH_VIDEO"); real != "" {
+		return real
 	}
 	clipOnce.Do(func() {
 		dir, err := os.MkdirTemp("", "vidro-bench-")
@@ -109,6 +114,41 @@ func BenchmarkProcessVideo(b *testing.B) {
 				if _, err := ProcessVideo(context.Background(), input, filepath.Join(dir, "out.mp4"), opts); err != nil {
 					b.Fatal(err)
 				}
+			}
+		})
+	}
+}
+
+// BenchmarkConcurrentJobs is variable (d): the same fixed batch of jobs drained by 1, 2, 4 and 8
+// workers, each running the full pipeline with default options. Read s/op as the batch wall time:
+// it is what shows whether DefaultWorkerCount (P-PERF5) sits near the knee of the curve.
+func BenchmarkConcurrentJobs(b *testing.B) {
+	input := benchClip(b)
+	const jobsPerBatch = 8
+	for _, workers := range []int{1, 2, 4, 8} {
+		b.Run("workers-"+strconv.Itoa(workers), func(b *testing.B) {
+			for range b.N {
+				dir := b.TempDir()
+				jobs := make(chan int, jobsPerBatch)
+				for job := range jobsPerBatch {
+					jobs <- job
+				}
+				close(jobs)
+
+				var wg sync.WaitGroup
+				for range workers {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						for job := range jobs {
+							output := filepath.Join(dir, "out_"+strconv.Itoa(job)+".mp4")
+							if _, err := ProcessVideo(context.Background(), input, output, DefaultOptions()); err != nil {
+								b.Error(err)
+							}
+						}
+					}()
+				}
+				wg.Wait()
 			}
 		})
 	}

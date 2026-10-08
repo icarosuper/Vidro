@@ -35,8 +35,10 @@ sem estado vai para o DLQ, timeout de `Processing` em 90 min travado por contrat
 no front (PUT presignado checado, descrição vazia como `null`, Visibility acessível).
 Onda C: **P-OPT1** (passos 4–7 pulados por `ENABLE_*`), reconciliação de uploads salvando antes de
 publicar, formulários de vídeo (descrição `null`, limite nas mensagens), listener de abort do upload,
-todos os achados das ondas B e C corrigidos, e o **P-PERF6** (benchmark do pipeline; falta variar
-`WORKER_COUNT`).
+todos os achados das ondas B e C corrigidos, e o **P-PERF6** (benchmark do pipeline).
+*(2026-10-06, depois)* **P-PERF6, segunda metade**: `WORKER_COUNT` variado — joelho da curva em 2 workers,
+o que o `DefaultWorkerCount` já dá. *(2026-10-08)* **P-PERF6 fechado** com vídeo real (55 s 1080p HEVC,
+100 MB): ~26 s por job, curva plana de 1 a 8 workers, e o "~2–3 min" para 500 MB fica plausível.
 *(2026-10-06)* **resto de "Confiabilidade do fluxo"**: vídeo inválido direto ao DLQ sem retries, órfão
 esgotado avisa a API por webhook, `Run` com pausa após falha de leitura da fila, webhook sem artefato
 opcional que não subiu, `correlationID` nos logs de recovery/webhook, e o `LREM` atômico do
@@ -760,7 +762,8 @@ concluído lá não foi copiado: quem quer saber o que existe lê
 **Estado em 2026-09-03:** P-PERF1 a P-PERF4 estão **implementados no código** e estavam
 marcados `[ ]` aqui — mesma classe de drift do P0.1 ("documentação que mente"), agora do lado
 do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a meta de
-"~2–3 min" continua sendo estimativa de papel, só o paralelismo (P-PERF3) foi medido, em clipe sintético (ver P-PERF6).
+"~2–3 min" não tem antes/depois, mas o P-PERF6 com vídeo real *(2026-10-08)* a torna plausível:
+~26 s por job para 55 s de 1080p, ~2 min extrapolando para 500 MB.
 
 **Custo original:** um vídeo de ~500 MB / 1080p levava vários minutos.
 
@@ -781,7 +784,8 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
       Testes: `internal/processor/workers_test.go` — a invariante é
       `workers × passos paralelos ≤ cores`. **Verificado por mutação:** trocar
       `processesPerJob` por `1` quebra 2 dos 4 testes.
-      **Continua não medido:** o P-PERF6 não variou `WORKER_COUNT`.
+      **Medido** *(2026-10-06)*: ver P-PERF6 — o joelho da curva é em 2 workers, igual ao default.
+      Com vídeo real *(2026-10-08)* a curva é plana: 2 workers não ganham nem perdem.
 
 ### 🟡 Prioridade média
 
@@ -803,15 +807,22 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 ### 🟢 Prioridade baixa
 
-- [x] **P-PERF6 — benchmark feito, parcial** *(2026-10-05)*. `internal/processor/pipeline_bench_test.go`
+- [x] **P-PERF6 — benchmark feito** *(2026-10-05; vídeo real em 2026-10-08)*. `internal/processor/pipeline_bench_test.go`
       (`go test ./internal/processor -run '^$' -bench . -benchtime 3x -count 3`; tabela e como rodar em
       `VidroProcessor/docs/TESTING.md`). Clipe sintético de 10 s, 8 cores/16 threads, ffmpeg 9.0.2:
       transcode 0,45 s; passos 4–7 sequencial 1,48 s, paralelo max=1 1,47 s, max=2 1,00 s, max=4 0,97 s;
       `ProcessVideo` com tudo ligado 1,47 s contra 0,50 s com `ENABLE_*` desligados.
       **Confirma:** P-PERF3 (~1,5× com paralelo; quase todo o ganho já em max=2) e P-OPT1 (−66%).
-      **Não confirma:** P-PERF1/2 (sem antes/depois, já são o código), P-PERF5 (`WORKER_COUNT` não foi
-      variado), nem o "~2–3 min" — 10 s sintéticos não são 500 MB reais. **Falta:** benchmark que varie
-      `WORKER_COUNT` e um vídeo real.
+      **Não confirma:** P-PERF1/2 (sem antes/depois, já são o código), nem o "~2–3 min" — 10 s
+      sintéticos não são 500 MB reais.
+      **Segunda metade** *(2026-10-06)*: `BenchmarkConcurrentJobs` (lote de 8 jobs, 1/2/4/8 workers):
+      11,7 s → 9,8 s → 9,5 s → 9,4 s. **Confirma P-PERF5:** o joelho é em 2 workers, que é o
+      `DefaultWorkerCount` neste host; mais que isso não rende.
+      **Vídeo real** *(2026-10-08)*, `BENCH_VIDEO` com 55 s de 1080p30 HEVC (100 MB), `-count 1`:
+      205 s → 202 s → 207 s → 207 s — **plano**, diferença dentro do ruído. ~26 s por job: um job só já
+      satura os 16 threads, então o worker extra não rende nem atrapalha (o ganho no sintético era
+      startup de processo). Extrapolando por duração, 500 MB do mesmo bitrate ≈ 2 min: o "~2–3 min"
+      do P-PERF1–4 fica plausível, ainda sem antes/depois.
 
 ### ~~Concluído~~ ✅ — P-PERF1 a P-PERF4 *(marcados em 2026-09-03; código já estava lá)*
 
@@ -976,14 +987,13 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 
 ## Ordem sugerida
 
-*(Revista em 2026-10-06, depois do resto de "Confiabilidade do fluxo".)* Já fechados: P-OPT1, P-PERF6 (primeira metade), todos os achados das ondas B e C, formulários de vídeo, P0, P0.1, P1, a fila combinada de
+*(Revista em 2026-10-06, depois do resto de "Confiabilidade do fluxo".)* Já fechados: P-OPT1, P-PERF6 (inclusive com vídeo real), todos os achados das ondas B e C, formulários de vídeo, P0, P0.1, P1, a fila combinada de
 2026-09-07, SEO + idioma, P-PERF1 a P-PERF5, laço do worker testável, testes de
 `channels`/`playlists`, doc do fluxo ponta a ponta, e todo o bloco "Confiabilidade do fluxo" (sobra só
 a decisão de breaker no `AcknowledgeMessage`/`RequeueJob`).
 
-1. **P-PERF6, segunda metade** — benchmark variando `WORKER_COUNT` e um vídeo real.
-2. **`contracts/job-state.json`** — o envelope do job (`correlation_id`, `callback_url`, nome da fila)
+1. **`contracts/job-state.json`** — o envelope do job (`correlation_id`, `callback_url`, nome da fila)
    ainda é testado por cada lado com o próprio nome de campo.
-3. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.
-4. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de
+2. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.
+3. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de
    observabilidade (collector de traces).

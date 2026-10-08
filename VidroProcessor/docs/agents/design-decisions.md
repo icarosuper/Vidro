@@ -103,7 +103,7 @@ A new entry takes the **next number** (highest today is **#13**) plus one line h
 - **Floor of 1**: a host with fewer cores than parallel steps still starts a worker. Refusing to run is worse than oversubscribing a single job.
 - **Override via `WORKER_COUNT`** (any value > 0 wins): NVENC deployments (the GPU is the bottleneck, so fewer workers is better) and containers with CPU quotas, where `NumCPU` reports the *host's* cores and the derived default is still too high.
 - **`MAX_PARALLEL_POST_TRANSCODE_STEPS` is a different guard**: it bounds one job's FFmpeg processes (`clampParallelSteps`, shared with `runNonCriticalStepsParallel` so the two cannot drift). This default bounds the *host*, which nothing did before.
-- **Not measured yet**: the number is reasoned, not benchmarked. P-PERF6 in the root `TODO.md` is what would confirm it — and it only became worth running once the processes stopped trampling each other.
+- **Measured**: `BenchmarkConcurrentJobs` (P-PERF6) puts the throughput knee at 2 workers on a 16-thread host with the synthetic clip, matching the default. On a real 1080p video the curve is flat from 1 to 8 workers (one job already saturates the CPU), so the default costs nothing there; it only pays off on short clips, where process startup dominates.
 
 ### 10. Webhook contract uses camelCase to match the .NET API
 

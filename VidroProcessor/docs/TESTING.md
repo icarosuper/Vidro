@@ -270,7 +270,9 @@ go test ./internal/processor -run '^$' -bench . -benchtime 3x -count 3
 
 One variable per benchmark: `BenchmarkTranscodeVideo` (a), `BenchmarkNonCriticalSteps`
 (b: sequential vs `runNonCriticalStepsParallel` at 1/2/4), `BenchmarkProcessVideo` (c: all
-steps vs steps 4-7 skipped, i.e. all `ENABLE_*` off).
+steps vs steps 4-7 skipped, i.e. all `ENABLE_*` off), `BenchmarkConcurrentJobs` (d: a batch of 8
+jobs drained by 1/2/4/8 workers). `BENCH_VIDEO=/path/to/video.mp4` swaps the synthetic clip for a
+real file.
 
 Measured 2026-10-05 on AMD Ryzen 7 7800X3D (8 cores / 16 threads, `NumCPU`=16), ffmpeg n9.0.2,
 CPU encoder (libx264, no NVENC), idle host, `-benchtime 3x -count 3`:
@@ -284,6 +286,22 @@ CPU encoder (libx264, no NVENC), idle host, `-benchtime 3x -count 3`:
 | (b) parallel, max=4 | 0.969 / 0.968 / 0.970 | 0.97 s |
 | (c) ProcessVideo, all steps (parallel 4) | 1.477 / 1.470 / 1.461 | 1.47 s |
 | (c) ProcessVideo, steps 4-7 skipped | 0.498 / 0.497 / 0.498 | 0.50 s |
+| (d) 8 jobs, 1 worker | 11.58 / 11.68 / 11.80 | 11.7 s |
+| (d) 8 jobs, 2 workers | 9.95 / 9.84 / 9.74 | 9.8 s |
+| (d) 8 jobs, 4 workers | 9.73 / 9.35 / 9.39 | 9.5 s |
+| (d) 8 jobs, 8 workers | 9.38 / 9.35 / 9.42 | 9.4 s |
+
+(d) measured 2026-10-06, same host, `-benchtime 2x -count 3`.
+
+(d) again on a real video (`BENCH_VIDEO`: 54.5 s, 1080p30 HEVC phone footage, 100 MB), 2026-10-08,
+same host, `-count 1`:
+
+| Benchmark | s/op | per job |
+|---|---|---|
+| (d) 8 jobs, 1 worker | 204.9 s | 25.6 s |
+| (d) 8 jobs, 2 workers | 201.8 s | 25.2 s |
+| (d) 8 jobs, 4 workers | 207.1 s | 25.9 s |
+| (d) 8 jobs, 8 workers | 207.2 s | 25.9 s |
 
 What this confirms and what it does not:
 
@@ -294,12 +312,18 @@ What this confirms and what it does not:
 - **Confirmed (P-OPT1):** skipping steps 4-7 cuts the pipeline from 1.47 s to 0.50 s (~66%).
   Steps 4-7 are ~2/3 of the work on this clip.
 - **Not measured:** P-PERF1 (HLS single command) and P-PERF2 (`fast` vs `medium`): there is no
-  before/after, both are already the code, so the "~2-3 min" claim in `TODO.md` is still a paper
-  estimate. The numbers above are 10 s of synthetic 720p, not a 500 MB 1080p video; `testsrc`
-  encodes far more easily than camera footage, so do not extrapolate absolute times.
-- **Not measured (P-PERF5):** `DefaultWorkerCount` is about concurrent jobs, and these
-  benchmarks run one job at a time. Whether `NumCPU / parallel steps` workers is the right
-  default needs a concurrent-jobs benchmark (vary `WORKER_COUNT`), which does not exist yet.
+  before/after, both are already the code. The synthetic numbers are 10 s of 720p `testsrc`, which
+  encodes far more easily than camera footage, so do not extrapolate absolute times from them.
+- **Plausible ("~2-3 min" for 500 MB):** the real video takes ~26 s per job for 55 s of 1080p;
+  500 MB at the same bitrate is ~275 s of footage, so ~2 min. Linear extrapolation, not a measurement.
+- **Confirmed (P-PERF5), on the synthetic clip:** throughput goes 11.7 s -> 9.8 s going from 1 to 2
+  workers (-16%), then flattens (9.5 s at 4, 9.4 s at 8): the knee is at 2, exactly what
+  `DefaultWorkerCount` gives on this host (16 threads / ~8 FFmpeg processes per job). More workers
+  than that buy nothing and only add memory pressure.
+- **On a real video the curve is flat:** 1 to 8 workers all land within ~2.5% (one run each, so
+  noise). A single job already saturates the 16 threads; the 1 -> 2 gain on the synthetic clip was
+  process startup, not encode. The default of 2 neither helps nor hurts on long footage, and still
+  helps on short clips.
 
 ---
 
