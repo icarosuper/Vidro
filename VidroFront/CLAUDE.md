@@ -2,10 +2,11 @@
 
 Guia nav Claude Code repo. Regras críticas aqui; resto em `docs/agents/`.
 
-Convenção de commit, branching, escopo de edição, idioma do código, release/tags e a regra de
-"código ruim no caminho" moram **uma vez só**, no `../CLAUDE.md` da raiz do monorepo (carregado
-junto com este arquivo). Resumo: código em inglês, conventional commits **em português**, só o
-assunto; direto na `master` salvo aprovação do usuário; **nunca commite sem pedido explícito**.
+Commit convention, branching, edit scope, language, release/tags and the "bad code nearby" rule
+live **once**, in the monorepo root `../CLAUDE.md` (loaded automatically alongside this file). Short
+version: everything in English (code, docs, file names, commits), conventional commits, subject
+line only; straight to `master` unless the user approves a branch; **never commit without an
+explicit request**.
 
 ## Projeto
 

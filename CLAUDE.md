@@ -26,14 +26,19 @@ mudar um campo é editar o golden e os dois lados juntos — o resto do contrato
 `TODO.md` foram divergências de contrato que ninguém viu por meses. Ver
 `VidroProcessor/docs/agents/design-decisions.md`.
 
-## Idioma do código
+## Language: English only
 
-**Todo código em inglês** nos três serviços: nomes de classe, método, variável, tipo, teste,
-mensagem de log, comentário e XML doc. Vale também para as docs do `docs/agents/` da API e do
-Processor, que já são em inglês.
+**Everything in English**, in all three services and at the root: code (class, method, variable,
+type, test, log message, comment, XML doc), docs, file and directory names, commit messages, PR
+titles. No exceptions. (The UI was already English — `<html lang="en">`.)
 
-Duas exceções: **mensagens de commit** (português, ver abaixo) e as docs em português — este
-arquivo, `docs/MONOREPO.md`, `TODO.md`, `README.md` e o `CLAUDE.md` + `docs/` do `VidroFront`.
+Some older text is still in Portuguese — most of the root docs, `TODO.md`, and the `VidroFront`
+docs. It gets translated **on contact**, not all at once: whenever you edit or pass through a file
+and find Portuguese in it, translate it to English as part of the task and **tell the user** what you
+translated. This is an exception to "Código ruim no caminho" below — no need to ask first, just report it.
+Renaming a file means fixing every link to it in the same change (`grep` for the old name).
+
+Not translated: test data whose point is the content itself (e.g. `"joão"` testing accents).
 
 ## Legibilidade
 
@@ -80,27 +85,27 @@ Valem para os **três** serviços — C#, TypeScript e Go. O que é idiomático 
 O runbook é [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md). Mora na
 raiz porque atravessa API → Redis → worker → MinIO; nenhum serviço sozinho o resolve.
 
-## Padrão de mensagem de commit
+## Commit message convention
 
-Conventional Commits, **em português**, só o assunto — sem corpo, sem escopo, sem rodapé (nada de
+Conventional Commits, **in English**, subject line only — no body, no scope, no footer (no
 `Co-authored-by`).
 
-Formato: `<tipo>: <verbo no infinitivo> <complemento>` — minúsculo depois do tipo, sem ponto final,
-até ~72 chars.
+Format: `<type>: <imperative verb> <complement>` — lowercase after the type, no trailing period,
+up to ~72 chars.
 
-Tipos usados nos repos (frequência real): `feat` > `chore` > `fix` > `refactor` > `docs` / `test`.
+Types used in the repo (by real frequency): `feat` > `chore` > `fix` > `refactor` > `docs` / `test`.
 
-- `feat` — funcionalidade nova ou ampliada
-- `fix` — correção de bug/comportamento
-- `chore` — docs, README, migrations, scaffold, reorganização sem lógica
-- `refactor` — renomear/reestruturar sem mudar comportamento
-- `docs` / `test` — quando a mudança é só documentação ou só teste
+- `feat` — new or extended functionality
+- `fix` — bug/behavior fix
+- `chore` — docs, README, migrations, scaffold, reorganization without logic
+- `refactor` — rename/restructure without changing behavior
+- `docs` / `test` — when the change is only documentation or only tests
 
-Exemplos do histórico: `feat: adicionar upload de avatar do canal`, `fix: corrigir botão de
-reações`, `chore: atualizar README`, `refactor: renomear projeto`.
+Examples: `feat: add channel avatar upload`, `fix: fix reactions button`, `chore: update README`,
+`refactor: rename project`. (Commits before 2026-10-12 are in Portuguese; history is not rewritten.)
 
-O assunto diz o **comportamento**, não o arquivo: descreva a regra que passou a valer. Se o diff não
-couber em um assunto, é sinal de que virou mais de um commit.
+The subject states the **behavior**, not the file: describe the rule that now holds. If the diff
+doesn't fit in one subject, it has become more than one commit.
 
 Título de PR (squash merge): `Feature/nome-da-branch (#N)`.
 

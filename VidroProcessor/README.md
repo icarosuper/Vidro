@@ -89,7 +89,7 @@ VidroProcessor/
 ## 🤝 Contributing
 
 Vidro is a monorepo; the rules for all three services are in the root
-[CLAUDE.md](../CLAUDE.md). Short version: conventional commits **in Portuguese**, subject line only,
+[CLAUDE.md](../CLAUDE.md). Short version: conventional commits **in English**, subject line only,
 straight to `master` for small changes — a branch only for a large feature, and by agreement.
 
 ## 📄 License

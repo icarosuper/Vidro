@@ -2,10 +2,10 @@
 
 Read doc before write component, hook, API fn. Define non-obvious patterns for all code.
 
-Idioma do código e as regras de legibilidade que valem para os três serviços — variável nomeada em
-vez de expressão inline, extrair lógica complexa, nomes que dizem *o quê*, ternário em três linhas —
-moram uma vez só no [`../../../CLAUDE.md`](../../../CLAUDE.md) da raiz do monorepo. Este arquivo tem
-só o que é específico do front.
+Language (everything in English) and the readability rules shared by all three services — named
+variable instead of inline expression, extract complex logic, names that say *what*, ternary
+formatting — live once in the monorepo root [`../../../CLAUDE.md`](../../../CLAUDE.md). This file
+holds only what is specific to the front.
 
 ## Feature module layout
 

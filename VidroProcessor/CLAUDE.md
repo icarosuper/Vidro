@@ -4,7 +4,7 @@ Async Go worker for VidroApi. Pull video IDs from Redis queue, download from Min
 
 Commit convention, branching, edit scope, code language, release/tags and the "bad code nearby" rule
 live **once**, in the monorepo root `../CLAUDE.md` (loaded automatically alongside this file). Short
-version: all code in English, conventional commits **in Portuguese**, subject line only; straight to
+version: everything in English (code, docs, file names, commits), conventional commits, subject line only; straight to
 `master` unless the user approves a branch; **never commit without an explicit request**.
 
 ## Always-on rules
