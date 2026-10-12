@@ -43,7 +43,7 @@ Arquivos da API citados abaixo sem pasta moram em `VidroApi/src/VidroApi.Api/Fea
 | Validade da URL de upload (presigned PUT) | 2 h | `appsettings.json:19` (`MinIO:UploadUrlTtlHours`) |
 | Intervalo da reconciliação | 15 min | `appsettings.json:32` |
 | `Processing` vira `Failed` após | 90 min sem `UpdatedAt` novo (pior caso do worker, 80 min, + folga) | `appsettings.json:34`, `VideoSettings.cs`; pior caso em [`contracts/processing-timeout.json`](../contracts/processing-timeout.json) |
-| TTL do `job:<videoId>` no Redis | 24 h | `RedisJobQueueService.cs:32`, `jobTTL` em `VidroProcessor/queue/job.go` |
+| TTL do `job:<videoId>` no Redis | 24 h | `RedisJobQueueService.cs` (`PublishJobAsync`), `jobTTL` em `VidroProcessor/queue/job.go` |
 | Tentativas por job no worker | 1 + 3 retries (`MaxJobRetries`) | `MaxJobRetries` e `ShouldRetry` em `VidroProcessor/queue/job.go` |
 | Orçamento de um job | 18 min (passos 13 min + 5 min de transferência) × `PROCESSING_TIMEOUT_SCALE` | `JobBudget` em `VidroProcessor/internal/processor/processor.go` |
 | Lease órfão volta para a fila após | orçamento + 1 min, checado a cada 1 min | `OrphanThreshold` em `internal/worker/worker.go`, `RecoveryInterval` em `queue/client.go` |
@@ -113,7 +113,7 @@ Dentro do mesmo handler (`MinioUploadCompleted.cs`, `Handle`), numa transação,
 `MarkAsProcessing` (em memória) → `SaveChanges` → `PublishJobAsync` → `Commit`
 ([`design-decisions.md #14`](../VidroApi/docs/agents/design-decisions.md#14-the-job-is-published-inside-the-transaction-that-marks-the-video-processing)).
 
-- **Chaves** (`RedisJobQueueService.cs:19-34`):
+- **Chaves** (`RedisJobQueueService.cs`, `JobStateKey`/`SerializeJobState`):
   - `SET job:<videoId> <json> EX 86400` — uma **string JSON**, não um hash.
   - `LPUSH video_queue <videoId>` — a fila carrega só o id; tudo o mais está no `job:`.
 - **Forma do `job:<videoId>`** (snake_case; o worker desserializa em `JobState`,
@@ -129,9 +129,10 @@ Dentro do mesmo handler (`MinioUploadCompleted.cs`, `Handle`), numa transação,
   | `error` | worker | mensagem da última falha |
   | `artifacts`, `metadata` | worker | caminhos no MinIO e saída do `analyze`, no `done` |
 
-- **Nome da fila:** `JobQueueSettings:QueueName` na API (`appsettings.json:69`) e
-  `PROCESSING_REQUEST_QUEUE` no worker (`docker-compose.yml:123`) — os dois `video_queue`, mas são
-  duas configurações independentes; nenhum teste as liga.
+- **Queue name:** `JobQueueSettings:QueueName` in the API (`appsettings.json`) and
+  `PROCESSING_REQUEST_QUEUE` in the worker (`docker-compose.yml`, `.env-example`) — two independent
+  settings, both checked against `contracts/job-state.json`, which also pins the `job:<id>` key and
+  the envelope fields above.
 - **Retry:** nenhum. Redis fora → exceção → a transação faz rollback, 500 para o MinIO, o vídeo
   continua `PendingUpload` e cai no caminho da reconciliação do passo 3.
 - **`SaveChanges` falha:** falha antes do publish — nenhum job existe. *(Até 2026-10-05 o publish

@@ -1,0 +1,12 @@
+{
+  "queue": "video_queue",
+  "stateKey": "job:11111111-1111-1111-1111-111111111111",
+  "state": {
+    "status": "pending",
+    "callback_url": "http://api:5000/webhooks/video-processed",
+    "correlation_id": "0HNCONTRACT:00000001",
+    "retry_count": 0,
+    "created_at": 1760000000,
+    "updated_at": 1760000000
+  }
+}

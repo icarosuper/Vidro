@@ -26,6 +26,10 @@
     <Content Include="..\..\..\contracts\enums.json"
              Link="contracts\%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest" />
+    <!-- Job envelope and queue name shared with VidroProcessor -->
+    <Content Include="..\..\..\contracts\job-state.json"
+             Link="contracts\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
     <!-- Worker worst case shared with VidroProcessor, checked against the API's own appsettings -->
     <Content Include="..\..\..\contracts\processing-timeout.json"
              Link="contracts\%(Filename)%(Extension)"
@@ -38,6 +42,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\VidroApi.Application\VidroApi.Application.csproj" />
     <ProjectReference Include="..\..\src\VidroApi.Domain\VidroApi.Domain.csproj" />
+    <ProjectReference Include="..\..\src\VidroApi.Infrastructure\VidroApi.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

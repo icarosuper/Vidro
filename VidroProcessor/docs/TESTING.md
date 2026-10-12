@@ -168,6 +168,15 @@ Mutation-checked: moving `defer cancelBookkeeping()` back into the parent turns 
   run. See `../contracts/README.md`.
   **Verified by mutation**: renaming the `json:` tag of `previewPath` fails the test.
 
+### `job_state_contract_test.go` (package `main`)
+- `TestJobState_ReadsContractGolden` — `../contracts/job-state.json` seeded under its `stateKey`
+  in miniredis comes back through `queue.GetJobState`; strict decoding (`DisallowUnknownFields`)
+  fails on a field the API sends that `JobState` does not read, re-encoding fails on a renamed tag.
+- `TestProcessingRequestQueue_MatchesContractGolden` — `PROCESSING_REQUEST_QUEUE` in the root
+  `docker-compose.yml` and in `.env-example` equals the golden's `queue`.
+  VidroApi tests the same file (`JobStateContractTests.cs`). **Verified by mutation**: renaming the
+  `correlation_id` tag, the `job:` prefix or the queue in either config file fails the tests.
+
 ### `internal/processor/orchestration_test.go`
 The orchestrator is a policy, not a transformation — these run with fake steps, no FFmpeg:
 - `TestNonCriticalSteps_AreTheFourPostTranscodeSteps` — the list is thumbnails, audio, preview,

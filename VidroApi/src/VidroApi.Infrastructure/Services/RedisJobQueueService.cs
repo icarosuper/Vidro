@@ -14,23 +14,33 @@ public class RedisJobQueueService(IConnectionMultiplexer redis, IOptions<JobQueu
     {
         var db = redis.GetDatabase();
 
-        // Field names are snake_case because this object is the shared contract with the worker:
-        // VidroProcessor/queue/job.go deserializes exactly these names.
+        await db.StringSetAsync(
+            JobStateKey(videoId),
+            SerializeJobState(callbackUrl, correlationId, DateTimeOffset.UtcNow),
+            TimeSpan.FromHours(24));
+
+        await db.ListLeftPushAsync(_queueName, videoId);
+    }
+
+    /// <summary>The Redis key the worker reads the job envelope from.</summary>
+    public static string JobStateKey(string videoId) => $"job:{videoId}";
+
+    /// <summary>
+    /// The job envelope as the worker deserializes it — snake_case because it is a shared contract,
+    /// locked by <c>contracts/job-state.json</c> (see contracts/README.md).
+    /// </summary>
+    public static string SerializeJobState(string callbackUrl, string correlationId, DateTimeOffset now)
+    {
+        var nowUnixSeconds = now.ToUnixTimeSeconds();
         var jobState = new
         {
             status = "pending",
             callback_url = callbackUrl,
             correlation_id = correlationId,
             retry_count = 0,
-            created_at = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            updated_at = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+            created_at = nowUnixSeconds,
+            updated_at = nowUnixSeconds
         };
-
-        await db.StringSetAsync(
-            $"job:{videoId}",
-            JsonSerializer.Serialize(jobState),
-            TimeSpan.FromHours(24));
-
-        await db.ListLeftPushAsync(_queueName, videoId);
+        return JsonSerializer.Serialize(jobState);
     }
 }

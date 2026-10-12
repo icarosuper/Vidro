@@ -113,6 +113,8 @@ o `docs/MONOREPO.md` promete.
 > **Coberto por outro caminho** *(2026-09-07)*: em vez de AST, o payload do webhook virou golden em
 > `contracts/`, lido pelo teste do worker e pelo da API — pega o mesmo drift com menos código. O
 > que segue só como disciplina é o resto do contrato (nome da fila, `callback_url`, paths no MinIO).
+> *(2026-10-12)* The queue name and the job envelope (`callback_url`, `correlation_id`) joined it in
+> `contracts/job-state.json`; only the MinIO paths are still discipline.
 
 ### 4. Fake tipado, nunca mock (do mamut-api)
 

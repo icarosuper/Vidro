@@ -15,7 +15,7 @@ first (`godotenv`, missing file is fine — Docker injects the vars instead), th
 | Variable | Default | Description |
 |---|---|---|
 | `REDIS_HOST` | — **required** | `host:port`. Holds the queues **and** the job records (`job:<videoID>`). It is the only durable state the worker touches besides MinIO |
-| `PROCESSING_REQUEST_QUEUE` | — **required** | Main queue. VidroApi `LPUSH`es video ids here, the worker `BRPOPLPUSH`es them out. **Shared contract** — must match the API's `JobQueueSettings:QueueName` (`video_queue` in the stack). Two sibling keys are derived from it and never configured: `<queue>:processing` (in-flight lease) and `<queue>:dead` (DLQ) — see [design-decisions.md #1](design-decisions.md#1-redis-brpoplpush-instead-of-streams--plain-brpop) |
+| `PROCESSING_REQUEST_QUEUE` | — **required** | Main queue. VidroApi `LPUSH`es video ids here, the worker `BRPOPLPUSH`es them out. **Shared contract** — must match the API's `JobQueueSettings:QueueName` (`video_queue` in the stack); both are checked against `../contracts/job-state.json`, here through the root `docker-compose.yml` and `.env-example`. Two sibling keys are derived from it and never configured: `<queue>:processing` (in-flight lease) and `<queue>:dead` (DLQ) — see [design-decisions.md #1](design-decisions.md#1-redis-brpoplpush-instead-of-streams--plain-brpop) |
 
 ## MinIO — required
 

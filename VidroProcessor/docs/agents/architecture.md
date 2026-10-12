@@ -31,7 +31,7 @@ Worker stateless; all durable state (queue, in-flight jobs, job metadata, artifa
 
 ## Queue protocol
 
-Shared contract with VidroApi. Do not change queue names or job layout without changing the API in the same commit.
+Shared contract with VidroApi. Do not change queue names or job layout without changing the API in the same commit — both are pinned by `../contracts/job-state.json` (`job_state_contract_test.go`).
 
 - **Main queue**: `ProcessingRequestQueue` (LPush by API, BRPopLPush by worker).
 - **In-flight queue**: `<ProcessingRequestQueue>:processing`. Populated atomically by `BRPOPLPUSH`, acts as visibility/lease list. Workers `LREM` on completion (`AcknowledgeMessage`).

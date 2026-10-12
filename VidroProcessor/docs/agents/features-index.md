@@ -77,6 +77,7 @@ Object layout inside bucket:
 | Payload contract | `internal/webhook/webhook.go` (`Payload`) | camelCase keys, matches VidroApi `VideoProcessed` |
 | Payload mapping | `internal/worker/worker.go` (`BuildWebhookPayload`) | `queue.JobState` → `Payload`; optional artifacts and the metadata block may be absent |
 | Contract goldens | `../contracts/video-processed-*.json` (monorepo root) | Shared with VidroApi — both sides test the same files, see `../contracts/README.md` |
+| Job envelope golden | `../contracts/job-state.json`, `job_state_contract_test.go` | Queue name, `job:<id>` key and the `JobState` fields the API writes — the worker reads exactly the golden |
 | Delivery with retry | `internal/webhook/webhook.go` (`Notify`) | 3 attempts, exponential backoff, 10s HTTP timeout; retries only network errors, 5xx and 429 — other 4xx fail at once |
 | HMAC signature | `internal/webhook/webhook.go` (`send`) | `X-Webhook-Signature: sha256=<hex>`; `WEBHOOK_SECRET` is required |
 | Caller wiring | `internal/worker/worker.go` (`notifyWebhook`) | Fires on success + permanent DLQ failure |

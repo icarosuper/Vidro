@@ -1,84 +1,107 @@
-# Contratos entre serviços
+# Cross-service contracts
 
-JSON golden dos contratos que atravessam serviços. Os dois lados de cada contrato testam **o
-mesmo arquivo**: se um divergir, o CI do outro quebra.
+Golden JSON files for the contracts that cross services. Both sides of each contract test **the
+same file**: if one diverges, the other's CI breaks.
 
-| Golden | Atravessa |
+| Golden | Crosses |
 |---|---|
-| `video-processed-*.json` | `VidroProcessor` → `VidroApi` (payload do webhook) |
-| `enums.json` | `VidroApi` → `VidroFront` (os seis enums espelhados à mão) |
-| `processing-timeout.json` | `VidroProcessor` → `VidroApi` (pior caso de um job vs. timeout de `Processing`) |
+| `video-processed-*.json` | `VidroProcessor` → `VidroApi` (webhook payload) |
+| `job-state.json` | `VidroApi` → `VidroProcessor` (queue name, `job:<id>` key and job envelope) |
+| `enums.json` | `VidroApi` → `VidroFront` (the six enums mirrored by hand) |
+| `processing-timeout.json` | `VidroProcessor` → `VidroApi` (a job's worst case vs. the `Processing` timeout) |
 
-Existe porque os dois P0 do [`TODO.md`](../TODO.md) foram divergência de contrato entre o
-webhook Go e o handler C#, e ninguém viu por meses. Antes do monorepo isso exigiria publicar um
-pacote; agora é um arquivo. Ver [`docs/MONOREPO.md`](../docs/MONOREPO.md).
+They exist because both P0s in [`TODO.md`](../TODO.md) were contract divergences between the Go
+webhook and the C# handler, and nobody noticed for months. Before the monorepo this would have
+required publishing a package; now it is a file. See [`docs/MONOREPO.md`](../docs/MONOREPO.md).
 
 ## `video-processed-*.json` — webhook `POST /webhooks/video-processed`
 
-| Arquivo | Caso | O que a API tem que fazer |
+| File | Case | What the API must do |
 |---|---|---|
-| `video-processed-success-full.json` | pipeline inteiro deu certo | vídeo vira `Ready`, com artefatos e metadata |
-| `video-processed-success-minimal.json` | sucesso sem nenhum artefato opcional e sem metadata (todo passo não-crítico falhou, `analyze` incluído) | vídeo vira `Ready`, `thumbnailUrls` vazio, sem metadata |
-| `video-processed-success-without-processed-path.json` | `success: true` sem o output do transcode — sucesso que não é sucesso | vídeo vira `Failed`, **sem** exceção no handler |
-| `video-processed-failure.json` | falha permanente (retries esgotados, job no DLQ) | vídeo vira `Failed` |
+| `video-processed-success-full.json` | the whole pipeline succeeded | video becomes `Ready`, with artifacts and metadata |
+| `video-processed-success-minimal.json` | success with no optional artifact and no metadata (every non-critical step failed, `analyze` included) | video becomes `Ready`, empty `thumbnailUrls`, no metadata |
+| `video-processed-success-without-processed-path.json` | `success: true` without the transcode output — a success that is not one | video becomes `Failed`, **without** an exception in the handler |
+| `video-processed-failure.json` | permanent failure (retries exhausted, job in the DLQ) | video becomes `Failed` |
 
-O `videoId` é o placeholder `11111111-1111-1111-1111-111111111111`. Cada lado troca a string
-pelo id real do seu teste — é o único campo que o teste pode alterar.
+The `videoId` is the placeholder `11111111-1111-1111-1111-111111111111`. Each side swaps the string
+for its test's real id — it is the only field a test may change.
 
-Quem testa:
+Who tests it:
 
-- `VidroProcessor/webhook_contract_test.go` — `worker.BuildWebhookPayload` a partir de um `queue.JobState`.
-- `VidroApi/tests/VidroApi.IntegrationTests/Videos/VideoProcessedTests.cs` — POST assinado no endpoint real.
+- `VidroProcessor/webhook_contract_test.go` — `worker.BuildWebhookPayload` from a `queue.JobState`.
+- `VidroApi/tests/VidroApi.IntegrationTests/Videos/VideoProcessedTests.cs` — signed POST to the real endpoint.
 
-## `enums.json` — os seis enums que o front espelha à mão
+## `job-state.json` — the job the API publishes
 
-Atravessa `VidroApi` → `VidroFront`. A API serializa esses enums como **inteiro**, e o front os
-redigita em `src/shared/types.ts`: nada no sistema de tipos liga os dois lados, então renomear ou
-renumerar um membro chegaria ao browser como valor silenciosamente errado. `ReactionType` começa
-em **1**, não em 0 — é exatamente o tipo de detalhe que um refactor leva junto sem ninguém notar.
+The worker's only input. The API writes the envelope under `stateKey` (`job:<videoId>`, 24h TTL)
+and `LPUSH`es the video id onto `queue`. The envelope carries the `callback_url` — lose it and the
+worker processes a video it can tell nobody about — and the `correlation_id`, the only telemetry id
+that crosses the queue. `created_at`/`updated_at` are fixed in the golden; the API test passes that
+instant as "now". The `stateKey` uses the same placeholder `videoId` as the webhook goldens.
 
-Os seis moram em `VidroApi/src/VidroApi.Domain/Enums/`: `VideoStatus`, `VideoVisibility`,
-`ReactionType`, `PlaylistVisibility`, `PlaylistScope` e `CommentSortOrder`.
+Who tests it:
 
-Quem testa:
+- `VidroApi/tests/VidroApi.UnitTests/Contracts/JobStateContractTests.cs` —
+  `RedisJobQueueService.SerializeJobState`/`JobStateKey` (the same functions `PublishJobAsync`
+  calls) produce the golden, compared as JSON, not as text; `JobQueueSettings:QueueName` in
+  `appsettings.json` equals `queue`. Unit test: no Docker.
+- `VidroProcessor/job_state_contract_test.go` — the golden seeded under `stateKey` in miniredis
+  comes back through `queue.GetJobState`; decoding with `DisallowUnknownFields` fails on a field the
+  worker does not read, and re-encoding fails on one it renamed. The worker's queue name only exists
+  in deployment config, so `PROCESSING_REQUEST_QUEUE` is checked in the root `docker-compose.yml`
+  and in `VidroProcessor/.env-example` — which is why `processor.yml` also triggers on
+  `docker-compose.yml`.
 
-- `VidroApi/tests/VidroApi.UnitTests/Contracts/EnumContractTests.cs` — reflexão sobre os seis
-  tipos. Unit test: sem Docker, sem container, roda sempre.
-- `VidroFront/src/tests/enum-contract.test.ts` — os seis `as const` de `shared/types.ts`.
+Not covered: the MinIO path layout, which is still discipline.
 
-Os dois testes também falham se o golden descrever um enum que o lado deles não espelha mais —
-entrada de golden sem ninguém atrás é contrato que ninguém confere.
+## `enums.json` — the six enums the front mirrors by hand
 
-**Por que não vem do OpenAPI:** viria, se o documento descrevesse os enums. Não descreve — ver
-[`VidroApi/openapi/README.md`](../VidroApi/openapi/README.md). O `openapi/v1.json` trava a
-superfície de URL; este golden trava os enums.
+Crosses `VidroApi` → `VidroFront`. The API serializes these enums as **integers**, and the front
+retypes them in `src/shared/types.ts`: nothing in the type system connects the two sides, so
+renaming or renumbering a member would reach the browser as a silently wrong value. `ReactionType`
+starts at **1**, not 0 — exactly the kind of detail a refactor takes along without anyone noticing.
 
-## `processing-timeout.json` — pior caso do worker vs. timeout da API
+The six live in `VidroApi/src/VidroApi.Domain/Enums/`: `VideoStatus`, `VideoVisibility`,
+`ReactionType`, `PlaylistVisibility`, `PlaylistScope` and `CommentSortOrder`.
 
-A reconciliação da API marca `Failed` o vídeo em `Processing` há mais de
-`VideoSettings:ProcessingTimeoutMinutes`, e descarta o webhook de sucesso que chegar depois. Esse
-timeout tem que passar do pior caso do worker com todos os retries gastos — `workerWorstCaseMinutes`,
-na escala 1 (`PROCESSING_TIMEOUT_SCALE=1`, `JOB_TIMEOUT` derivado):
+Who tests it:
+
+- `VidroApi/tests/VidroApi.UnitTests/Contracts/EnumContractTests.cs` — reflection over the six
+  types. Unit test: no Docker, no container, always runs.
+- `VidroFront/src/tests/enum-contract.test.ts` — the six `as const` in `shared/types.ts`.
+
+Both tests also fail if the golden describes an enum their side no longer mirrors — a golden entry
+nobody stands behind is a contract nobody checks.
+
+**Why it does not come from OpenAPI:** it would, if the document described the enums. It does
+not — see [`VidroApi/openapi/README.md`](../VidroApi/openapi/README.md). `openapi/v1.json` locks
+the URL surface; this golden locks the enums.
+
+## `processing-timeout.json` — worker worst case vs. API timeout
+
+The API's reconciliation marks `Failed` a video that has been in `Processing` longer than
+`VideoSettings:ProcessingTimeoutMinutes`, and drops a success webhook that arrives later. That
+timeout must exceed the worker's worst case with every retry spent — `workerWorstCaseMinutes`, at
+scale 1 (`PROCESSING_TIMEOUT_SCALE=1`, `JOB_TIMEOUT` derived):
 `(MaxJobRetries + 1) × (OrphanThreshold + RecoveryInterval)` = 4 × (18 + 1 + 1) = **80**.
 
-Quem testa:
+Who tests it:
 
-- `VidroProcessor/processing_timeout_contract_test.go` — a conta feita com as constantes do worker
-  bate com o golden. Mudar retries, orçamento ou o limiar de órfão quebra aqui.
-- `VidroApi/tests/VidroApi.UnitTests/Contracts/ProcessingTimeoutContractTests.cs` — o
-  `ProcessingTimeoutMinutes` do `appsettings.json` da API fica **acima** do golden.
+- `VidroProcessor/processing_timeout_contract_test.go` — the sum computed from the worker's
+  constants matches the golden. Changing retries, budget or the orphan threshold breaks here.
+- `VidroApi/tests/VidroApi.UnitTests/Contracts/ProcessingTimeoutContractTests.cs` — the API's
+  `ProcessingTimeoutMinutes` in `appsettings.json` stays **above** the golden.
 
-Existe porque os 45 min antigos foram calibrados para uma tentativa só, num comentário que nenhum
-teste conferia.
+It exists because the old 45 min were calibrated for a single attempt, in a comment no test checked.
 
 ---
 
-## Regras que valem para os dois
+## Rules for both sides
 
-**Mudar um campo é mudar os dois lados no mesmo commit** (regra do `CLAUDE.md` da raiz).
+**Changing a field means changing both sides in the same commit** (rule in the root `CLAUDE.md`).
 
-Os três workflows disparam em mudança de `contracts/**` (filtro de path de cada um) — senão um
-golden poderia mudar sem CI nenhum conferir.
+All three workflows trigger on changes to `contracts/**` (each one's path filter) — otherwise a
+golden could change with no CI checking it.
 
-Os goldens são pretty-printed para diff legível. No caso do webhook, o corpo real vai compacto,
-o que é o mesmo JSON.
+The goldens are pretty-printed for a readable diff. For the webhook, the real body is sent
+compact, which is the same JSON.

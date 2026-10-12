@@ -269,9 +269,9 @@ taxa, erro e latência.
 Um campo de trace no `jobState` (a API grava, o worker extrai com
 `propagation.TraceContext().Extract`) e um header no POST do webhook.
 
-**Isto é contrato compartilhado:** `RedisJobQueueService.cs` e `queue/job.go` mudam no mesmo commit,
-e o golden de `contracts/` entra junto se o campo tocar o payload do webhook. Ver a seção "Contrato
-compartilhado" do `CLAUDE.md` da raiz.
+**This is a shared contract:** `RedisJobQueueService.cs`, `queue/job.go` and
+`contracts/job-state.json` change in the same commit (plus the `video-processed-*.json` goldens if
+the field touches the webhook payload). See "Shared contract" in the root `CLAUDE.md`.
 
 > **FEITO — com uma mudança deliberada no plano: o campo é o `correlation_id`, não `traceparent`.**
 >
@@ -306,8 +306,10 @@ compartilhado" do `CLAUDE.md` da raiz.
 > **O runbook mudou junto:** quando o usuário chega com o ID da tela de erro, a query do Loki agora
 > pega API e worker de uma vez.
 >
-> **Fica aberto:** o `correlation_id` do envelope ainda não tem golden em `contracts/` — é
-> "disciplina", como o resto do contrato de fila (ver `TODO.md`, seção de contrato).
+> ~~**Fica aberto:** o `correlation_id` do envelope ainda não tem golden em `contracts/` — é
+> "disciplina", como o resto do contrato de fila (ver `TODO.md`, seção de contrato).~~
+> ✅ *(2026-10-12)* Closed: `contracts/job-state.json` pins `correlation_id` along with the rest of
+> the envelope and the queue name, tested from both sides.
 
 ### Degrau 4 — collector de traces → fecha F4
 

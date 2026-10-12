@@ -43,6 +43,8 @@ o que o `DefaultWorkerCount` já dá. *(2026-10-08)* **P-PERF6 fechado** com ví
 esgotado avisa a API por webhook, `Run` com pausa após falha de leitura da fila, webhook sem artefato
 opcional que não subiu, `correlationID` nos logs de recovery/webhook, e o `LREM` atômico do
 `moveFromProcessing`.
+*(2026-10-12)* **`contracts/job-state.json`**: queue name, `job:<id>` key and job envelope locked by
+golden on both sides (API and worker), mutation-verified.
 Itens marcados `[x]` trazem o commit e o que ficou no lugar.
 
 **Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
@@ -498,12 +500,27 @@ migração destrava".
       `buildWebhookPayload` (o resto era envio, não dava para testar sem servidor).
       **Verificado por mutação dos dois lados:** renomear o `json:` tag de `previewPath` quebra o
       teste Go; renomear `processedPath` no golden quebra o teste C#.
-      **Falta o resto do contrato, hoje só documentado:** nome da fila
+      ~~**Falta o resto do contrato, hoje só documentado:** nome da fila
       (`JobQueueSettings:QueueName` ↔ `PROCESSING_REQUEST_QUEUE`), `callback_url` e
-      `correlation_id` no `JobState`, e o layout de paths no MinIO.
+      `correlation_id` no `JobState`~~, e o layout de paths no MinIO.
       *(2026-09-13: o `correlation_id` entrou no envelope com teste dos dois lados e verificação na
       stack — mas cada lado testa o próprio nome de campo, que é exatamente a classe de drift que só
       um golden pega. Candidato natural a `contracts/job-state.json`.)*
+      **DONE** *(2026-10-12)* — `contracts/job-state.json` pins the queue name, the `job:<id>` key
+      and the envelope (`status`, `callback_url`, `correlation_id`, `retry_count`, timestamps).
+      API: `RedisJobQueueService.SerializeJobState`/`JobStateKey` extracted so `PublishJobAsync` and
+      `JobStateContractTests.cs` (unit, no Docker) call the same code, compared with
+      `JsonNode.DeepEquals`; `JobQueueSettings:QueueName` from `appsettings.json` against the
+      golden. Worker: `job_state_contract_test.go` seeds the golden under `stateKey` in miniredis
+      and reads it through `queue.GetJobState`, decodes with `DisallowUnknownFields` (an API-side
+      rename would otherwise come back as an empty field and pass) and re-encodes to catch a
+      renamed tag; `PROCESSING_REQUEST_QUEUE` is read from the root `docker-compose.yml` and
+      `.env-example`, so `processor.yml` now also triggers on `docker-compose.yml`.
+      **Verified by mutation, 10 of 10 red:** in the golden, renaming `correlation_id` (both
+      sides), the queue (both) or the `job:` prefix (both); in C#, renaming `callback_url`, the
+      key prefix, or the `appsettings.json` queue; in Go, renaming the `correlation_id` tag or the
+      `jobKey` prefix, or the queue in compose or in `.env-example`.
+      **Only the MinIO path layout is still discipline.**
 
 ### Confiabilidade do fluxo — achados da doc ponta a ponta *(2026-10-05)*
 
@@ -992,8 +1009,8 @@ do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a 
 `channels`/`playlists`, doc do fluxo ponta a ponta, e todo o bloco "Confiabilidade do fluxo" (sobra só
 a decisão de breaker no `AcknowledgeMessage`/`RequeueJob`).
 
-1. **`contracts/job-state.json`** — o envelope do job (`correlation_id`, `callback_url`, nome da fila)
-   ainda é testado por cada lado com o próprio nome de campo.
+1. ~~**`contracts/job-state.json`**~~ ✅ *(2026-10-12)* — the job envelope, `job:<id>` key and
+   queue name are locked by golden on both sides. The next contract gap is the MinIO path layout.
 2. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.
 3. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de
    observabilidade (collector de traces).

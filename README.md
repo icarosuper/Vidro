@@ -90,7 +90,7 @@ Load test (k6, API only): [`loadtest/README.md`](loadtest/README.md).
 | [`loadtest/README.md`](loadtest/README.md) | k6 API load test: how to run it, what each scenario measures |
 | [`contracts/README.md`](contracts/README.md) | Golden files that lock the webhook payload and the enums the front mirrors |
 
-Shared-contract changes (queue names, MinIO paths, webhook shape) land on **both sides in the same commit** — that is the point of the monorepo.
+Shared-contract changes (queue names, job envelope, MinIO paths, webhook shape) land on **both sides in the same commit** — that is the point of the monorepo.
 
 ## License
 

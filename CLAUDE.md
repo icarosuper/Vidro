@@ -19,12 +19,13 @@ dois à vontade para entender contratos, tipos e endpoints. A exceção é o con
 aí os dois lados mudam juntos, no mesmo commit, e isso é o comportamento certo, não invasão de
 escopo. Fora esse caso, faltou algo no outro serviço — informe o usuário antes de mexer.
 
-**Contrato compartilhado** (nomes de fila Redis, caminhos no MinIO, formato do webhook): mude os
-dois lados **no mesmo commit**. O payload do webhook `video-processed` é o único trecho já travado
-por teste: os golden de [`contracts/`](contracts/README.md) são lidos pelo worker e pela API, então
-mudar um campo é editar o golden e os dois lados juntos — o resto do contrato ainda é disciplina. É a razão principal de isto ser um monorepo — os dois P0 do
-`TODO.md` foram divergências de contrato que ninguém viu por meses. Ver
-`VidroProcessor/docs/agents/design-decisions.md`.
+**Shared contract** (Redis queue names, the job envelope, MinIO paths, the webhook shape): change
+both sides **in the same commit**. The `video-processed` webhook payload and the job the API
+publishes (queue name, `job:<id>` key, envelope fields) are locked by test: the goldens in
+[`contracts/`](contracts/README.md) are read by the worker and by the API, so changing a field
+means editing the golden and both sides together. Only the MinIO path layout is still discipline.
+It is the main reason this is a monorepo — both P0s in `TODO.md` were contract divergences nobody
+saw for months. See `VidroProcessor/docs/agents/design-decisions.md`.
 
 ## Language: English only
 

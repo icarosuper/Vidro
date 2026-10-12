@@ -90,7 +90,7 @@ Two rules that follow from `ValidateOnStart`:
 
 | Key | Default | Description |
 |---|---|---|
-| `JobQueueSettings:QueueName` | `video_queue` | **Shared contract.** Must equal the worker's `PROCESSING_REQUEST_QUEUE`. A mismatch is silent on both sides: the API pushes, nothing consumes, every video stays in `Processing` |
+| `JobQueueSettings:QueueName` | `video_queue` | **Shared contract.** Must equal the worker's `PROCESSING_REQUEST_QUEUE` — both checked against `contracts/job-state.json` (`JobStateContractTests`). A mismatch is silent on both sides: the API pushes, nothing consumes, every video stays in `Processing` |
 
 ## `Webhook` → `WebhookSettings`
 

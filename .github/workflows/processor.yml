@@ -6,11 +6,13 @@ on:
     paths:
       - "VidroProcessor/**"
       - "contracts/**"
+      - "docker-compose.yml" # PROCESSING_REQUEST_QUEUE is checked against contracts/job-state.json
       - ".github/workflows/processor.yml"
   pull_request:
     paths:
       - "VidroProcessor/**"
       - "contracts/**"
+      - "docker-compose.yml" # PROCESSING_REQUEST_QUEUE is checked against contracts/job-state.json
       - ".github/workflows/processor.yml"
 
 defaults:

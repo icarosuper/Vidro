@@ -151,8 +151,9 @@ O maior ganho não é build, é **contrato**. Duas coisas que hoje são manuais 
 - **API ↔ Processor — teste de contrato.** ✅ *(2026-09-07, parcial)* O payload do webhook
   `video-processed` virou golden versionado em [`contracts/`](../contracts/README.md), testado dos
   dois lados: o worker prova que serializa exatamente aquilo, a API prova que aceita exatamente
-  aquilo. É a rede que pegaria o BUG-1 no ato. **Falta o resto do contrato** — nome da fila
-  (`JobQueueSettings:QueueName` ↔ `PROCESSING_REQUEST_QUEUE`), `callback_url` no `JobState` e o
-  layout de paths no MinIO continuam só documentados.
+  aquilo. É a rede que pegaria o BUG-1 no ato. *(2026-10-12)* The job the API publishes is
+  locked too: `contracts/job-state.json` pins the queue name (`JobQueueSettings:QueueName` ↔
+  `PROCESSING_REQUEST_QUEUE`), the `job:<id>` key and the envelope (`callback_url`,
+  `correlation_id`). **Still missing:** the MinIO path layout, which is only documented.
 
 Nenhum dos dois precisa de ferramenta de monorepo. Precisavam do monorepo.
