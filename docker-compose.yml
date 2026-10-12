@@ -76,7 +76,7 @@ services:
         mc admin service restart local --json &&
         sleep 5 &&
         mc event add local/videos arn:minio:sqs::vidroapi:webhook \
-          --event put --prefix raw/
+          --event put --prefix raw/ --ignore-existing
 
   api:
     build: ./VidroApi
