@@ -65,13 +65,13 @@ above and the "Suggested order" at the end, in the same commit. See the root `CL
 (`PersistSuccessfulProcessing`).
 
 The contract documented by the Processor
-([`VidroProcessor/docs/agents/design-decisions.md` #3](VidroProcessor/docs/agents/design-decisions.md#3-critical-vs-non-critical-pipeline-steps))
+([`VidroProcessor/docs/agents/design-decisions.md` #3](../VidroProcessor/docs/agents/design-decisions.md#3-critical-vs-non-critical-pipeline-steps))
 says, verbatim:
 *"success webhook may contain empty `thumbnailPaths`, `hlsPath`, `previewPath`,
 or `audioPath`. API must not treat missing optional artifacts as failure."*
 Only thumbnails/audio/preview/streaming are non-critical — the orchestrator swallows the error and
 reports success without that path
-([`conventions.md`](VidroProcessor/docs/agents/conventions.md#critical-vs-non-critical-pipeline-steps)).
+([`conventions.md`](../VidroProcessor/docs/agents/conventions.md#critical-vs-non-critical-pipeline-steps)).
 
 The API does not honor that contract. `PersistSuccessfulProcessing` uses `!` (null-forgiving) on
 every optional field, and the entity rejects the nulls:
@@ -753,7 +753,7 @@ forms with react-hook-form + zod, coherent shadcn/ui.
 - [x] **Root README** *(2026-08-30)* — what Vidro is, the three services, how to start the stack,
       ports/credentials, tests, conventions and an index of the root docs.
 - [x] ~~**There is no end-to-end flow doc.**~~ **RESOLVED** *(2026-10-05, `9fec5e8`)* —
-      [`docs/end-to-end-flow.md`](docs/end-to-end-flow.md): states, times and limits, the 8
+      [`docs/end-to-end-flow.md`](end-to-end-flow.md): states, times and limits, the 8
       handoffs with payload/idempotency/failure, and "who fixes what". Writing it found 11
       divergences and risks — see "Flow reliability" in P2.
       Original text: there was no end-to-end flow doc. Each service documents its own box; the

@@ -10,7 +10,7 @@ same file**: if one diverges, the other's CI breaks.
 | `enums.json` | `VidroApi` → `VidroFront` (the six enums mirrored by hand) |
 | `processing-timeout.json` | `VidroProcessor` → `VidroApi` (a job's worst case vs. the `Processing` timeout) |
 
-They exist because both P0s in [`TODO.md`](../TODO.md) were contract divergences between the Go
+They exist because both P0s in [`TODO.md`](../docs/TODO.md) were contract divergences between the Go
 webhook and the C# handler, and nobody noticed for months. Before the monorepo this would have
 required publishing a package; now it is a file. See [`docs/MONOREPO.md`](../docs/MONOREPO.md).
 

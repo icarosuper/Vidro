@@ -7,7 +7,7 @@ Pulls jobs enqueued by [VidroApi](../VidroApi/) and delivers processed artifacts
 [![Go Version](https://img.shields.io/badge/Go-1.24-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](docs/TESTING.md)
 [![Coverage](https://img.shields.io/badge/coverage-63.7%25-yellow)](docs/TESTING.md)
-[![Status](https://img.shields.io/badge/status-functional-brightgreen)](../TODO.md)
+[![Status](https://img.shields.io/badge/status-functional-brightgreen)](../docs/TODO.md)
 
 ## ✨ Features
 
@@ -84,7 +84,7 @@ VidroProcessor/
 | [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) | Endpoints, metrics, Grafana, alerts |
 | [docs/TESTING.md](docs/TESTING.md) | Test layout, coverage, how to run |
 | [../docs/troubleshooting-stuck-video.md](../docs/troubleshooting-stuck-video.md) | A video that never becomes `Ready` |
-| [../TODO.md](../TODO.md) | Backlog of all three services — **P6** is this worker |
+| [../docs/TODO.md](../docs/TODO.md) | Backlog of all three services — **P6** is this worker |
 
 ## 🤝 Contributing
 
@@ -105,4 +105,4 @@ This project is provided as-is, without warranties.
 
 ---
 
-**Status**: 🚀 Functional — no release tagged yet; see [../TODO.md](../TODO.md) for what is next
+**Status**: 🚀 Functional — no release tagged yet; see [../docs/TODO.md](../docs/TODO.md) for what is next

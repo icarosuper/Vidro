@@ -12,8 +12,8 @@ specific to it; what is here is not repeated there.
 | `VidroProcessor/` | Go worker: Redis queue → FFmpeg pipeline → MinIO → webhook | `VidroProcessor/docs/agents/` |
 
 The three are **a single repository** — this one. The root holds the whole stack's
-`docker-compose.yml`, `TODO.md`, this file and `docs/MONOREPO.md` (why it is a monorepo, and what
-that cost).
+`docker-compose.yml`, this file and `docs/` — including `docs/TODO.md` (the backlog) and
+`docs/MONOREPO.md` (why it is a monorepo, and what that cost).
 
 **Edit scope:** the default is still to touch **one** service per task — read the other two freely
 to understand contracts, types and endpoints. The exception is the shared contract: then both sides
@@ -25,7 +25,7 @@ both sides **in the same commit**. The `video-processed` webhook payload and the
 publishes (queue name, `job:<id>` key, envelope fields) are locked by test: the goldens in
 [`contracts/`](contracts/README.md) are read by the worker and by the API, so changing a field
 means editing the golden and both sides together. Only the MinIO path layout is still discipline.
-It is the main reason this is a monorepo — both P0s in `TODO.md` were contract divergences nobody
+It is the main reason this is a monorepo — both P0s in `docs/TODO.md` were contract divergences nobody
 saw for months. See `VidroProcessor/docs/agents/design-decisions.md`.
 
 ## Language: English only
@@ -149,10 +149,10 @@ request already covers is not "in passing", it is the work.
 
 1. **Run the tests** of the service you touched (`dotnet test` / `bun run test` / `go test ./...`).
 2. **Update the affected docs in the same batch** — each file's trigger is in the service's
-   `CLAUDE.md`. An outdated doc costs more than missing code: this root's `TODO.md` has a whole
+   `CLAUDE.md`. An outdated doc costs more than missing code: `docs/TODO.md` has a whole
    section ("Docs that lie") that only existed because of that.
    The **root** docs have triggers too:
-   - **`TODO.md`** — the task closes, advances or discovers an item: strike/update the item in the
+   - **`docs/TODO.md`** — the task closes, advances or discovers an item: strike/update the item in the
      body **and** the "Closed so far" summary at the top **and** the "Suggested order" at the end.
      All three together — striking only the body is what left the suggested order pointing at
      work already done.

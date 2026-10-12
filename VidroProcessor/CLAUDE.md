@@ -46,7 +46,7 @@ Tests shelling to `ffmpeg`/`ffprobe` auto-skip when binaries missing — use `Ge
 
 - **`../docs/troubleshooting-stuck-video.md`** (monorepo root) — follow when a video never leaves `Processing`, or a job lands in the dead-letter queue. Step-by-step across API, Redis, worker and MinIO.
 
-- **`../TODO.md`** (monorepo root) — read when user asks project status, remaining work, or what to build next. Section **P6** holds this worker's backlog: FFmpeg pipeline performance (P-PERF1..4, P-OPT1) and scalability.
+- **`../docs/TODO.md`** (monorepo backlog) — read when user asks project status, remaining work, or what to build next. Section **P6** holds this worker's backlog: FFmpeg pipeline performance (P-PERF1..4, P-OPT1) and scalability.
 
 - **`docs/GETTING_STARTED.md`**, **`docs/OBSERVABILITY.md`**, **`docs/TESTING.md`** — guides for setup, observability stack, full integration suite. Read when question is about operating worker, not code.
 

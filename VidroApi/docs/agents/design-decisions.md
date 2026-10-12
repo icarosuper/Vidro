@@ -133,7 +133,7 @@ either orphaned objects or rows pointing at objects that no longer exist.
 
 ### 10. Single presigned PUT URL for upload
 
-Multipart upload is planned, not implemented — it is an item in the root `TODO.md` (P5).
+Multipart upload is planned, not implemented — it is an item in `docs/TODO.md` at the monorepo root (P5).
 
 ### 11. The OpenAPI document is generated at build and versioned
 

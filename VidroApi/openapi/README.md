@@ -4,7 +4,7 @@ Este arquivo é **gerado**, não escrito à mão, e é versionado de propósito:
 que o `VidroFront` consome. O workflow `.github/workflows/api.yml` regenera e falha se o diff
 não for vazio, então uma rota não muda sem aparecer no review.
 
-Existe porque o P0.1 do [`TODO.md`](../../TODO.md) foi exatamente isso: **4 rotas erradas** no
+Existe porque o P0.1 do [`docs/TODO.md`](../../docs/TODO.md) foi exatamente isso: **4 rotas erradas** no
 `docs/agents/features-index.md`, que ninguém tinha como conferir.
 
 ## Regenerar
