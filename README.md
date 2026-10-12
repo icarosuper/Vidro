@@ -83,6 +83,7 @@ Load test (k6, API only): [`loadtest/README.md`](loadtest/README.md).
 
 | File | What it covers |
 |---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Services, upload-to-`Ready` flow, lease/DLQ/reconciliation, contracts, limits |
 | [`docs/end-to-end-flow.md`](docs/end-to-end-flow.md) | Each hop from upload to player: payloads, Redis keys, MinIO layout, retries, failures |
 | [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md) | Video stuck in `Processing` — API, Redis, worker, MinIO |
 | [`docs/observability.md`](docs/observability.md) | Logs, metrics, and traces across the three services |
