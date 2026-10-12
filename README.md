@@ -1,24 +1,41 @@
 # Vidro
 
-Plataforma de vídeo — upload, processamento assíncrono e reprodução. **Monorepo** com três serviços
-que sobem juntos e versionam juntos.
+Video platform: upload, async transcode, playback. A **monorepo** of three services that run and version together.
 
-| Serviço | O que é | Stack |
+Built to show a real pipeline — Redis job lease, a 7-step FFmpeg worker, HMAC webhooks, golden contract tests — not a tutorial CRUD.
+
+The older split repos (`VidroApi`, `VidroFront`, `VidroProcessor`) are archived. This repo is the source of truth.
+
+---
+
+## Table of Contents
+
+- [Services](#services)
+- [Run](#run)
+- [The path across the three](#the-path-across-the-three)
+- [Tests](#tests)
+- [Docs](#docs)
+- [License](#license)
+
+---
+
+## Services
+
+| Service | Role | Stack |
 |---|---|---|
-| [`VidroApi/`](VidroApi/) | API REST: auth, canais, vídeos, comentários, playlists | .NET 10, Clean Architecture + Vertical Slice, Postgres, EF Core |
-| [`VidroFront/`](VidroFront/) | Interface web, SSR seletivo | TanStack Start + React, shadcn/ui, Tailwind v4, bun |
-| [`VidroProcessor/`](VidroProcessor/) | Worker que transcodifica: fila Redis → pipeline FFmpeg de 7 passos → MinIO → webhook | Go |
+| [`VidroApi/`](VidroApi/) | REST API: auth, channels, videos, comments, playlists | .NET 10, Clean Architecture + Vertical Slice, Postgres, EF Core |
+| [`VidroFront/`](VidroFront/) | Web UI, selective SSR | TanStack Start + React, shadcn/ui, Tailwind v4, bun |
+| [`VidroProcessor/`](VidroProcessor/) | Transcode worker: Redis queue → 7-step FFmpeg pipeline → MinIO → webhook | Go |
 
-Infra compartilhada: **Postgres** (dados), **Redis** (fila de jobs), **MinIO** (objetos),
-**Prometheus + Grafana + Loki** (observabilidade).
+Shared infra: **Postgres** (data), **Redis** (job queue), **MinIO** (objects), **Prometheus + Grafana + Loki** (observability).
 
-## Subir tudo
+## Run
 
 ```bash
 docker compose up -d --build
 ```
 
-| | URL | Credencial |
+| | URL | Credentials |
 |---|---|---|
 | Front | http://localhost:3000 | — |
 | API | http://localhost:5000 (`/health`, `/openapi/v1.json`) | — |
@@ -26,12 +43,11 @@ docker compose up -d --build
 | MinIO console | http://localhost:9001 | `minioadmin` / `minioadmin` |
 | Prometheus | http://localhost:9090 | — |
 
-Credenciais de desenvolvimento. A API aplica as migrations do EF no startup, então o Postgres pode
-subir vazio. Para trabalhar no front, prefira `bun run dev` no host (HMR) contra este stack.
+Dev credentials. The API applies EF migrations on startup, so Postgres can come up empty. For frontend work, prefer `bun run dev` on the host (HMR) against this stack.
 
-Para rodar um serviço isolado contra a infra do compose, veja o README de cada um.
+To run one service against compose infra, see that service's README.
 
-## O fluxo que atravessa os três
+## The path across the three
 
 ```
 browser ──1──▶ API ──2──▶ MinIO ──3──▶ API ──4──▶ Redis ──5──▶ Processor
@@ -39,38 +55,19 @@ browser ──1──▶ API ──2──▶ MinIO ──3──▶ API ──4
    player ◀──8── API ◀──7── webhook ◀────────── MinIO ◀──6─────────┘
 ```
 
-1. Front pede uma URL de upload; a API cria o vídeo em `PendingUpload`.
-2. Browser sobe o arquivo direto para o MinIO por **presigned PUT** (`raw/<videoId>`).
-3. MinIO dispara a notificação de `put` para a API (`/webhooks/minio-upload-completed`).
-4. A API publica o `videoId` na fila Redis (`video_queue`) e marca `Processing`.
-5. O Processor consome com `BRPOPLPUSH` (lease em `video_queue:processing`).
-6. Pipeline FFmpeg: validate → analyze → transcode → thumbnails → áudio → preview → HLS. Artefatos
-   sobem para o MinIO.
-7. O worker chama `/webhooks/video-processed` (HMAC-SHA256) com os caminhos gerados.
-8. A API marca `Ready`; o front toca o MP4 processado (o player já suporta HLS — falta o campo na
-   API, ver P6 no `TODO.md`).
+1. Front asks for an upload URL; the API creates the video in `PendingUpload`.
+2. Browser uploads straight to MinIO with a **presigned PUT** (`raw/<videoId>`).
+3. MinIO notifies the API (`/webhooks/minio-upload-completed`).
+4. The API publishes `videoId` on the Redis queue (`video_queue`) and marks `Processing`.
+5. The processor consumes with `BRPOPLPUSH` (lease on `video_queue:processing`).
+6. FFmpeg pipeline: validate → analyze → transcode → thumbnails → audio → preview → HLS. Artifacts go to MinIO.
+7. The worker calls `/webhooks/video-processed` (HMAC-SHA256) with the generated paths.
+8. The API marks `Ready`; the front plays the processed MP4.
 
-Payload, retries e o que acontece quando cada salto falha: [`docs/fluxo-ponta-a-ponta.md`](docs/fluxo-ponta-a-ponta.md).
-Falhou no meio? O runbook é [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md).
+Payloads, retries, and what happens when a hop fails: [`docs/fluxo-ponta-a-ponta.md`](docs/fluxo-ponta-a-ponta.md).
+Stuck in `Processing`? [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md).
 
-## Documentação
-
-| Arquivo | Para quê |
-|---|---|
-| [`CLAUDE.md`](CLAUDE.md) | Regras que valem para os três serviços: idioma, commits, escopo, contrato compartilhado |
-| [`docs/MONOREPO.md`](docs/MONOREPO.md) | Por que é monorepo, o que foi decidido e o que isso custou |
-| [`TODO.md`](TODO.md) | Backlog dos três serviços, com referência de arquivo/linha |
-| [`docs/fluxo-ponta-a-ponta.md`](docs/fluxo-ponta-a-ponta.md) | Cada salto do upload ao player: payload, chaves Redis, layout no MinIO, retries e o que acontece quando falha |
-| [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md) | Vídeo preso em `Processing` — atravessa API, Redis, worker e MinIO |
-| [`docs/padroes-a-importar.md`](docs/padroes-a-importar.md) | Regras e ferramentas de outros repos que valem para cá, com a ordem sugerida |
-| [`docs/observabilidade.md`](docs/observabilidade.md) | O que existe de log, métrica e trace nos três serviços, os furos e a ordem de fechá-los |
-| [`loadtest/README.md`](loadtest/README.md) | Teste de carga da API com k6: como rodar, o que cada cenário mede e a primeira medição |
-| [`contracts/README.md`](contracts/README.md) | Os golden que travam contrato entre serviços: payload do webhook e os enums que o front espelha |
-| [`VidroApi/openapi/README.md`](VidroApi/openapi/README.md) | O documento OpenAPI versionado — como regenerar e o que ele **não** cobre |
-
-Cada serviço tem o próprio `CLAUDE.md` e `docs/agents/` com o que é específico dele.
-
-## Testes
+## Tests
 
 ```bash
 cd VidroApi       && dotnet test
@@ -78,12 +75,23 @@ cd VidroFront     && bun run test
 cd VidroProcessor && go test ./...
 ```
 
-CI: `.github/workflows/{api,front,processor}.yml`, um por serviço, com filtro de path — mexer no
-front não dispara build de .NET. Não há pipeline de deploy; deploy é manual.
+CI: `.github/workflows/{api,front,processor}.yml` — one workflow per service, path-filtered, so a front change does not build .NET. There is no deploy pipeline; deploy is manual.
 
-## Convenções
+Load test (k6, API only): [`loadtest/README.md`](loadtest/README.md).
 
-Commits em **português**, Conventional Commits, só o assunto. Padrão é commitar direto na `master`;
-branch só para feature grande. Mudança no **contrato compartilhado** (nome de fila, caminho no MinIO,
-formato do webhook) muda os dois lados **no mesmo commit** — é a razão principal de isto ser um
-monorepo. Detalhes em [`CLAUDE.md`](CLAUDE.md).
+## Docs
+
+| File | What it covers |
+|---|---|
+| [`docs/fluxo-ponta-a-ponta.md`](docs/fluxo-ponta-a-ponta.md) | Each hop from upload to player: payloads, Redis keys, MinIO layout, retries, failures |
+| [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md) | Video stuck in `Processing` — API, Redis, worker, MinIO |
+| [`docs/observabilidade.md`](docs/observabilidade.md) | Logs, metrics, and traces across the three services |
+| [`docs/MONOREPO.md`](docs/MONOREPO.md) | Why it is a monorepo, what that cost |
+| [`loadtest/README.md`](loadtest/README.md) | k6 API load test: how to run it, what each scenario measures |
+| [`contracts/README.md`](contracts/README.md) | Golden files that lock the webhook payload and the enums the front mirrors |
+
+Shared-contract changes (queue names, MinIO paths, webhook shape) land on **both sides in the same commit** — that is the point of the monorepo.
+
+## License
+
+[MIT](LICENSE)
