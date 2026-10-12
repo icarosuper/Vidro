@@ -58,7 +58,7 @@ type JobState struct {
 	CallbackURL string         `json:"callback_url,omitempty"`
 	// CorrelationID is stamped by the API with the ID of the request that enqueued the job.
 	// It is the only telemetry identifier shared across the queue boundary — a queue has no
-	// header, so whoever publishes must put it in the envelope. See docs/observabilidade.md (F3).
+	// header, so whoever publishes must put it in the envelope. See docs/observability.md (F3).
 	CorrelationID string `json:"correlation_id,omitempty"`
 	CreatedAt     int64  `json:"created_at"`
 	UpdatedAt     int64  `json:"updated_at"`

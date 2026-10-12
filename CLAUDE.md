@@ -1,23 +1,24 @@
-# CLAUDE.md — monorepo Vidro
+# CLAUDE.md — Vidro monorepo
 
-Regras que valem para os **três serviços**. Cada serviço tem seu próprio `CLAUDE.md` com o que é
-específico dele; o que está aqui não se repete lá.
+Rules that apply to **all three services**. Each service has its own `CLAUDE.md` with what is
+specific to it; what is here is not repeated there.
 
-## Os três serviços
+## The three services
 
-| Serviço | O que é | Docs para agente |
+| Service | What it is | Agent docs |
 |---|---|---|
-| `VidroApi/` | API .NET (Clean + Vertical Slice), Postgres, MinIO, Redis | `VidroApi/docs/agents/` |
-| `VidroFront/` | TanStack Start + React, consome a API | `VidroFront/docs/agents/` |
-| `VidroProcessor/` | Worker Go: fila Redis → pipeline FFmpeg → MinIO → webhook | `VidroProcessor/docs/agents/` |
+| `VidroApi/` | .NET API (Clean + Vertical Slice), Postgres, MinIO, Redis | `VidroApi/docs/agents/` |
+| `VidroFront/` | TanStack Start + React, consumes the API | `VidroFront/docs/agents/` |
+| `VidroProcessor/` | Go worker: Redis queue → FFmpeg pipeline → MinIO → webhook | `VidroProcessor/docs/agents/` |
 
-Os três são **um repositório só** — este. A raiz carrega o `docker-compose.yml` do stack inteiro,
-o `TODO.md`, este arquivo e o `docs/MONOREPO.md` (por que é monorepo, e o que isso custou).
+The three are **a single repository** — this one. The root holds the whole stack's
+`docker-compose.yml`, `TODO.md`, this file and `docs/MONOREPO.md` (why it is a monorepo, and what
+that cost).
 
-**Escopo de edição:** o padrão continua sendo mexer em **um** serviço por tarefa — leia os outros
-dois à vontade para entender contratos, tipos e endpoints. A exceção é o contrato compartilhado:
-aí os dois lados mudam juntos, no mesmo commit, e isso é o comportamento certo, não invasão de
-escopo. Fora esse caso, faltou algo no outro serviço — informe o usuário antes de mexer.
+**Edit scope:** the default is still to touch **one** service per task — read the other two freely
+to understand contracts, types and endpoints. The exception is the shared contract: then both sides
+change together, in the same commit, and that is the right behavior, not scope creep. Outside that
+case, if something is missing in another service, tell the user before touching it.
 
 **Shared contract** (Redis queue names, the job envelope, MinIO paths, the webhook shape): change
 both sides **in the same commit**. The `video-processed` webhook payload and the job the API
@@ -33,21 +34,21 @@ saw for months. See `VidroProcessor/docs/agents/design-decisions.md`.
 type, test, log message, comment, XML doc), docs, file and directory names, commit messages, PR
 titles. No exceptions. (The UI was already English — `<html lang="en">`.)
 
-Some older text is still in Portuguese — most of the root docs, `TODO.md`, and the `VidroFront`
-docs. It gets translated **on contact**, not all at once: whenever you edit or pass through a file
-and find Portuguese in it, translate it to English as part of the task and **tell the user** what you
-translated. This is an exception to "Código ruim no caminho" below — no need to ask first, just report it.
+Some older text is still in Portuguese — mostly the `VidroFront` docs. It gets translated **on
+contact**, not all at once: whenever you edit or pass through a file and find Portuguese in it,
+translate it to English as part of the task and **tell the user** what you translated. This is an
+exception to "Bad code along the way" below — no need to ask first, just report it.
 Renaming a file means fixing every link to it in the same change (`grep` for the old name).
 
 Not translated: test data whose point is the content itself (e.g. `"joão"` testing accents).
 
-## Legibilidade
+## Readability
 
-Valem para os **três** serviços — C#, TypeScript e Go. O que é idiomático de uma linguagem fica no
-`conventions.md` do serviço; o que está aqui não se repete lá.
+These apply to **all three** services — C#, TypeScript and Go. What is idiomatic to one language
+lives in that service's `conventions.md`; what is here is not repeated there.
 
-- **Variável nomeada em vez de expressão inline.** O resultado de uma checagem, query ou chamada
-  async recebe um nome antes de entrar numa condição. Nunca inline dentro do `if`.
+- **Named variable instead of an inline expression.** The result of a check, query or async call
+  gets a name before it enters a condition. Never inline inside the `if`.
 
   ```ts
   // ✅
@@ -58,33 +59,33 @@ Valem para os **três** serviços — C#, TypeScript e Go. O que é idiomático 
   if (users.some((u) => u.email === email)) return { error: 'Email already in use' }
   ```
 
-- **Lógica complexa vira função com nome.** Se o bloco precisa de um comentário para se explicar,
-  ele precisa de um nome.
+- **Complex logic becomes a named function.** If a block needs a comment to explain itself, it
+  needs a name.
 
-- **Nome diz "o quê", não "como".** Sem abreviação, sem nome de uma letra (fora índice de loop),
-  sem genérico — `result`, `data`, `temp`.
+- **A name says "what", not "how".** No abbreviations, no single-letter names (except loop
+  indices), no generic names — `result`, `data`, `temp`.
 
-- **Ternário curto cabe em uma linha; longo ou aninhado vai para três** — condição, `?`, `:`.
-  A regra até 2026-09-07 era "sempre três linhas, nunca uma"; ela caiu porque o formatter do
-  Biome (`VidroFront`) colapsa ternário curto e não tem opção para preservar — manter a regra
-  custava desligar o formatter do front inteiro. No front **quem decide é o formatter**: rode
-  `bun run lint`. Em C# e Go, use o julgamento — o critério é o mesmo que o formatter aplica,
-  quebrar quando não couber na linha.
+- **A short ternary fits on one line; a long or nested one goes on three** — condition, `?`, `:`.
+  Until 2026-09-07 the rule was "always three lines, never one"; it was dropped because the Biome
+  formatter (`VidroFront`) collapses short ternaries and has no option to preserve them — keeping
+  the rule meant turning off the formatter for the whole front. In the front **the formatter
+  decides**: run `bun run lint`. In C# and Go, use judgment — the criterion is the same one the
+  formatter applies: break when it does not fit on the line.
 
   ```ts
-  // ✅ curto
+  // ✅ short
   const label = isAuthenticated ? 'Sign out' : 'Sign in'
 
-  // ✅ longo ou aninhado — três linhas, e considere extrair para uma função nomeada
+  // ✅ long or nested — three lines, and consider extracting a named function
   const nextMode = mode === 'light'
     ? 'dark'
     : resolveModeFromSystemPreference(mode)
   ```
 
-## Vídeo preso em `Processing`
+## Video stuck in `Processing`
 
-O runbook é [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md). Mora na
-raiz porque atravessa API → Redis → worker → MinIO; nenhum serviço sozinho o resolve.
+The runbook is [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md). It
+lives at the root because it crosses API → Redis → worker → MinIO; no single service resolves it.
 
 ## Commit message convention
 
@@ -108,55 +109,57 @@ Examples: `feat: add channel avatar upload`, `fix: fix reactions button`, `chore
 The subject states the **behavior**, not the file: describe the rule that now holds. If the diff
 doesn't fit in one subject, it has become more than one commit.
 
-Título de PR (squash merge): `Feature/nome-da-branch (#N)`.
+PR title (squash merge): `Feature/branch-name (#N)`.
 
-## Onde commitar
+## Where to commit
 
-- **Padrão: direto na `master`.** Coisa pequena e bugfix não abre branch.
-- **Exceção: feature grande** (vários commits). Aí **pergunte ao usuário** se é para criar
-  `feature/<topic>` ou mandar direto para `master` — nunca decida sozinho.
-- `master` sempre deployável; produção sai de tags `vX.Y.Z` (estratégia pretendida — ainda não há
-  tag nenhuma). Uma tag versiona **os três serviços de uma vez**: é o preço, e a vantagem, do
-  monorepo — nunca existe combinação de versões que não foi testada junta. Ver `docs/MONOREPO.md`.
-- **Não existe pipeline de deploy.** `.github/workflows/{api,front,processor}.yml` só buildam e
-  testam, um por serviço, com filtro de path. Deploy é manual.
+- **Default: straight to `master`.** Small things and bugfixes do not open a branch.
+- **Exception: a large feature** (several commits). Then **ask the user** whether to create
+  `feature/<topic>` or go straight to `master` — never decide alone.
+- `master` is always deployable; production ships from `vX.Y.Z` tags (intended strategy — there is
+  no tag yet). One tag versions **all three services at once**: that is the price, and the
+  advantage, of the monorepo — there is never a combination of versions that was not tested
+  together. See `docs/MONOREPO.md`.
+- **There is no deploy pipeline.** `.github/workflows/{api,front,processor}.yml` only build and
+  test, one per service, with a path filter. Deploy is manual.
 
-## Nunca commitar sem pedido explícito
+## Never commit without an explicit request
 
-1. Implementar as mudanças
-2. Rodar os testes e verificar que passam
-3. Mostrar o que mudou e **sugerir um** título de commit (não uma lista de opções)
-4. Esperar o usuário aprovar ou pedir o commit
+1. Implement the changes
+2. Run the tests and check they pass
+3. Show what changed and **suggest one** commit title (not a list of options)
+4. Wait for the user to approve or ask for the commit
 
-## Código ruim no caminho
+## Bad code along the way
 
-Achou código ruim **perto** do que você está mexendo — mal escrito, deprecado, não utilizado,
-desatualizado, não otimizado, duplicado, comentário mentindo sobre o código — **pergunte antes de
-agir**. Sempre as três opções, e o usuário escolhe:
+Found bad code **near** what you are touching — badly written, deprecated, unused, outdated,
+unoptimized, duplicated, a comment lying about the code — **ask before acting**. Always the three
+options, and the user chooses:
 
-1. **aproveitar e ajustar agora**
-2. **só deixar um TODO** (no código, junto do trecho)
-3. **ignorar**
+1. **fix it now while you are here**
+2. **just leave a TODO** (in the code, next to the snippet)
+3. **ignore it**
 
-Nunca decida sozinho por nenhuma das três — nem "arrumo de passagem porque é rápido", nem "deixo
-quieto porque está fora do escopo". Diga o que é, onde está (`arquivo:linha`) e por que é ruim, em
-uma ou duas linhas, e pergunte. Vale para o que você encontra de passagem; o que o pedido do usuário
-já cobre não é "de passagem", é o trabalho.
+Never pick one of the three on your own — neither "I'll fix it in passing because it's quick" nor
+"I'll leave it alone because it's out of scope". Say what it is, where it is (`file:line`) and why
+it is bad, in one or two lines, and ask. This applies to what you find in passing; what the user's
+request already covers is not "in passing", it is the work.
 
-## Depois de qualquer mudança
+## After any change
 
-1. **Rodar os testes** do serviço que você tocou (`dotnet test` / `bun run test` / `go test ./...`).
-2. **Atualizar as docs afetadas na mesma leva** — o gatilho de cada arquivo está no `CLAUDE.md` do
-   serviço. Doc desatualizada custa mais que código faltando: o `TODO.md` desta raiz tem uma seção
-   inteira ("Documentação que mente") que só existiu por isso.
-   As docs da **raiz** também têm gatilho:
-   - **`TODO.md`** — a task fecha, avança ou descobre um item: riscar/atualizar o item no corpo
-     **e** o resumo "Fechado até agora" do topo **e** a "Ordem sugerida" do fim. Os três juntos —
-     riscar só o corpo foi o que deixou a ordem sugerida apontando para trabalho já feito.
-   - **`docs/observabilidade.md`, `docs/padroes-a-importar.md`, `docs/MONOREPO.md`** — fechou um
-     furo, degrau ou item que eles listam: marcar ✅ lá também, inclusive na "Ordem sugerida" e
-     na seção "O que já existe" quando houver.
-   - **`README.md`** — mudou porta, comando, fluxo entre serviços ou arquivo de doc da raiz.
-   - Antes de sugerir o commit, `grep` pelo nome do item/arquivo nas docs da raiz e do serviço:
-     doc que ainda o chama de "falta" ou "próximo" está mentindo.
-3. **Sugerir o título do commit** e parar.
+1. **Run the tests** of the service you touched (`dotnet test` / `bun run test` / `go test ./...`).
+2. **Update the affected docs in the same batch** — each file's trigger is in the service's
+   `CLAUDE.md`. An outdated doc costs more than missing code: this root's `TODO.md` has a whole
+   section ("Docs that lie") that only existed because of that.
+   The **root** docs have triggers too:
+   - **`TODO.md`** — the task closes, advances or discovers an item: strike/update the item in the
+     body **and** the "Closed so far" summary at the top **and** the "Suggested order" at the end.
+     All three together — striking only the body is what left the suggested order pointing at
+     work already done.
+   - **`docs/observability.md`, `docs/patterns-to-import.md`, `docs/MONOREPO.md`** — you closed a
+     gap, step or item they list: mark it ✅ there too, including in the "Suggested order" and in
+     the "What already exists" section when there is one.
+   - **`README.md`** — a port, command, cross-service flow or root doc file changed.
+   - Before suggesting the commit, `grep` for the item/file name in the root and service docs: a
+     doc that still calls it "missing" or "next" is lying.
+3. **Suggest the commit title** and stop.

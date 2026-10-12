@@ -64,7 +64,7 @@ browser ──1──▶ API ──2──▶ MinIO ──3──▶ API ──4
 7. The worker calls `/webhooks/video-processed` (HMAC-SHA256) with the generated paths.
 8. The API marks `Ready`; the front plays the processed MP4.
 
-Payloads, retries, and what happens when a hop fails: [`docs/fluxo-ponta-a-ponta.md`](docs/fluxo-ponta-a-ponta.md).
+Payloads, retries, and what happens when a hop fails: [`docs/end-to-end-flow.md`](docs/end-to-end-flow.md).
 Stuck in `Processing`? [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md).
 
 ## Tests
@@ -83,12 +83,12 @@ Load test (k6, API only): [`loadtest/README.md`](loadtest/README.md).
 
 | File | What it covers |
 |---|---|
-| [`docs/fluxo-ponta-a-ponta.md`](docs/fluxo-ponta-a-ponta.md) | Each hop from upload to player: payloads, Redis keys, MinIO layout, retries, failures |
+| [`docs/end-to-end-flow.md`](docs/end-to-end-flow.md) | Each hop from upload to player: payloads, Redis keys, MinIO layout, retries, failures |
 | [`docs/troubleshooting-stuck-video.md`](docs/troubleshooting-stuck-video.md) | Video stuck in `Processing` — API, Redis, worker, MinIO |
-| [`docs/observabilidade.md`](docs/observabilidade.md) | Logs, metrics, and traces across the three services |
+| [`docs/observability.md`](docs/observability.md) | Logs, metrics, and traces across the three services |
 | [`docs/MONOREPO.md`](docs/MONOREPO.md) | Why it is a monorepo, what that cost |
 | [`loadtest/README.md`](loadtest/README.md) | k6 API load test: how to run it, what each scenario measures |
-| [`contracts/README.md`](contracts/README.md) | Golden files that lock the webhook payload and the enums the front mirrors |
+| [`contracts/README.md`](contracts/README.md) | Golden files that lock the webhook payload, the job envelope and the enums the front mirrors |
 
 Shared-contract changes (queue names, job envelope, MinIO paths, webhook shape) land on **both sides in the same commit** — that is the point of the monorepo.
 

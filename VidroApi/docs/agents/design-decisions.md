@@ -168,7 +168,7 @@ Multipart upload is planned, not implemented — it is an item in the root `TODO
 - **The exporter package is `-beta.1`, and always has been.** OpenTelemetry has never shipped a
   stable Prometheus exporter for .NET; this is the same package Microsoft's own metrics
   documentation uses. The alternative is OTLP into a collector, which the stack does not have yet
-  (see `docs/observabilidade.md`, degrau 4).
+  (see `docs/observability.md`, rung 4).
 - **The Npgsql data source is named `vidroapi`** so `db_client_connection_pool_name` is a fixed
   label. Npgsql's default is the connection string — password stripped, but host, port, database
   and username still land on an unauthenticated endpoint, and the value changes per environment.
@@ -195,7 +195,7 @@ Multipart upload is planned, not implemented — it is an item in the root `TODO
   the same ID with no extra code here.
 - **Not `traceparent`, on purpose.** This API has metrics but no tracing (#12), so
   `Activity.Current` is null and a `traceparent` written here would point at a trace that does not
-  exist. It becomes the right field once there is a collector — `docs/observabilidade.md`, degrau 4.
+  exist. It becomes the right field once there is a collector — `docs/observability.md`, rung 4.
 
 ### 14. The job is published inside the transaction that marks the video `Processing`
 

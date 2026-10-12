@@ -1,6 +1,6 @@
-# Cada linter aqui é uma regra que já estava escrita em docs/agents/conventions.md e que
-# passou a ser build vermelho. Prosa num .md o agente pode não ler; isto ele não escapa.
-# Padrão importado do mamut-api (ver ../docs/padroes-a-importar.md, item 1).
+# Each linter here is a rule that was already written in docs/agents/conventions.md and
+# became a red build. Prose in a .md the agent may not read; this it cannot escape.
+# Pattern imported from mamut-api (see ../docs/patterns-to-import.md, item 1).
 version: "2"
 
 run:
@@ -14,24 +14,24 @@ issues:
 linters:
   default: standard
   enable:
-    # conventions.md: fmt.Errorf("context: %w", err), nunca %v
+    # conventions.md: fmt.Errorf("context: %w", err), never %v
     - errorlint
-    # "erro não-crítico é engolido de propósito" — o nilerr pega o `return nil` com err
-    # vivo que NÃO foi de propósito
+    # "a non-critical error is swallowed on purpose" — nilerr catches the `return nil` with a
+    # live err that was NOT on purpose
     - nilerr
-    # config só em config/config.go; relógio injetado (regra da raiz, item 11)
+    # config only in config/config.go; injected clock (root rule, item 11)
     - forbidigo
-    # fronteiras arquiteturais: zerolog no worker, passo de pipeline sem I/O externo
+    # architectural boundaries: zerolog in the worker, pipeline steps without external I/O
     - depguard
-    # FIXME/HACK/XXX barrados, TODO liberado — ver settings
+    # FIXME/HACK/XXX banned, TODO allowed — see settings
     - godox
-    # toda chamada externa carrega contexto e fecha o corpo
+    # every external call carries a context and closes the body
     - noctx
     - bodyclose
     - contextcheck
-    # o contexto do job tem que chegar ao Redis e ao MinIO: sem isso, estourar o
-    # orçamento ou receber SIGTERM não cancela um download de 500 MB
-    # baratos e sem discussão
+    # the job's context has to reach Redis and MinIO: without it, running out of budget or
+    # receiving SIGTERM does not cancel a 500 MB download
+    # cheap and uncontroversial
     - copyloopvar
     - intrange
     - unconvert
@@ -43,8 +43,8 @@ linters:
     errcheck:
       check-type-assertions: true
       exclude-functions:
-        # Close em leitura/escrita já concluída: o erro não muda decisão nenhuma, e
-        # verificar em defer só empurra `_ =` para todo lugar.
+        # Close on an already finished read/write: the error changes no decision, and
+        # checking it in a defer only spreads `_ =` everywhere.
         - (io.Closer).Close
         - (*os.File).Close
         - (*github.com/minio/minio-go/v7.Object).Close
@@ -52,52 +52,52 @@ linters:
       analyze-types: true
       forbid:
         - pattern: "^os\\.Getenv$"
-          msg: "env var só em config/config.go, com notEmpty/envDefault — ver conventions.md"
+          msg: "env vars only in config/config.go, with notEmpty/envDefault — see conventions.md"
         - pattern: "^time\\.Now$"
-          msg: "tempo é injetado, não lido no meio do método (CLAUDE.md da raiz)"
+          msg: "time is injected, not read in the middle of a method (root CLAUDE.md)"
     godox:
-      # TODO é liberado de propósito: trabalho planejado marcado na linha do código não
-      # drifta como item de doc externa — e "só deixar um TODO" é uma das três opções da
-      # regra de "código ruim no caminho" do CLAUDE.md da raiz. FIXME/HACK/XXX seguem
-      # barrados: sinalizam código errado que subiu assim, e isso precisa de justificativa.
+      # TODO is allowed on purpose: planned work marked on the code line does not drift like
+      # an external doc item — and "just leave a TODO" is one of the three options of the
+      # root CLAUDE.md's "bad code along the way" rule. FIXME/HACK/XXX stay banned: they
+      # signal wrong code that shipped as is, and that needs a justification.
       keywords:
         - FIXME
         - HACK
         - XXX
     nolintlint:
-      # require-specific: um `//nolint` sem linter desliga tudo naquela linha.
-      # allow-unused: directive que não suprime nada é sinal de que o código mudou.
-      # require-explanation fica desligado: os directives de teste do repo são todos o
-      # mesmo caso ("o erro não interessa aqui"), e exigir motivo em cada um só gera ruído.
+      # require-specific: a `//nolint` without a linter turns everything off on that line.
+      # allow-unused: a directive that suppresses nothing is a sign the code changed.
+      # require-explanation stays off: the repo's test directives are all the same case
+      # ("the error does not matter here"), and requiring a reason on each only adds noise.
       require-explanation: false
       require-specific: true
       allow-unused: false
     depguard:
       rules:
-        log-estruturado-no-worker:
+        structured-logging-in-the-worker:
           list-mode: lax
           files:
             - "$all"
             - "!**/config/config.go"
           deny:
             - pkg: log
-              desc: "o worker loga com zerolog (github.com/rs/zerolog/log); o stdlib log só em config/config.go, que roda antes do logger existir"
-        passo-de-pipeline-nao-fala-com-o-mundo:
+              desc: "the worker logs with zerolog (github.com/rs/zerolog/log); the stdlib log only in config/config.go, which runs before the logger exists"
+        pipeline-steps-do-not-talk-to-the-world:
           files:
             - "**/internal/processor/processor-steps/**"
           deny:
             - pkg: video-processor/minio
-              desc: "passo de pipeline recebe caminho de arquivo; MinIO é do main.go, atrás de circuit breaker"
+              desc: "a pipeline step receives a file path; MinIO belongs to main.go, behind a circuit breaker"
             - pkg: video-processor/queue
-              desc: "passo de pipeline não conhece fila; quem orquestra é o main.go"
+              desc: "a pipeline step does not know the queue; main.go orchestrates"
             - pkg: github.com/redis/go-redis
-              desc: "passo de pipeline não fala com Redis; a fila mora em queue/, atrás de circuit breaker"
+              desc: "a pipeline step does not talk to Redis; the queue lives in queue/, behind a circuit breaker"
             - pkg: github.com/minio/minio-go
-              desc: "passo de pipeline não fala com MinIO; o storage mora em minio/, atrás de circuit breaker"
+              desc: "a pipeline step does not talk to MinIO; storage lives in minio/, behind a circuit breaker"
   exclusions:
     rules:
-      # O relógio: proibido onde a decisão mora, liberado onde o tempo entra no sistema
-      # (state da fila, métricas, medição de duração de passo).
+      # The clock: banned where the decision lives, allowed where time enters the system
+      # (queue state, metrics, step duration measurement).
       - path-except: internal/processor/processor-steps/
         linters:
           - forbidigo
@@ -118,8 +118,8 @@ formatters:
     gofumpt:
       module-path: video-processor
     goimports:
-      # std / terceiros / video-processor — os três grupos que o código já usava.
-      # O gci faria o mesmo, mas briga com o gofumpt sobre o mesmo arquivo: os dois se
-      # desfazem em `golangci-lint fmt` e o lint nunca fica verde.
+      # std / third-party / video-processor — the three groups the code already used.
+      # gci would do the same, but it fights gofumpt over the same file: the two undo each
+      # other in `golangci-lint fmt` and the lint never goes green.
       local-prefixes:
         - video-processor

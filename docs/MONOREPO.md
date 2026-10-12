@@ -1,159 +1,164 @@
-# Monorepo — por que, como, e o que custou
+# Monorepo — why, how, and what it cost
 
-Registro da migração de três repositórios (`VidroApi`, `VidroFront`, `VidroProcessor`) para um só,
-feita em **30/ago/2026**. Leia antes de propor voltar atrás, adicionar ferramenta de monorepo, ou
-mexer no CI.
+Record of the migration from three repositories (`VidroApi`, `VidroFront`, `VidroProcessor`) to
+one, done on **Aug 30, 2026**. Read it before proposing to go back, adding a monorepo tool, or
+touching CI.
 
-Os caminhos citados aqui são relativos à **raiz do monorepo**, não a esta pasta.
-
----
-
-## Descobertas que motivaram a mudança
-
-Nenhuma delas é opinião de arquitetura — todas apareceram no próprio repositório.
-
-1. **Três arquivos compartilhados moravam fora de qualquer repo.** `docker-compose.yml` (o que faz o
-   stack existir), `TODO.md` e `CLAUDE.md` viviam soltos na pasta que continha os três clones, sem
-   versionamento nenhum. O monorepo já estava nascendo; faltava o `git init`.
-
-2. **As docs já se referenciavam entre serviços por caminho relativo.** `VidroFront/CLAUDE.md` manda
-   ler `../VidroApi/docs/agents/features-index.md`; a API aponta para
-   `../../../VidroProcessor/docs/agents/troubleshooting-stuck-video.md`. Esses links só funcionavam
-   porque os três clones estavam lado a lado com esses nomes exatos — uma suposição de monorepo sem
-   a garantia de um.
-
-3. **Os P0 do `TODO.md` são todos divergência de contrato entre serviços**, e o próprio texto diz
-   "achados nesta análise, **não registrados em lugar nenhum**". BUG-1: o Processor documentou que o
-   webhook de sucesso pode vir sem artefato opcional, a API não cumpriu, e todo vídeo nessa condição
-   ficava preso em `Processing` para sempre. Em repos separados isso é achado arqueológico; num
-   commit atômico é CI vermelho.
-
-4. **A convenção já mandava tratá-los como um só.** "Quando mudar contrato compartilhado, os dois
-   repos precisam ser tagueados e deployados juntos" estava escrito em dois `CLAUDE.md`. Era
-   disciplina manual para um problema que a estrutura resolve.
-
-5. **Um dev só.** Nenhum dos motivos reais para repos separados se aplica: não há permissão por
-   time, cadência de release independente, nem dono diferente por serviço.
+Paths cited here are relative to the **monorepo root**, not to this folder.
 
 ---
 
-## Decisões
+## Findings that motivated the change
 
-### 1. Monorepo, sem ferramenta de monorepo
+None of them is an architecture opinion — all of them showed up in the repository itself.
 
-Nada de Turborepo, Nx, moon ou Bazel. **Turborepo é ferramenta do ecossistema JS** e orquestra
-scripts de `package.json` sobre workspaces — aqui existe **um** pacote JS em três serviços. Para os
-outros dois só entraria via `package.json` de fachada chamando `dotnet build` / `go build`.
+1. **Three shared files lived outside any repo.** `docker-compose.yml` (what makes the stack
+   exist), `TODO.md` and `CLAUDE.md` sat loose in the folder that held the three clones, with no
+   versioning at all. The monorepo was already being born; it only lacked the `git init`.
 
-Os três ganhos do Turborepo não existem neste projeto:
+2. **The docs already referenced each other across services by relative path.**
+   `VidroFront/CLAUDE.md` says to read `../VidroApi/docs/agents/features-index.md`; the API points
+   at `../../../VidroProcessor/docs/agents/troubleshooting-stuck-video.md`. Those links only worked
+   because the three clones sat side by side with those exact names — a monorepo assumption without
+   a monorepo's guarantee.
 
-- **Grafo de dependência entre pacotes** — não há. O front não importa a API em build time; conversa
-  por HTTP em runtime. Não existe ordem topológica a resolver.
-- **Cache de tarefas** — cada toolchain já tem o seu, e melhor: build incremental do `dotnet`, build
-  cache do Go, Vite/bun no front. O Turbo cachearia por cima deles.
-- **Remote cache de time** — um dev só.
+3. **The P0s in `TODO.md` are all contract divergences between services**, and the text itself
+   says "found in this analysis, **not recorded anywhere**". BUG-1: the Processor documented that
+   the success webhook may arrive without an optional artifact, the API did not honor it, and every
+   video in that condition stayed stuck in `Processing` forever. In separate repos that is an
+   archaeological find; in an atomic commit it is a red CI.
 
-As poliglotas de verdade (Nx, moon, Bazel) cobram configuração adiantada que só se paga com dezenas
-de pacotes, times paralelos ou build que dói. Três serviços com build rápido não chegam perto.
+4. **The convention already said to treat them as one.** "When changing the shared contract, both
+   repos must be tagged and deployed together" was written in two `CLAUDE.md` files. It was manual
+   discipline for a problem the structure solves.
 
-**Gatilho para reavaliar:** quando existir um **segundo** pacote JS — um `packages/api-types` gerado
-do OpenAPI, consumido pelo front e por um eventual admin. Mesmo aí a resposta primeiro é **bun
-workspaces**, que já está instalado e é de graça. Turborepo só se, depois disso, o build incomodar.
+5. **A single developer.** None of the real reasons for separate repos applies: no per-team
+   permissions, no independent release cadence, no different owner per service.
 
-### 2. `git subtree add`, não `filter-repo`
+---
 
-Histórico preservado com git puro, sem ferramenta externa:
+## Decisions
+
+### 1. Monorepo, without a monorepo tool
+
+No Turborepo, Nx, moon or Bazel. **Turborepo is a JS-ecosystem tool** and orchestrates
+`package.json` scripts over workspaces — here there is **one** JS package across three services.
+The other two would only get in through a façade `package.json` calling `dotnet build` /
+`go build`.
+
+Turborepo's three gains do not exist in this project:
+
+- **Dependency graph between packages** — there is none. The front does not import the API at
+  build time; it talks over HTTP at runtime. There is no topological order to resolve.
+- **Task cache** — each toolchain already has its own, and a better one: `dotnet`'s incremental
+  build, Go's build cache, Vite/bun in the front. Turbo would cache on top of them.
+- **Team remote cache** — a single developer.
+
+The truly polyglot ones (Nx, moon, Bazel) charge up-front configuration that only pays off with
+dozens of packages, parallel teams or a painful build. Three services with fast builds come nowhere
+near.
+
+**Trigger to reconsider:** when there is a **second** JS package — a `packages/api-types` generated
+from OpenAPI, consumed by the front and by an eventual admin. Even then the first answer is **bun
+workspaces**, which is already installed and free. Turborepo only if, after that, the build hurts.
+
+### 2. `git subtree add`, not `filter-repo`
+
+History preserved with plain git, no external tool:
 
 ```bash
 git subtree add --prefix=VidroApi ../vidro-legacy/VidroApi master
 ```
 
-Os 121 commits das três histórias estão no repositório e `git blame` atribui cada linha ao commit
-original (inclusive através do rename histórico `VidaroApi` → `VidroApi`).
+The 121 commits of the three histories are in the repository, and `git blame` attributes each line
+to the original commit (including across the historical `VidaroApi` → `VidroApi` rename).
 
-A alternativa, `git filter-repo --to-subdirectory-filter`, reescreveria os caminhos históricos e
-deixaria `git log -- VidroApi/` perfeito, ao custo de reescrever todos os SHAs e depender de uma
-ferramenta fora do git. Ver o tradeoff #1 abaixo.
+The alternative, `git filter-repo --to-subdirectory-filter`, would rewrite the historical paths and
+make `git log -- VidroApi/` perfect, at the cost of rewriting every SHA and depending on a tool
+outside git. See tradeoff #1 below.
 
-### 3. CI: um workflow por serviço, com filtro de path nativo
+### 3. CI: one workflow per service, with the native path filter
 
-`.github/workflows/{api,front,processor}.yml`, cada um com `on.push.paths` / `on.pull_request.paths`
-apontando para o seu diretório e para si mesmo. Commit no front não dispara build de .NET.
+`.github/workflows/{api,front,processor}.yml`, each with `on.push.paths` / `on.pull_request.paths`
+pointing at its own directory and at itself. A commit in the front does not trigger a .NET build.
 
-**Por que não um workflow só com `if:` por job:** o `on:` é do workflow, não do job, então um arquivo
-único exigiria uma action de terceiro (`dorny/paths-filter`) para decidir o que rodar. Três arquivos
-com filtro nativo entregam o mesmo sem dependência.
+**Why not a single workflow with an `if:` per job:** `on:` belongs to the workflow, not the job, so
+a single file would need a third-party action (`dorny/paths-filter`) to decide what to run. Three
+files with the native filter deliver the same with no dependency.
 
-Os três `.github/workflows/ci.yml` antigos foram apagados: o GitHub só lê `.github/workflows/` da
-raiz, então dentro dos subdiretórios eram arquivos mortos apontando para um mundo que não existe
-mais.
+The three old `.github/workflows/ci.yml` were deleted: GitHub only reads `.github/workflows/` at
+the root, so inside the subdirectories they were dead files pointing at a world that no longer
+exists.
 
-### 4. Os clones antigos viraram backup, não lixo
+### 4. The old clones became a backup, not trash
 
-`../vidro-legacy/{VidroApi,VidroFront,VidroProcessor}` são os três repositórios originais, intactos,
-com seus `origin` no GitHub. São a fonte do subtree e o caminho de rollback. **Não apague antes de
-confirmar que o monorepo está no GitHub e que ninguém precisa dos remotes antigos.**
-
----
-
-## Tradeoffs aceitos
-
-### 1. `git log -- <serviço>/` só enxerga a história pós-migração
-
-Consequência direta do `subtree add`: commits antigos carregam caminhos sem o prefixo
-(`src/VidroApi.Api/Program.cs`, não `VidroApi/src/...`), e `--follow` não atravessa o merge do
-subtree.
-
-O que **continua funcionando**: `git log` completo, `git show <sha>`, e principalmente `git blame`,
-que atribui as linhas aos commits originais. Na prática o que se perde é o log filtrado por
-diretório para commits pré-migração.
-
-Saída, se algum dia incomodar: refazer a importação com
-`git filter-repo --to-subdirectory-filter <serviço>` em cada clone antes de mesclar. Reescreve SHAs,
-então só vale antes de o monorepo ter história própria relevante.
-
-### 2. Uma tag versiona os três serviços
-
-`v1.2.0` passa a cobrir API, front e worker juntos — o worker ganha versão quando só o front mudou.
-
-Aceito porque os três sobem no mesmo `docker-compose.yml` e a convenção já exigia deploy coordenado
-em mudança de contrato. O ganho é maior que o ruído: **nunca existe combinação de versões que não foi
-testada junta.**
-
-Quem precisar de versionamento independente depois: tags com prefixo (`api/v1.2.0`) resolvem sem
-sair do monorepo.
-
-### 3. Checkout maior
-
-Um clone traz .NET + Go + TypeScript. Irrelevante nesta escala; vira problema quando o histórico
-pesa, e aí a resposta é `git clone --filter=blob:none`, não voltar a três repos.
-
-### 4. Filtro de path × branch protection
-
-Job pulado por filtro de path aparece como "skipped", não "success". Se algum dia houver branch
-protection exigindo esses checks, um PR que só mexe no front ficaria travado esperando o check da API
-que nunca vai rodar. Hoje não há branch protection (commits vão direto para a `master`), então não
-morde. Se for ligar: use um job `all-green` que sempre roda e depende dos outros com
-`if: always()`.
+`../vidro-legacy/{VidroApi,VidroFront,VidroProcessor}` are the three original repositories, intact,
+with their `origin` on GitHub. They are the subtree source and the rollback path. **Do not delete
+them before confirming the monorepo is on GitHub and nobody needs the old remotes.**
 
 ---
 
-## O que a migração destrava (e ainda não foi feito)
+## Accepted tradeoffs
 
-O maior ganho não é build, é **contrato**. Duas coisas que hoje são manuais e já custaram bug:
+### 1. `git log -- <service>/` only sees post-migration history
 
-- **API ↔ Front — tipos gerados.** ✅ *(2026-09-09, parcial)* O `types.ts` do front espelha as
-  shapes do backend **na mão**. Os seis enums viraram golden em
-  [`contracts/enums.json`](../contracts/README.md), testado dos dois lados, e as 43 rotas estão
-  travadas pelo `VidroApi/openapi/v1.json` versionado, que o CI regenera e compara. **Falta** gerar
-  os tipos de request/response: o documento OpenAPI ainda não descreve as respostas (os handlers
-  devolvem `IResult`) — ver o item no P2 do `TODO.md`.
-- **API ↔ Processor — teste de contrato.** ✅ *(2026-09-07, parcial)* O payload do webhook
-  `video-processed` virou golden versionado em [`contracts/`](../contracts/README.md), testado dos
-  dois lados: o worker prova que serializa exatamente aquilo, a API prova que aceita exatamente
-  aquilo. É a rede que pegaria o BUG-1 no ato. *(2026-10-12)* The job the API publishes is
+A direct consequence of `subtree add`: old commits carry paths without the prefix
+(`src/VidroApi.Api/Program.cs`, not `VidroApi/src/...`), and `--follow` does not cross the subtree
+merge.
+
+What **keeps working**: the full `git log`, `git show <sha>`, and above all `git blame`, which
+attributes lines to the original commits. In practice what is lost is the directory-filtered log
+for pre-migration commits.
+
+Way out, if it ever hurts: redo the import with `git filter-repo --to-subdirectory-filter
+<service>` in each clone before merging. It rewrites SHAs, so it is only worth it before the
+monorepo has relevant history of its own.
+
+### 2. One tag versions all three services
+
+`v1.2.0` now covers API, front and worker together — the worker gets a version when only the front
+changed.
+
+Accepted because the three run on the same `docker-compose.yml` and the convention already
+required a coordinated deploy on contract changes. The gain outweighs the noise: **there is never a
+combination of versions that was not tested together.**
+
+Whoever needs independent versioning later: prefixed tags (`api/v1.2.0`) solve it without leaving
+the monorepo.
+
+### 3. Larger checkout
+
+One clone brings .NET + Go + TypeScript. Irrelevant at this scale; it becomes a problem when the
+history gets heavy, and then the answer is `git clone --filter=blob:none`, not going back to three
+repos.
+
+### 4. Path filter × branch protection
+
+A job skipped by the path filter shows as "skipped", not "success". If there is ever branch
+protection requiring those checks, a PR that only touches the front would be stuck waiting for the
+API check that will never run. Today there is no branch protection (commits go straight to
+`master`), so it does not bite. If you turn it on: use an `all-green` job that always runs and
+depends on the others with `if: always()`.
+
+---
+
+## What the migration unlocks (and is not done yet)
+
+The biggest gain is not build, it is **contract**. Two things that were manual and already cost
+bugs:
+
+- **API ↔ Front — generated types.** ✅ *(2026-09-09, partial)* The front's `types.ts` mirrors the
+  backend shapes **by hand**. The six enums became a golden in
+  [`contracts/enums.json`](../contracts/README.md), tested from both sides, and the 43 routes are
+  locked by the versioned `VidroApi/openapi/v1.json`, which CI regenerates and compares.
+  **Missing:** generating the request/response types: the OpenAPI document does not describe the
+  responses yet (the handlers return `IResult`) — see the item in P2 of `TODO.md`.
+- **API ↔ Processor — contract test.** ✅ *(2026-09-07, partial)* The `video-processed` webhook
+  payload became a versioned golden in [`contracts/`](../contracts/README.md), tested from both
+  sides: the worker proves it serializes exactly that, the API proves it accepts exactly that. It
+  is the net that would have caught BUG-1 on the spot. *(2026-10-12)* The job the API publishes is
   locked too: `contracts/job-state.json` pins the queue name (`JobQueueSettings:QueueName` ↔
   `PROCESSING_REQUEST_QUEUE`), the `job:<id>` key and the envelope (`callback_url`,
   `correlation_id`). **Still missing:** the MinIO path layout, which is only documented.
 
-Nenhum dos dois precisa de ferramenta de monorepo. Precisavam do monorepo.
+Neither needs a monorepo tool. They needed the monorepo.

@@ -123,7 +123,7 @@ public class MinioUploadCompletedTests(ApiFactory factory) : IClassFixture<ApiFa
             correlationId: correlationId);
 
         // A queue carries no headers, so the only way the worker can log this job under the same
-        // ID is for the producer to put it in the envelope — see docs/observabilidade.md (F3).
+        // ID is for the producer to put it in the envelope — see docs/observability.md (F3).
         var published = FakeJobQueueService.Published
             .Should().ContainSingle(job => job.VideoId == videoId.ToString()).Subject;
 

@@ -1,511 +1,509 @@
 # TODO — Vidro (VidroApi · VidroFront · VidroProcessor)
 
-Levantamento feito em 2026-08-29. Cada item tem referência de arquivo/linha para
-não precisar redescobrir o problema.
+Survey done on 2026-08-29. Each item has a file/line reference so the problem does not have to be
+rediscovered.
 
-**Fechado até agora:** *(2026-08-29)* BUG-1 (webhook de sucesso parcial), BUG-2 (orçamento
-do job), CORS na API, porta 5000 unificada, P0.1 inteiro (docs mentirosas), compose único
-na raiz + `/health` (os três finalmente rodam juntos, E2E verificado), **P1 inteiro**
-(CI nos três repos, rate limiting, migrations no startup). *(2026-08-30)* testes de `queue/`
-no Processor, **migração para monorepo** (os três viraram um repo só; ver `docs/MONOREPO.md`) e a
-**consolidação das docs** (runbook de vídeo preso subiu para `docs/` da raiz; `roadmap.md` do
-Processor virou o P6 daqui; `workflow.md` do Front, o `docker-compose.yml` do Processor e as
-regras repetidas nos três `CLAUDE.md` foram removidos; README da raiz criado).
-*(2026-09-07)* busca ligada de ponta a ponta, `ThemeToggle` no Header, devtools fora de
-produção, `typecheck` no CI do front (com os 23 erros de tipo pré-existentes zerados),
-`gofmt` checado no CI do Processor, o teste template da API deletado, o **P-PERF5**
-(default de `WORKER_COUNT` derivado dos cores ÷ processos FFmpeg por job), a **regra de
-fail-fast vs. anomalia+ACK** escrita no `conventions.md` da API, o **Biome ligado no CI do
-front** (lint + formatter, com a regra de ternário da raiz relaxada para permitir uma linha)
-e o **`noUncheckedIndexedAccess`**. O workflow do front hoje roda **lint → typecheck → test →
-build**, os quatro verdes.
-*(2026-09-09)* golden dos seis enums em `contracts/enums.json` + `openapi/v1.json` versionado
-(parcial do item de tipos gerados), `context` do job atravessando `queue/` e `minio/`
-(`contextcheck` ligado), log do worker em JSON filtrável por `videoID`/`workerID`,
-`X-Correlation-ID` em toda chamada do front, pacotes com vulnerabilidade alta atualizados.
-*(2026-09-13)* métricas da API no Prometheus, correlation id da API até os logs do worker,
-SEO (`head` por rota) + UI fixada em inglês, nome acessível nos controles só de ícone, teste
-de carga com k6, primeiros testes de renderização (`CommentList`), planos de fase concluída
-apagados, e o bug do `cancelBookkeeping` no worker corrigido.
-*(2026-10-05)* laço do worker testável em `internal/worker` (regressão do #13 e crash → recovery
-travados por teste), testes de `channels`/`playlists` no front (com o bug do upload do avatar do
-canal corrigido), `docs/fluxo-ponta-a-ponta.md`, e o `const token` do MinIO explicado. Onda B:
-`video_success_queue` removida, `WEBHOOK_SECRET` obrigatório, job publicado só depois do save, job
-sem estado vai para o DLQ, timeout de `Processing` em 90 min travado por contrato, e três correções
-no front (PUT presignado checado, descrição vazia como `null`, Visibility acessível).
-Onda C: **P-OPT1** (passos 4–7 pulados por `ENABLE_*`), reconciliação de uploads salvando antes de
-publicar, formulários de vídeo (descrição `null`, limite nas mensagens), listener de abort do upload,
-todos os achados das ondas B e C corrigidos, e o **P-PERF6** (benchmark do pipeline).
-*(2026-10-06, depois)* **P-PERF6, segunda metade**: `WORKER_COUNT` variado — joelho da curva em 2 workers,
-o que o `DefaultWorkerCount` já dá. *(2026-10-08)* **P-PERF6 fechado** com vídeo real (55 s 1080p HEVC,
-100 MB): ~26 s por job, curva plana de 1 a 8 workers, e o "~2–3 min" para 500 MB fica plausível.
-*(2026-10-06)* **resto de "Confiabilidade do fluxo"**: vídeo inválido direto ao DLQ sem retries, órfão
-esgotado avisa a API por webhook, `Run` com pausa após falha de leitura da fila, webhook sem artefato
-opcional que não subiu, `correlationID` nos logs de recovery/webhook, e o `LREM` atômico do
-`moveFromProcessing`.
+**Closed so far:** *(2026-08-29)* BUG-1 (partial-success webhook), BUG-2 (job budget), CORS in the
+API, port 5000 unified, all of P0.1 (lying docs), a single compose at the root + `/health` (the
+three finally run together, E2E verified), **all of P1** (CI in the three repos, rate limiting,
+migrations on startup). *(2026-08-30)* `queue/` tests in the Processor, **monorepo migration** (the
+three became a single repo; see `docs/MONOREPO.md`) and the **docs consolidation** (the stuck-video
+runbook moved up to the root `docs/`; the Processor's `roadmap.md` became P6 here; the Front's
+`workflow.md`, the Processor's `docker-compose.yml` and the rules repeated in the three `CLAUDE.md`
+files were removed; root README created).
+*(2026-09-07)* search wired end to end, `ThemeToggle` in the Header, devtools out of production,
+`typecheck` in the front CI (with the 23 pre-existing type errors zeroed), `gofmt` checked in the
+Processor CI, the API's template test deleted, **P-PERF5** (`WORKER_COUNT` default derived from
+cores ÷ FFmpeg processes per job), the **fail-fast vs. anomaly+ACK rule** written in the API's
+`conventions.md`, **Biome enabled in the front CI** (lint + formatter, with the root ternary rule
+relaxed to allow one line) and **`noUncheckedIndexedAccess`**. The front workflow now runs
+**lint → typecheck → test → build**, all four green.
+*(2026-09-09)* golden of the six enums in `contracts/enums.json` + versioned `openapi/v1.json`
+(partial of the generated types item), the job's `context` crossing `queue/` and `minio/`
+(`contextcheck` on), worker log in JSON filterable by `videoID`/`workerID`, `X-Correlation-ID` on
+every front call, packages with high vulnerabilities updated.
+*(2026-09-13)* API metrics in Prometheus, the API's correlation id reaching the worker logs, SEO
+(`head` per route) + UI pinned to English, accessible names on icon-only controls, load test with
+k6, first render tests (`CommentList`), completed phase plans deleted, and the `cancelBookkeeping`
+bug in the worker fixed.
+*(2026-10-05)* testable worker loop in `internal/worker` (#13 regression and crash → recovery locked
+by test), `channels`/`playlists` tests in the front (with the channel avatar upload bug fixed),
+`docs/end-to-end-flow.md`, and MinIO's `const token` explained. Wave B: `video_success_queue`
+removed, `WEBHOOK_SECRET` required, job published only after the save, a job without state goes to
+the DLQ, `Processing` timeout at 90 min locked by contract, and three front fixes (presigned PUT
+checked, empty description as `null`, accessible Visibility).
+Wave C: **P-OPT1** (steps 4–7 skipped via `ENABLE_*`), upload reconciliation saving before
+publishing, video forms (`null` description, limit in the messages), upload abort listener, every
+finding from waves B and C fixed, and **P-PERF6** (pipeline benchmark).
+*(2026-10-06, later)* **P-PERF6, second half**: `WORKER_COUNT` varied — knee of the curve at 2
+workers, which `DefaultWorkerCount` already gives. *(2026-10-08)* **P-PERF6 closed** with a real
+video (55 s 1080p HEVC, 100 MB): ~26 s per job, flat curve from 1 to 8 workers, and the "~2–3 min"
+for 500 MB becomes plausible.
+*(2026-10-06)* **the rest of "Flow reliability"**: invalid video straight to the DLQ without
+retries, an exhausted orphan notifies the API by webhook, `Run` pausing after a queue read failure,
+webhook without an optional artifact that failed to upload, `correlationID` in the recovery/webhook
+logs, and the atomic `LREM` of `moveFromProcessing`.
 *(2026-10-12)* **`contracts/job-state.json`**: queue name, `job:<id>` key and job envelope locked by
 golden on both sides (API and worker), mutation-verified.
-Itens marcados `[x]` trazem o commit e o que ficou no lugar.
+Items marked `[x]` carry the commit and what was left in place.
 
-**Estado geral:** as features estão prontas (todas as fases do Front ✅, plano da
-API 100% marcado, Processor ~95%). O que falta não é feature: (a) lacunas de teste na lógica
-de confiabilidade (o laço do worker, o E2E), (b) performance do pipeline (P6), (c) a doc do
-fluxo ponta a ponta e (d) produto (P5). ~~Os três nunca rodarem juntos~~ e ~~documentação que
-mente~~ estão resolvidos.
+**Overall state:** the features are done (every Front phase ✅, API plan 100% checked, Processor
+~95%). What is missing is not features: (a) test gaps in the reliability logic (the worker loop,
+the E2E), (b) pipeline performance (P6), (c) the end-to-end flow doc and (d) product (P5).
+~~The three never running together~~ and ~~docs that lie~~ are resolved.
 
-**Manutenção deste arquivo:** fechou um item → riscar no corpo **e** atualizar o
-"Fechado até agora" acima e a "Ordem sugerida" no fim, no mesmo commit. Ver o `CLAUDE.md` da raiz.
+**Maintaining this file:** an item closed → strike it in the body **and** update "Closed so far"
+above and the "Suggested order" at the end, in the same commit. See the root `CLAUDE.md`.
 
 ---
 
-## P0 — Bugs de contrato entre repos (achados nesta análise, não registrados em lugar nenhum)
+## P0 — Contract bugs between repos (found in this analysis, not recorded anywhere)
 
-### ~~BUG-1~~ ✅ — Webhook `video-processed` quebra quando um artefato opcional falta → vídeo preso em `Processing` para sempre
+### ~~BUG-1~~ ✅ — `video-processed` webhook breaks when an optional artifact is missing → video stuck in `Processing` forever
 
 `VidroApi/src/VidroApi.Api/Features/Videos/VideoProcessed.cs:98-116`
 (`PersistSuccessfulProcessing`).
 
-O contrato documentado pelo Processor
+The contract documented by the Processor
 ([`VidroProcessor/docs/agents/design-decisions.md` #3](VidroProcessor/docs/agents/design-decisions.md#3-critical-vs-non-critical-pipeline-steps))
-diz, textualmente:
+says, verbatim:
 *"success webhook may contain empty `thumbnailPaths`, `hlsPath`, `previewPath`,
 or `audioPath`. API must not treat missing optional artifacts as failure."*
-Só thumbnails/audio/preview/streaming são não-críticos — o orquestrador engole o
-erro e reporta sucesso sem aquele path
+Only thumbnails/audio/preview/streaming are non-critical — the orchestrator swallows the error and
+reports success without that path
 ([`conventions.md`](VidroProcessor/docs/agents/conventions.md#critical-vs-non-critical-pipeline-steps)).
 
-A API não cumpre esse contrato. `PersistSuccessfulProcessing` usa `!`
-(null-forgiving) em todos os campos opcionais, e a entidade rejeita os nulos:
+The API does not honor that contract. `PersistSuccessfulProcessing` uses `!` (null-forgiving) on
+every optional field, and the entity rejects the nulls:
 
-- `VideoArtifacts` (`Domain/Entities/VideoArtifacts.cs:19-22`) faz
-  `ArgumentException.ThrowIfNullOrWhiteSpace` em `previewPath` e `audioPath`, e
-  `ArgumentNullException.ThrowIfNull` em `thumbnailPaths`. **Só `hlsPath` é
-  nullable.**
-- O EF confirma: `VideoArtifactsConfiguration.cs` marca `preview_path` e
-  `audio_path` como `IsRequired()`; só `hls_path` é `IsRequired(false)`.
-- Pior no metadata: `cmd.FileSizeBytes!.Value`, `DurationSeconds!.Value`,
-  `Width!.Value`, `Height!.Value`, `Codec!` estouram `InvalidOperationException`
-  se o step `analyze` falhar — e `analyze` é semi-crítico
-  (`VidroProcessor/docs/agents/architecture.md:93`: *"errors logged, downstream
-  metadata missing in webhook"*).
+- `VideoArtifacts` (`Domain/Entities/VideoArtifacts.cs:19-22`) does
+  `ArgumentException.ThrowIfNullOrWhiteSpace` on `previewPath` and `audioPath`, and
+  `ArgumentNullException.ThrowIfNull` on `thumbnailPaths`. **Only `hlsPath` is nullable.**
+- EF confirms it: `VideoArtifactsConfiguration.cs` marks `preview_path` and `audio_path` as
+  `IsRequired()`; only `hls_path` is `IsRequired(false)`.
+- Worse in the metadata: `cmd.FileSizeBytes!.Value`, `DurationSeconds!.Value`, `Width!.Value`,
+  `Height!.Value`, `Codec!` throw `InvalidOperationException` if the `analyze` step fails — and
+  `analyze` is semi-critical (`VidroProcessor/docs/agents/architecture.md:93`: *"errors logged,
+  downstream metadata missing in webhook"*).
 
-**Cadeia de falha:** step não-crítico falha (ex.: glitch na thumbnail — o exemplo
-que o próprio `design-decisions.md` usa para justificar o design) → Processor
-reporta **sucesso** → API estoura no handler → 500 → o Processor tenta 3x com
-backoff e desiste (`internal/webhook/webhook.go:46-56`) → o job já foi ack'ado,
-então **não vai para o DLQ** → o vídeo fica em `Processing` **permanentemente**.
-E `VideoReconciliationService.cs:41` só resgata vídeos em `PendingUpload` com
-`UploadExpiresAt` vencido — **não olha para `Processing`**. Ninguém percebe.
+**Failure chain:** a non-critical step fails (e.g. a thumbnail glitch — the very example
+`design-decisions.md` uses to justify the design) → the Processor reports **success** → the API
+blows up in the handler → 500 → the Processor tries 3x with backoff and gives up
+(`internal/webhook/webhook.go:46-56`) → the job was already acked, so **it does not go to the DLQ**
+→ the video stays in `Processing` **permanently**. And `VideoReconciliationService.cs:41` only
+rescues videos in `PendingUpload` with an expired `UploadExpiresAt` — **it does not look at
+`Processing`**. Nobody notices.
 
-- [x] Tornar `PreviewPath` e `AudioPath` nullable em `VideoArtifacts` + config EF +
-      migration (`HlsPath` já era). `ThumbnailPaths` vira lista vazia em vez de null —
-      os 5 call sites que fazem `AddRange` continuam intactos.
-- [x] Tornar os campos de `VideoMetadata` tolerantes a `analyze` falho.
-- [x] Remover os `!` de `PersistSuccessfulProcessing` e tratar ausência de fato.
-- [x] Fazer o `VideoReconciliationService` também resgatar vídeos travados em
-      `Processing` além do tempo esperado.
-- [x] Teste de integração do webhook com payload de sucesso parcial
-      (sem thumbnails, sem audio, sem preview, sem metadata).
+- [x] Make `PreviewPath` and `AudioPath` nullable in `VideoArtifacts` + EF config + migration
+      (`HlsPath` already was). `ThumbnailPaths` becomes an empty list instead of null — the 5 call
+      sites that do `AddRange` stay intact.
+- [x] Make the `VideoMetadata` fields tolerant of a failed `analyze`.
+- [x] Remove the `!` from `PersistSuccessfulProcessing` and actually handle absence.
+- [x] Make `VideoReconciliationService` also rescue videos stuck in `Processing` beyond the
+      expected time.
+- [x] Webhook integration test with a partial-success payload (no thumbnails, no audio, no
+      preview, no metadata).
 
-> **RESOLVIDO** — `VidroApi`. `VideoArtifacts` agora exige só `ProcessedPath`;
-> `PersistSuccessfulProcessing` só grava `VideoMetadata` quando o bloco do `analyze` veio
-> inteiro (`Video.Metadata` já era nav opcional e todo consumo já usava `?.`).
-> Sucesso **sem** `processedPath` vira `Failed` em vez de estourar — não sobra caminho de
-> exceção no handler. Migration `MakeOptionalArtifactPathsNullableMigration`.
-> `DeleteVideo`/`DeleteChannel` ganharam guard de null antes de enfileirar o cleanup.
-> Rede de segurança: `VideoReconciliationService.ReconcileStuckProcessingAsync` marca como
-> `Failed` vídeo em `Processing` há mais de `VideoSettings:ProcessingTimeoutMinutes`
-> (default **45min**, acima dos 18min de orçamento + 19min de requeue de órfão do Processor).
-> Testes: `VideoProcessedTests` — sucesso sem artefato opcional nenhum → `Ready` com
-> `thumbnailUrls` vazio; sucesso sem `processedPath` → `Failed`. 324 testes passando.
+> **RESOLVED** — `VidroApi`. `VideoArtifacts` now only requires `ProcessedPath`;
+> `PersistSuccessfulProcessing` only writes `VideoMetadata` when the `analyze` block came whole
+> (`Video.Metadata` was already an optional nav and every consumer already used `?.`).
+> Success **without** `processedPath` becomes `Failed` instead of throwing — no exception path is
+> left in the handler. Migration `MakeOptionalArtifactPathsNullableMigration`.
+> `DeleteVideo`/`DeleteChannel` got a null guard before enqueuing the cleanup.
+> Safety net: `VideoReconciliationService.ReconcileStuckProcessingAsync` marks as `Failed` a video
+> in `Processing` for longer than `VideoSettings:ProcessingTimeoutMinutes` (default **45min**,
+> above the Processor's 18min budget + 19min orphan requeue).
+> Tests: `VideoProcessedTests` — success with no optional artifact at all → `Ready` with empty
+> `thumbnailUrls`; success without `processedPath` → `Failed`. 324 tests passing.
 
-> Nota: o antigo `VidroProcessor/docs/roadmap.md` (P-OPT1, seção "Coordination" — hoje P6
-> deste arquivo) já tinha
-> sinalizado exatamente esse risco — *"delete/cleanup + `VideoProcessed` handler
-> must tolerate missing optional artifacts"* — e ninguém agiu.
+> Note: the old `VidroProcessor/docs/roadmap.md` (P-OPT1, "Coordination" section — today P6 of
+> this file) had already flagged exactly this risk — *"delete/cleanup + `VideoProcessed` handler
+> must tolerate missing optional artifacts"* — and nobody acted.
 
-### ~~BUG-2~~ ✅ — Timeout global do job (5 min) era menor que o próprio pipeline (13 min)
+### ~~BUG-2~~ ✅ — The global job timeout (5 min) was shorter than the pipeline itself (13 min)
 
-`VidroProcessor/main.go:196` cria `processCtx` com **5 minutos**, e esse orçamento
-cobre download do MinIO + os 7 steps + upload de todos os artefatos.
+`VidroProcessor/main.go:196` creates `processCtx` with **5 minutes**, and that budget covers the
+MinIO download + the 7 steps + the upload of every artifact.
 
-A soma dos timeouts por step (`internal/processor/processor.go:23-29`) é de
-**13 minutos**: validate 30s + analyze 30s + transcode 3min + thumbnails 60s +
-audio 2min + preview 2min + streaming 4min.
+The sum of the per-step timeouts (`internal/processor/processor.go:23-29`) is **13 minutes**:
+validate 30s + analyze 30s + transcode 3min + thumbnails 60s + audio 2min + preview 2min +
+streaming 4min.
 
-O próprio `docs/agents/design-decisions.md` define a regra: *"whole-job budget
-must always exceed sum of critical-path steps (validate + analyze + transcode)
-plus download + upload slack"*. Só o caminho crítico já são 4min, sobrando ~1min
-para baixar e subir tudo — e o P6 aqui embaixo diz que um vídeo de 500 MB / 1080p leva
-"vários minutos" hoje (a meta de 2–3 min é *pós*-otimização).
+`docs/agents/design-decisions.md` itself defines the rule: *"whole-job budget must always exceed
+sum of critical-path steps (validate + analyze + transcode) plus download + upload slack"*. The
+critical path alone is 4min, leaving ~1min to download and upload everything — and P6 below says a
+500 MB / 1080p video takes "several minutes" today (the 2–3 min goal is *post*-optimization).
 
-**Consequência:** vídeo grande estoura o `processCtx` no meio do pipeline → job
-falha → 3 retries → DLQ. Um vídeo perfeitamente bom nunca processa.
+**Consequence:** a large video blows `processCtx` midway through the pipeline → the job fails → 3
+retries → DLQ. A perfectly good video never processes.
 
-- [x] Subir o orçamento global, ou derivá-lo da soma dos steps.
-- [x] Expor os timeouts como env vars.
+- [x] Raise the global budget, or derive it from the sum of the steps.
+- [x] Expose the timeouts as env vars.
 
-> **RESOLVIDO** — `VidroProcessor` `4f4a949`. `processor.JobBudget(scale)` deriva o
-> orçamento da soma dos 7 steps + 5min de folga de transferência (18min no scale 1);
-> `main.go` usa `jobTimeout(cfg)`. Knobs: `PROCESSING_TIMEOUT_SCALE` (multiplica todos
-> os step timeouts e o global) e `JOB_TIMEOUT` (sobrescreve o global).
-> Achado no caminho: `StartRecovery` requeueava job em `:processing` há >10min — com
-> orçamento de 18min isso reprocessaria job **saudável**; agora o limiar é
-> `jobTimeout + 1min`. Invariante travada em `internal/processor/timeout_test.go`.
+> **RESOLVED** — `VidroProcessor` `4f4a949`. `processor.JobBudget(scale)` derives the budget from
+> the sum of the 7 steps + 5min of transfer slack (18min at scale 1); `main.go` uses
+> `jobTimeout(cfg)`. Knobs: `PROCESSING_TIMEOUT_SCALE` (multiplies every step timeout and the
+> global one) and `JOB_TIMEOUT` (overrides the global one).
+> Found along the way: `StartRecovery` requeued jobs in `:processing` for >10min — with an 18min
+> budget that would reprocess a **healthy** job; now the threshold is `jobTimeout + 1min`.
+> Invariant locked in `internal/processor/timeout_test.go`.
 
 ---
 
-## ~~P0.1~~ ✅ — Documentação que mente (barato, destrava o resto)
+## ~~P0.1~~ ✅ — Docs that lie (cheap, unblocks the rest)
 
-### Documentação que envenena o trabalho com IA
+### Docs that poison AI-assisted work
 
-- [x] **`VidroApi/docs/agents/features-index.md`: 4 rotas erradas.** Corrigidas para os
-      paths reais (`/v1/users/{username}/channels/{handle}/...` e `/v1/users/{username}/playlists`).
-      Conferi o índice inteiro contra os 43 `Map*` do código: as outras 39 batem.
-- [x] **Ponteiros de caminho mortos no Front.** `../Api/` → `../VidroApi/` (3 ocorrências
-      em `VidroFront/CLAUDE.md`, 1 em `workflow.md`).
-- [x] **`VidroFront/docs/agents/workflow.md:7`** — o caminho proibido virou "fora deste
-      repo (`VidroFront/`)", sem path absoluto para apodrecer de novo.
-- [x] **`VidroProcessor/docs/documentation.md` deletado.** 187 linhas que duplicavam o
-      README e o `docs/agents/architecture.md` e mentiam em 6 pontos. As 3 referências no
-      README apontam agora para `architecture.md` + `GETTING_STARTED.md`.
-      Verifiquei no código antes de apagar: `BRPopLPush` (`queue/client.go:47`),
-      `MINIO_USE_SSL` (`config/config.go:24`), `.env` ausente já tolerado
-      (`config.go:60`, `errors.Is(err, os.ErrNotExist)`).
-- [x] **`VidroProcessor/README.md`**: badge `bugs known` → `functional` apontando para o
-      roadmap (que hoje é o P6 deste arquivo); `Version: 0.1.0` removido (não existe tag nenhuma nos três repos, era
-      ficção) e data atualizada.
+- [x] **`VidroApi/docs/agents/features-index.md`: 4 wrong routes.** Fixed to the real paths
+      (`/v1/users/{username}/channels/{handle}/...` and `/v1/users/{username}/playlists`).
+      I checked the whole index against the 43 `Map*` in the code: the other 39 match.
+- [x] **Dead path pointers in the Front.** `../Api/` → `../VidroApi/` (3 occurrences in
+      `VidroFront/CLAUDE.md`, 1 in `workflow.md`).
+- [x] **`VidroFront/docs/agents/workflow.md:7`** — the forbidden path became "outside this repo
+      (`VidroFront/`)", with no absolute path to rot again.
+- [x] **`VidroProcessor/docs/documentation.md` deleted.** 187 lines that duplicated the README and
+      `docs/agents/architecture.md` and lied in 6 places. The 3 references in the README now point
+      to `architecture.md` + `GETTING_STARTED.md`.
+      I checked the code before deleting: `BRPopLPush` (`queue/client.go:47`), `MINIO_USE_SSL`
+      (`config/config.go:24`), a missing `.env` already tolerated (`config.go:60`,
+      `errors.Is(err, os.ErrNotExist)`).
+- [x] **`VidroProcessor/README.md`**: `bugs known` badge → `functional` pointing at the roadmap
+      (today P6 of this file); `Version: 0.1.0` removed (there is no tag in any of the three repos,
+      it was fiction) and date updated.
 
-### Afirmações falsas nos docs
+### False claims in the docs
 
-- [x] `VidroApi/CLAUDE.md:77` — a afirmação de deploy automático virou o estado real:
-      só `ci.yml`, só build+test, só em PR para `master`, deploy manual. A linha de
-      "produção sai de tags" ficou marcada como estratégia pretendida nos dois CLAUDE.md
-      (VidroApi e VidroFront) — nenhum repo tem tag.
-- [x] `VidroFront/docs/agents/workflow.md` — "Fase 6 ✅ SSR + **SEO**" → só SSR, com a
-      nota de que só `__root.tsx` define `head`. De quebra: fase 9 (Playlists) estava
-      sem ✅ e está pronta (feature + rota + plano com 0 pendências).
-- [x] `VidroProcessor/docs/roadmap.md` (P-OPT1, hoje P6 daqui) — **a afirmação do roadmap estava certa e
-      este TODO é que estava errado.** O fluxo de watch serve o MP4 mesmo: `GetVideo`
-      monta `videoUrl` a partir de `ProcessedPath` e nunca expõe `hlsPath`. O que o
-      `VideoPlayer.tsx:16` prova é que o *player* já toca `.m3u8` via `hls.js` — falta só
-      o campo da API. Reescrevi com essa precisão e um aviso para não deletar o step de HLS.
+- [x] `VidroApi/CLAUDE.md:77` — the automatic deploy claim became the real state: only `ci.yml`,
+      only build+test, only on PRs to `master`, manual deploy. The "production ships from tags"
+      line was marked as the intended strategy in both CLAUDE.md files (VidroApi and VidroFront) —
+      no repo has a tag.
+- [x] `VidroFront/docs/agents/workflow.md` — "Phase 6 ✅ SSR + **SEO**" → SSR only, with the note
+      that only `__root.tsx` defines `head`. Bonus: phase 9 (Playlists) was missing its ✅ and is
+      done (feature + route + plan with 0 pending items).
+- [x] `VidroProcessor/docs/roadmap.md` (P-OPT1, today P6 here) — **the roadmap's claim was right
+      and this TODO was wrong.** The watch flow does serve the MP4: `GetVideo` builds `videoUrl`
+      from `ProcessedPath` and never exposes `hlsPath`. What `VideoPlayer.tsx:16` proves is that
+      the *player* already plays `.m3u8` via `hls.js` — only the API field is missing. I rewrote it
+      with that precision and a warning not to delete the HLS step.
 
-## ~~P1~~ ✅ — Fazer o stack rodar junto
+## ~~P1~~ ✅ — Make the stack run together
 
-- [x] ~~**A API não tem CORS.**~~ **RESOLVIDO** — `VidroApi` `4b29dc6`. Política default
-      lendo `Cors:AllowedOrigins` da config (`http://localhost:3000` em Development),
-      `app.UseCors()` antes do `UseAuthentication` para o 401 também sair com os headers.
-      Sem `AllowCredentials` (Bearer em header, refresh token é cookie do server TanStack).
-      Fora de dev fecha por padrão + `Log.Warning` no startup se a lista vier vazia.
-      Testes: `tests/VidroApi.IntegrationTests/Common/CorsTests.cs`.
-- [x] **Porta da API unificada em 5000** — `VidroApi` `85520e3` + `VidroProcessor` `dde09fe`.
-      O front sempre apontou para `:5000`, mas o `launchSettings.json` subia em `:5144`,
-      e o `docker-compose.yml` do Processor mandava o webhook `minio-upload-completed`
-      para `:5144` — upload nunca notificaria a API.
-- [x] **Dockerfile da API** (`VidroApi/Dockerfile` + `.dockerignore`). Multi-stage
-      sdk:10.0 → aspnet:10.0. A imagem runtime instala `libgssapi-krb5-2` (sem ela o
-      Npgsql loga erro de GSSAPI em toda conexão) e `curl` (healthcheck do compose).
-- [x] **`docker-compose.yml` único na raiz `vidro/`** — postgres, redis, minio,
-      minio-init, api, worker, front, loki, promtail, prometheus, grafana.
-      Grafana foi para **3001**: 3000 é do front. `minio-init` agora aponta o webhook
-      para `http://api:5000` e espera a API ficar *healthy* (o MinIO valida a config
-      discando o endpoint — antes falhava com `no such host`).
-      O compose de cada repo continua existindo para trabalho isolado.
-- [x] **`/health` na API** — `AddHealthChecks()` + `MapHealthChecks("/health")`, só
-      liveness (sem probe de dependência: Redis instável não pode derrubar o container).
-- [x] **Migrations no startup em Development** — `docker compose up` tem que entregar
-      uma API que funciona, e o Postgres do compose sobe vazio. Fora de Development
-      continua sendo passo manual de deploy.
+- [x] ~~**The API has no CORS.**~~ **RESOLVED** — `VidroApi` `4b29dc6`. Default policy reading
+      `Cors:AllowedOrigins` from config (`http://localhost:3000` in Development), `app.UseCors()`
+      before `UseAuthentication` so the 401 also goes out with the headers. No `AllowCredentials`
+      (Bearer in a header, the refresh token is a TanStack server cookie). Outside dev it closes by
+      default + `Log.Warning` on startup if the list is empty.
+      Tests: `tests/VidroApi.IntegrationTests/Common/CorsTests.cs`.
+- [x] **API port unified at 5000** — `VidroApi` `85520e3` + `VidroProcessor` `dde09fe`.
+      The front always pointed at `:5000`, but `launchSettings.json` started on `:5144`, and the
+      Processor's `docker-compose.yml` sent the `minio-upload-completed` webhook to `:5144` — an
+      upload would never notify the API.
+- [x] **API Dockerfile** (`VidroApi/Dockerfile` + `.dockerignore`). Multi-stage sdk:10.0 →
+      aspnet:10.0. The runtime image installs `libgssapi-krb5-2` (without it Npgsql logs a GSSAPI
+      error on every connection) and `curl` (compose healthcheck).
+- [x] **A single `docker-compose.yml` at the `vidro/` root** — postgres, redis, minio, minio-init,
+      api, worker, front, loki, promtail, prometheus, grafana.
+      Grafana moved to **3001**: 3000 is the front's. `minio-init` now points the webhook at
+      `http://api:5000` and waits for the API to be *healthy* (MinIO validates the config by
+      dialing the endpoint — before, it failed with `no such host`).
+      Each repo's compose still exists for isolated work.
+- [x] **`/health` in the API** — `AddHealthChecks()` + `MapHealthChecks("/health")`, liveness only
+      (no dependency probe: a flaky Redis must not take the container down).
+- [x] **Migrations on startup in Development** — `docker compose up` has to deliver a working API,
+      and the compose's Postgres starts empty. Outside Development it remains a manual deploy step.
 
-> **Dois bugs achados só porque a stack rodou de verdade:**
-> 1. **URL presignada inalcançável pelo browser.** A API assinava com `minio:9000`
->    (endpoint interno) e o browser não resolve esse host — upload e player quebrados.
->    Trocar a string do host não resolve: a assinatura SigV4 cobre o header `Host`.
->    Correção: `MinIO:PublicEndpoint` + um `IMinioClient` dedicado (keyed
->    `minio-presign`) que assina para o host público. Só os dois métodos de presign
->    usam esse client; o resto continua no endpoint interno.
-> 2. **Front SSR e browser precisam de URLs diferentes para a API.** `api-client.ts`
->    usava só `import.meta.env.VITE_API_URL`, que o Vite congela em build (valor do
->    browser). No container o SSR precisa de `http://api:5000`. Passou a preferir
->    `process.env.VITE_API_URL` quando roda no servidor — mesmo padrão que os
->    `features/*/server.ts` já usavam.
+> **Two bugs found only because the stack really ran:**
+> 1. **Presigned URL unreachable from the browser.** The API signed with `minio:9000` (internal
+>    endpoint) and the browser does not resolve that host — upload and player broken.
+>    Swapping the host string does not fix it: the SigV4 signature covers the `Host` header.
+>    Fix: `MinIO:PublicEndpoint` + a dedicated `IMinioClient` (keyed `minio-presign`) that signs
+>    for the public host. Only the two presign methods use that client; the rest stays on the
+>    internal endpoint.
+> 2. **Front SSR and the browser need different URLs for the API.** `api-client.ts` only used
+>    `import.meta.env.VITE_API_URL`, which Vite freezes at build time (the browser's value). In the
+>    container the SSR needs `http://api:5000`. It now prefers `process.env.VITE_API_URL` when
+>    running on the server — the same pattern the `features/*/server.ts` files already used.
 >
-> Ambos travados por teste: `VidroApi` `tests/.../Common/MinioPresignEndpointTests.cs`
-> (o client de presign resolve para o endpoint público, e cai no interno quando não há um)
-> e `VidroFront` `src/tests/api-base-url.test.ts` (no servidor o runtime vence o valor de build).
+> Both locked by tests: `VidroApi` `tests/.../Common/MinioPresignEndpointTests.cs` (the presign
+> client resolves to the public endpoint, and falls back to the internal one when there is none)
+> and `VidroFront` `src/tests/api-base-url.test.ts` (on the server the runtime value beats the
+> build value).
 >
-> **E2E verificado de ponta a ponta** nesta stack: signup → canal → vídeo → PUT
-> presignado → webhook do MinIO → fila Redis → worker (7 steps) → webhook
-> `video-processed` → `Ready`, com `videoUrl` e 5 thumbnails devolvendo **200** no
-> browser. Era o fluxo que nunca tinha rodado inteiro.
-- [x] **CI nos três repos.** `.github/workflows/ci.yml` no Front (bun install → test →
-      build) e no Processor (setup-go 1.25 → ffmpeg → build → vet → `go test ./... -cover
-      -timeout 15m`). Os três agora disparam em **push para `master` além de PR** — o
-      gatilho só-PR do VidroApi quase nunca rodava, já que a convenção do repo é commitar
-      direto na master. Rodei os dois pipelines localmente antes de commitar.
-      **Sem step de lint no Front** *(era: 109 erros do `biome check`)* — resolvido em
-      2026-09-07: o workflow do front hoje roda **lint → typecheck → test → build**. Ver
-      "Limpar o que o `biome check` acusa" e o item do `tsc` em Sujeira pequena.
-      *(2026-08-30: com o monorepo, os três `ci.yml` viraram
-      `.github/workflows/{api,front,processor}.yml` na raiz, cada um com filtro `paths:`.)*
-- [x] **Rate limiting em `SignIn`/`SignUp`** — `AddRateLimiter` nativo do .NET 10, zero
-      dependência nova. Fixed window por IP, política `auth`, 429 na rejeição, configurável
-      em `RateLimit:AuthPermitLimit` / `AuthWindowSeconds` (10/min por padrão), seguindo o
-      padrão de Options validadas do repo. Só os dois endpoints de credencial são limitados —
-      limitador global estrangularia navegação normal.
-      Testes: `tests/VidroApi.IntegrationTests/Auth/RateLimitTests.cs` (factory própria com
-      budget de 3). Verificado também na stack real: 10× 401 e depois 429.
-- [x] **Migrations no startup em todo ambiente** (antes era só `Development`). Deploy da
-      imagem passa a ser o deploy inteiro. **Consequência a lembrar:** o schema muda antes da
-      instância antiga parar, então migration tem que ser retrocompatível com a versão ainda
-      no ar; duas instâncias subindo juntas ambas tentam migrar (o EF Core 10 tem
-      `IMigrationsDatabaseLock`, então a perdedora espera em vez de corromper).
-      Docs do README/compose corrigidas junto.
-- [ ] **Quando existir pipeline de deploy, mover a migration para um release step.**
-      Nenhuma plataforma garante "instância antiga parada antes da nova subir" por padrão —
-      rolling deploy sobrepõe as duas de propósito, é assim que zero-downtime funciona.
-      Dá para forçar (`strategy: Recreate` no k8s, `minimumHealthyPercent: 0` no ECS), mas o
-      preço é downtime. O que resolve de verdade é um **release step** que roda a migration
-      uma vez, antes de qualquer instância nova pegar tráfego: `release` phase (Heroku),
-      `[deploy] release_command` (Fly.io), Pre-Deploy Command (Render/Railway), Job de
-      `pre-upgrade` do Helm ou PreSync do Argo (k8s), ou um step no próprio CI (ECS, Cloud
-      Run, App Service — esses não têm hook nativo). `dotnet ef migrations bundle` gera um
-      executável self-contained feito para isso.
-      **Mesmo com release step**, rolling deploy deixa o código antigo rodando contra o
-      schema novo por uma janela → migration retrocompatível (expand/contract) continua
-      obrigatória. Só dá para escapar disso aceitando downtime.
-      Enquanto não há pipeline (deploy é manual hoje), `Migrate()` no startup está de bom
-      tamanho.
+> **E2E verified end to end** on this stack: signup → channel → video → presigned PUT → MinIO
+> webhook → Redis queue → worker (7 steps) → `video-processed` webhook → `Ready`, with `videoUrl`
+> and 5 thumbnails returning **200** in the browser. It was the flow that had never run whole.
+- [x] **CI in the three repos.** `.github/workflows/ci.yml` in the Front (bun install → test →
+      build) and in the Processor (setup-go 1.25 → ffmpeg → build → vet → `go test ./... -cover
+      -timeout 15m`). All three now trigger on **push to `master` as well as PRs** — VidroApi's
+      PR-only trigger almost never ran, since the repo's convention is to commit straight to
+      master. I ran both pipelines locally before committing.
+      **No lint step in the Front** *(was: 109 `biome check` errors)* — resolved on 2026-09-07:
+      the front workflow now runs **lint → typecheck → test → build**. See "Clean up what
+      `biome check` reports" and the `tsc` item in Small mess.
+      *(2026-08-30: with the monorepo, the three `ci.yml` became
+      `.github/workflows/{api,front,processor}.yml` at the root, each with a `paths:` filter.)*
+- [x] **Rate limiting on `SignIn`/`SignUp`** — native .NET 10 `AddRateLimiter`, zero new
+      dependencies. Fixed window per IP, `auth` policy, 429 on rejection, configurable in
+      `RateLimit:AuthPermitLimit` / `AuthWindowSeconds` (10/min by default), following the repo's
+      validated Options pattern. Only the two credential endpoints are limited — a global limiter
+      would throttle normal browsing.
+      Tests: `tests/VidroApi.IntegrationTests/Auth/RateLimitTests.cs` (own factory with a budget of
+      3). Also verified on the real stack: 10× 401 and then 429.
+- [x] **Migrations on startup in every environment** (before, only `Development`). Deploying the
+      image becomes the whole deploy. **Consequence to remember:** the schema changes before the
+      old instance stops, so a migration must be backward compatible with the version still live;
+      two instances starting together both try to migrate (EF Core 10 has
+      `IMigrationsDatabaseLock`, so the loser waits instead of corrupting).
+      README/compose docs fixed along.
+- [ ] **When there is a deploy pipeline, move the migration to a release step.**
+      No platform guarantees "old instance stopped before the new one starts" by default — a
+      rolling deploy overlaps the two on purpose, that is how zero-downtime works.
+      It can be forced (`strategy: Recreate` in k8s, `minimumHealthyPercent: 0` in ECS), but the
+      price is downtime. What really solves it is a **release step** that runs the migration once,
+      before any new instance takes traffic: `release` phase (Heroku), `[deploy] release_command`
+      (Fly.io), Pre-Deploy Command (Render/Railway), a Helm `pre-upgrade` Job or Argo PreSync (k8s),
+      or a step in the CI itself (ECS, Cloud Run, App Service — these have no native hook).
+      `dotnet ef migrations bundle` generates a self-contained executable made for this.
+      **Even with a release step**, a rolling deploy leaves the old code running against the new
+      schema for a window → backward-compatible migrations (expand/contract) remain mandatory.
+      The only escape is accepting downtime.
+      While there is no pipeline (deploy is manual today), `Migrate()` on startup is good enough.
 
 ---
 
-## P2 — Testes
+## P2 — Tests
 
-### VidroProcessor — a resiliência não é testada (lacuna mais cara dos três repos)
+### VidroProcessor — resilience is not tested (the most expensive gap of the three repos)
 
-Os 7 steps do pipeline têm todos `_test.go`, o que faz parecer bem coberto. Mas:
+The 7 pipeline steps all have `_test.go`, which makes it look well covered. But:
 
-- [x] ~~**`internal/processor/processor.go` (253 linhas) — zero testes.**~~ **RESOLVIDO**
-      *(2026-09-07)*. 10 testes em `internal/processor/orchestration_test.go`, cobertura do
-      pacote **11.1% → 78.0%**, rodando em 0,1s com passo falso — sem FFmpeg.
-      Cobertos: a lista de passos não-críticos (os quatro, na ordem, com
-      `nonCriticalStepCount` casando), timeout de cada passo passando por `Options.step`,
-      falha de passo não-crítico que **não** para os seguintes (sequencial) nem cancela os
-      irmãos (paralelo — a razão de ser `WaitGroup` e não `errgroup`), o teto de FFmpeg por job
-      do P-PERF4, `runStep` (erro, timeout, cancelamento do pai, métrica por passo) e passo
-      crítico abortando o job (`ProcessVideo` com arquivo inválido; pula sem `ffprobe`).
-      **Custou um refactor que valia por si:** os dois orquestradores tinham **cópias
-      separadas** da lista dos passos 4–7 — o risco que o `conventions.md` avisava em prosa
-      ("register the step in **both** orchestrators") e que o `docs/padroes-a-importar.md`
-      (item 2) queria resolver com um checker de AST. Agora existe uma lista só
-      (`nonCriticalSteps`), lida pelos dois: o checker de AST deixou de ser necessário.
-      Dep nova só de teste: `prometheus/client_golang/prometheus/testutil` (subpacote de dep
-      que já estava lá; trouxe `kylelemons/godebug` como indireta).
-      **Verificado por mutação (5×):** `continue`→`return` no sequencial, semáforo sem teto no
-      paralelo, `opts.step()` removido de um timeout, passo renomeado e observação da métrica
-      removida — cada um quebra um teste diferente.
-- [x] ~~**`queue/` (283 linhas, `client.go` + `job.go`) — zero testes unitários.**~~
-      **RESOLVIDO** — `VidroProcessor` `8d1b98d`. 12 testes em `queue/queue_test.go`,
-      cobertura 0% → **60.3%**, rodando em 8ms.
-- [x] ~~**O laço do worker mora no `package main`, então nada consegue testá-lo**~~ **RESOLVIDO**
-      *(2026-10-05, `1e9b466`)* — o laço virou `internal/worker` (`worker.New` + `Run`; o `main.go`
-      ficou só com a fiação). Seam: interface `storage` com as 5 chamadas de MinIO e o pipeline
-      como campo `processVideo`; Redis continua real via `miniredis`. Três testes em
-      `internal/worker/worker_test.go` travam o #13 (job falho sai do `:processing` e reentra ou vai
-      para o DLQ; job concluído é ackado) e o caminho de crash (ver o item abaixo). **Verificado por
-      mutação:** recolocar o `defer cancelBookkeeping()` no pai derruba os três. *(achado em
-      2026-09-13)*. `test/integration` não importa `main`, e dirigir `processNextMessage` pede Redis
-      **e** MinIO. Foi por isso que o bug do `cancelBookkeeping` (design-decisions #13 do Processor)
-      passou: o pai cancelava o contexto que a goroutine ainda usava para fechar o job — job falho
-      ficava preso em `:processing` com `retry_count: 0` e job **concluído** ficava esperando o
-      orphan recovery reprocessá-lo. Corrigido e verificado na stack, mas a regressão só tem
-      **check manual** (`VidroProcessor/docs/TESTING.md`). Mover o laço para um pacote importável é
-      o que destrava um teste de verdade — e destrava junto o item logo abaixo.
-- [x] ~~Os testes de integração de fila cobrem só caminho feliz~~ **RESOLVIDO** *(2026-10-05)* pelo
-      `TestWorker_CrashMidJobIsRecoveredAndReprocessed`: worker trava no meio → job sobrevive no
-      `:processing` → `queue.RecoverStuckJobs` (exportado para o teste) reenfileira → outro worker
-      conclui. O `test/integration/queue_test.go` continua testando a biblioteca, sem valor novo.
-      Texto original: os testes de integração de fila (`test/integration/queue_test.go`) cobrem só
-      caminho feliz: `PublishAndConsume`, `MultipleMessages`, `EmptyQueue`,
-      `SuccessQueue`. Nenhum de falha — e **nenhum deles importa o pacote `queue`**:
-      falam com o `go-redis` direto, ou seja, testam a biblioteca, não o nosso código.
-      Com os unitários de `queue/` no lugar, o valor de reescrevê-los caiu bastante;
-      o que sobraria de útil é um teste de falha ponta a ponta (worker morre no meio →
-      job sobrevive no `:processing` → recovery pega).
+- [x] ~~**`internal/processor/processor.go` (253 lines) — zero tests.**~~ **RESOLVED**
+      *(2026-09-07)*. 10 tests in `internal/processor/orchestration_test.go`, package coverage
+      **11.1% → 78.0%**, running in 0.1s with a fake step — no FFmpeg.
+      Covered: the list of non-critical steps (the four, in order, with `nonCriticalStepCount`
+      matching), each step's timeout going through `Options.step`, a non-critical step failure
+      that does **not** stop the following ones (sequential) nor cancel its siblings (parallel —
+      the reason it is a `WaitGroup` and not an `errgroup`), P-PERF4's FFmpeg cap per job,
+      `runStep` (error, timeout, parent cancellation, per-step metric) and a critical step
+      aborting the job (`ProcessVideo` with an invalid file; skips without `ffprobe`).
+      **It cost a refactor worth having on its own:** the two orchestrators had **separate
+      copies** of the list of steps 4–7 — the risk `conventions.md` warned about in prose
+      ("register the step in **both** orchestrators") and that `docs/patterns-to-import.md`
+      (item 2) wanted to solve with an AST checker. Now there is a single list
+      (`nonCriticalSteps`), read by both: the AST checker is no longer needed.
+      New test-only dep: `prometheus/client_golang/prometheus/testutil` (a subpackage of a dep
+      that was already there; brought `kylelemons/godebug` as an indirect one).
+      **Verified by mutation (5×):** `continue`→`return` in the sequential one, an uncapped
+      semaphore in the parallel one, `opts.step()` removed from a timeout, a step renamed and the
+      metric observation removed — each breaks a different test.
+- [x] ~~**`queue/` (283 lines, `client.go` + `job.go`) — zero unit tests.**~~
+      **RESOLVED** — `VidroProcessor` `8d1b98d`. 12 tests in `queue/queue_test.go`, coverage
+      0% → **60.3%**, running in 8ms.
+- [x] ~~**The worker loop lives in `package main`, so nothing can test it**~~ **RESOLVED**
+      *(2026-10-05, `1e9b466`)* — the loop became `internal/worker` (`worker.New` + `Run`;
+      `main.go` was left with only the wiring). Seam: a `storage` interface with the 5 MinIO calls
+      and the pipeline as a `processVideo` field; Redis stays real via `miniredis`. Three tests in
+      `internal/worker/worker_test.go` lock #13 (a failed job leaves `:processing` and re-enters or
+      goes to the DLQ; a completed job is acked) and the crash path (see the item below).
+      **Verified by mutation:** putting `defer cancelBookkeeping()` back in the parent breaks all
+      three. *(found on 2026-09-13)*. `test/integration` does not import `main`, and driving
+      `processNextMessage` needs Redis **and** MinIO. That is why the `cancelBookkeeping` bug (the
+      Processor's design-decisions #13) got through: the parent cancelled the context the goroutine
+      was still using to close the job — a failed job stayed stuck in `:processing` with
+      `retry_count: 0` and a **completed** job waited for the orphan recovery to reprocess it. Fixed
+      and verified on the stack, but the regression only had a **manual check**
+      (`VidroProcessor/docs/TESTING.md`). Moving the loop to an importable package is what unlocks
+      a real test — and it unlocks the item right below as well.
+- [x] ~~The queue integration tests only cover the happy path~~ **RESOLVED** *(2026-10-05)* by
+      `TestWorker_CrashMidJobIsRecoveredAndReprocessed`: the worker hangs midway → the job survives
+      in `:processing` → `queue.RecoverStuckJobs` (exported for the test) requeues it → another
+      worker completes it. `test/integration/queue_test.go` still tests the library, with no new
+      value.
+      Original text: the queue integration tests (`test/integration/queue_test.go`) only cover the
+      happy path: `PublishAndConsume`, `MultipleMessages`, `EmptyQueue`, `SuccessQueue`. None of
+      failure — and **none of them imports the `queue` package**: they talk to `go-redis`
+      directly, i.e. they test the library, not our code.
+      With the `queue/` unit tests in place, the value of rewriting them dropped a lot; what would
+      remain useful is an end-to-end failure test (worker dies midway → job survives in
+      `:processing` → recovery picks it up).
 
-> **RESOLVIDO (queue/)** — harness: `miniredis` (dep nova, só de teste, pure Go). O motivo
-> de não usar o testcontainers que já estava instalado é o próprio item abaixo: teste atrás
-> de Docker não roda. Os testes ficam *dentro* do pacote, então apontam os globais
-> `client`/`cfg` para o fake e chamam `recoverStuckJobs` direto, sem esperar o ticker de 1min
-> e sem refatorar produção para injetar interface.
+> **RESOLVED (queue/)** — harness: `miniredis` (new dep, test only, pure Go). The reason for not
+> using the testcontainers already installed is the item below itself: a test behind Docker does
+> not run. The tests live *inside* the package, so they point the `client`/`cfg` globals at the
+> fake and call `recoverStuckJobs` directly, without waiting for the 1min ticker and without
+> refactoring production to inject an interface.
 >
-> **Dois achados no caminho, ambos corrigidos no mesmo commit:**
-> 1. A decisão retry-vs-DLQ não estava em `queue/` — estava inline no `main.go:225`
->    (`state.RetryCount <= queue.MaxJobRetries`). Virou `JobState.ShouldRetry()`. Teste que
->    *copia* a condição não pega drift; era preciso trazer o invariante para dentro do pacote.
-> 2. **Bug: `recoverStuckJobs` reenfileirava órfão para sempre.** Incrementava `RetryCount`
->    e dava requeue sem nunca olhar `MaxJobRetries` — um vídeo que trava o worker orfana toda
->    vez e nunca chegava ao DLQ, ao contrário do caminho de falha do worker, que respeita o
->    limite. Agora esgotado vai para o DLQ (`client.go:109`).
+> **Two findings along the way, both fixed in the same commit:**
+> 1. The retry-vs-DLQ decision was not in `queue/` — it was inline in `main.go:225`
+>    (`state.RetryCount <= queue.MaxJobRetries`). It became `JobState.ShouldRetry()`. A test that
+>    *copies* the condition does not catch drift; the invariant had to be brought into the package.
+> 2. **Bug: `recoverStuckJobs` requeued orphans forever.** It incremented `RetryCount` and
+>    requeued without ever looking at `MaxJobRetries` — a video that hangs the worker got orphaned
+>    every time and never reached the DLQ, unlike the worker's failure path, which respects the
+>    limit. Now an exhausted one goes to the DLQ (`client.go:109`).
 >
-> Os dois testes que travam isso foram **verificados por mutação**: trocar `<=` por `<` em
-> `ShouldRetry` quebra `TestShouldRetry_Boundary`; remover o guard do recovery quebra
+> The two tests that lock this were **verified by mutation**: changing `<=` to `<` in
+> `ShouldRetry` breaks `TestShouldRetry_Boundary`; removing the recovery guard breaks
 > `TestRecoverStuckJobs_ExhaustedOrphanGoesToDLQ`.
 >
-> Fora de cobertura de propósito (os 39.7% restantes): `InitRedisClient` (`log.Fatal`),
-> o loop do ticker em `StartRecovery` (a lógica está em `recoverStuckJobs`, essa testada),
-> `HealthCheck`, `GetQueueSize`, `SetJobProcessing`/`SetJobDone` (setters triviais).
-- [ ] Agravante: os testes pulam sozinhos sem Docker/ffmpeg — na prática raramente rodam
-      fora do CI (que já existe desde 2026-08-29 e tem Docker + ffmpeg). Os 12 de `queue/`
-      são a exceção: `miniredis` é in-process, rodam sempre.
-- [x] ~~**`VidroProcessor/docs/TESTING.md` — lista "What's Missing" desatualizada.**~~
-      **RESOLVIDO** — `VidroProcessor` `8d1b98d`. Tabela de cobertura com `queue` 60.3%,
-      `queue` fora do "No tests", seção nova com os 12 testes, e o "What's Missing"
-      reescrito: saíram `queue.ConsumeMessage`/`PublishSuccessMessage`, entraram
-      `processor.go` e o que sobrou sem cobertura no `queue/`. Continuam válidos:
-      `config.LoadConfig()`, `minio.DownloadVideo()`/`UploadVideo()`,
-      `main.processNextMessage()`, benchmarks de transcode.
+> Out of coverage on purpose (the remaining 39.7%): `InitRedisClient` (`log.Fatal`), the ticker
+> loop in `StartRecovery` (the logic is in `recoverStuckJobs`, which is tested), `HealthCheck`,
+> `GetQueueSize`, `SetJobProcessing`/`SetJobDone` (trivial setters).
+- [ ] Aggravating factor: the tests skip themselves without Docker/ffmpeg — in practice they
+      rarely run outside CI (which has existed since 2026-08-29 and has Docker + ffmpeg). The 12 in
+      `queue/` are the exception: `miniredis` is in-process, they always run.
+- [x] ~~**`VidroProcessor/docs/TESTING.md` — outdated "What's Missing" list.**~~
+      **RESOLVED** — `VidroProcessor` `8d1b98d`. Coverage table with `queue` at 60.3%, `queue` out
+      of "No tests", a new section with the 12 tests, and "What's Missing" rewritten:
+      `queue.ConsumeMessage`/`PublishSuccessMessage` left, `processor.go` and what was left
+      uncovered in `queue/` came in. Still valid: `config.LoadConfig()`,
+      `minio.DownloadVideo()`/`UploadVideo()`, `main.processNextMessage()`, transcode benchmarks.
 
-### VidroFront — cobertura de fachada
+### VidroFront — façade coverage
 
-- [~] 34 testes em 6 arquivos de API com fetch mockado **+ 4 de renderização**
-      *(2026-09-13)*: `src/tests/comment-list.test.tsx` é o primeiro uso de
-      `@testing-library/react`/`jsdom`, que estavam instalados e parados. Continuam sem teste de
-      renderização os outros 34 componentes e as 11 rotas — o que falta agora é cobertura, não
-      harness.
-      **O harness custou um `vitest.config.ts` novo:** com o plugin do TanStack Start no config, o
-      React resolve pela condição `react-server` e chega ao teste com o dispatcher de hooks nulo —
-      todo `render` morre em `useState`. O config de teste carrega só `tsconfigPaths` + `viteReact`.
-      Padrão registrado em `VidroFront/docs/agents/conventions.md` (seção "Teste de componente").
-- [x] ~~Features `channels` e `playlists` sem teste~~ **RESOLVIDO** *(2026-10-05, `b6c81c9`)* —
-      32 testes em 4 arquivos (API + componentes), 12 mutações verificadas. Achou um bug real,
-      corrigido em `4df47a8`: `uploadChannelAvatar` não checava a resposta do PUT presignado e um
-      403 do storage virava sucesso. **O mesmo PUT sem checagem segue em
-      `features/users/api.ts:22` e `features/videos/api.ts:158`.**
-      Histórico: `comments` passou a ter os
-      4 de renderização do `CommentList.tsx`, que é o componente mais complexo do app.
-      Cobertos: Edit/Delete só no comentário do próprio usuário (o `isOwner`, que já esteve quebrado
-      por `currentUserId` errado), comentário apagado como lápide sem ações, deslogado sem form nem
-      Reply, e erro de carga.
-      **Verificado por mutação:** trocar o `isOwner` por `!!currentUserId` e mostrar a linha de ações
-      em comentário apagado quebram um teste cada.
-      **Um bug real achado pelo quarto teste e corrigido junto:** com a query em erro o componente
-      mostrava "Failed to load comments." **e** "No comments yet." ao mesmo tempo — a mesma mentira
-      ao usuário que o `dashboard.tsx` tinha em 2026-09-07, e a mesma correção (`hasNoComments`
-      nomeado, excluindo `isError`).
+- [~] 34 tests in 6 API files with mocked fetch **+ 4 render tests** *(2026-09-13)*:
+      `src/tests/comment-list.test.tsx` is the first use of `@testing-library/react`/`jsdom`,
+      which were installed and idle. The other 34 components and the 11 routes still have no
+      render test — what is missing now is coverage, not harness.
+      **The harness cost a new `vitest.config.ts`:** with the TanStack Start plugin in the config,
+      React resolves through the `react-server` condition and reaches the test with a null hooks
+      dispatcher — every `render` dies in `useState`. The test config loads only `tsconfigPaths` +
+      `viteReact`. Pattern recorded in `VidroFront/docs/agents/conventions.md` (section "Teste de
+      componente").
+- [x] ~~`channels` and `playlists` features without tests~~ **RESOLVED** *(2026-10-05,
+      `b6c81c9`)* — 32 tests in 4 files (API + components), 12 mutations verified. It found a real
+      bug, fixed in `4df47a8`: `uploadChannelAvatar` did not check the presigned PUT's response
+      and a 403 from storage became a success. **The same unchecked PUT remains in
+      `features/users/api.ts:22` and `features/videos/api.ts:158`.**
+      History: `comments` got the 4 render tests of `CommentList.tsx`, which is the most complex
+      component in the app.
+      Covered: Edit/Delete only on the user's own comment (the `isOwner`, which was once broken by
+      a wrong `currentUserId`), a deleted comment as a tombstone with no actions, logged out with
+      no form nor Reply, and load error.
+      **Verified by mutation:** changing `isOwner` to `!!currentUserId` and showing the actions row
+      on a deleted comment break one test each.
+      **A real bug found by the fourth test and fixed along:** with the query in error, the
+      component showed "Failed to load comments." **and** "No comments yet." at the same time — the
+      same lie to the user `dashboard.tsx` had on 2026-09-07, and the same fix (a named
+      `hasNoComments`, excluding `isError`).
 
-### VidroApi — bom, só limpar
+### VidroApi — good, just clean up
 
-- [ ] Excelente no geral: 294 `[Fact]`/`[Theory]` *(recontado em 2026-09-07; 327 testes
-      rodando, 82 unit + 245 integração)*, 43 arquivos de integração para
-      43 features (≈1:1 por endpoint, com testcontainers). Nada a fazer além de:
-- [x] ~~Deletar `tests/VidroApi.UnitTests/UnitTest1.cs`~~ — template vazio do
-      `dotnet new`, um `[Fact]` de corpo vazio que sempre passa. **RESOLVIDO** *(2026-09-07)*.
-      327 testes continuam passando (82 unit + 245 integração).
+- [ ] Excellent overall: 294 `[Fact]`/`[Theory]` *(recounted on 2026-09-07; 327 tests running,
+      82 unit + 245 integration)*, 43 integration files for 43 features (≈1:1 per endpoint, with
+      testcontainers). Nothing to do beyond:
+- [x] ~~Delete `tests/VidroApi.UnitTests/UnitTest1.cs`~~ — empty `dotnet new` template, a `[Fact]`
+      with an empty body that always passes. **RESOLVED** *(2026-09-07)*.
+      327 tests still pass (82 unit + 245 integration).
 
-### Nos três
+### Across the three
 
-- [ ] Nenhum teste E2E do fluxo que define o produto: upload → processamento → play.
-      Cada repo testa a própria borda; a integração entre eles não é testada.
-- [x] ~~**Nenhum teste de carga HTTP da API.**~~ **RESOLVIDO** *(2026-09-13)* — `loadtest/`, k6
-      rodando em container (nada instalado no host, nenhuma dep nova no repo). Três cenários:
-      `browse` (o polling de `GetVideo` + trending + feed), `createVideo` (a fatia da API num
-      upload — sem bytes de vídeo, que é assunto do P-PERF6) e `signInStorm`.
-      **Primeira medição, contra o compose, banco quase vazio:** `browse` p95 **2,11 ms**,
-      `createVideo` p95 **7,77 ms**, zero falha; `signup` é a rota lenta (p95 100 ms — é o BCrypt).
-      O rate limiter finalmente viu pressão: ~10 `acquired` por minuto (= `AuthPermitLimit`) e o
-      resto 429, **nunca 5xx**, lido em `aspnetcore_rate_limiting_requests_total`.
-      **A primeira versão do script media a coisa errada** — `signInStorm` em `constant-vus` sem
-      pausa gerou 753 mil rejeições a 10k rps e afogou os outros cenários; virou
-      `constant-arrival-rate`. Registrado no `loadtest/README.md` junto com a ressalva que mais
-      importa: **com banco vazio, `trending`/`feed` a 2 ms não provam nada sobre volume real.**
+- [ ] No E2E test of the flow that defines the product: upload → processing → play.
+      Each repo tests its own edge; the integration between them is not tested.
+- [x] ~~**No HTTP load test of the API.**~~ **RESOLVED** *(2026-09-13)* — `loadtest/`, k6 running
+      in a container (nothing installed on the host, no new dep in the repo). Three scenarios:
+      `browse` (the `GetVideo` polling + trending + feed), `createVideo` (the API's slice of an
+      upload — no video bytes, which is P-PERF6's subject) and `signInStorm`.
+      **First measurement, against the compose, nearly empty database:** `browse` p95 **2.11 ms**,
+      `createVideo` p95 **7.77 ms**, zero failures; `signup` is the slow route (p95 100 ms — it is
+      BCrypt). The rate limiter finally saw pressure: ~10 `acquired` per minute
+      (= `AuthPermitLimit`) and the rest 429, **never 5xx**, read from
+      `aspnetcore_rate_limiting_requests_total`.
+      **The first version of the script measured the wrong thing** — `signInStorm` in
+      `constant-vus` with no pause generated 753 thousand rejections at 10k rps and drowned the
+      other scenarios; it became `constant-arrival-rate`. Recorded in `loadtest/README.md` along
+      with the caveat that matters most: **with an empty database, `trending`/`feed` at 2 ms prove
+      nothing about real volume.**
+### Contract between services — unlocked by the monorepo (2026-08-30)
 
-### Contrato entre serviços — destravado pelo monorepo (2026-08-30)
+Both P0s on this list were contract divergences between services. While they were three repos,
+there was nowhere to put the net that would catch them. Now there is. See `docs/MONOREPO.md`,
+section "What the migration unlocks".
 
-Os dois P0 desta lista foram divergência de contrato entre serviços. Enquanto eram três repos,
-não havia onde colocar a rede que os pegaria. Agora há. Ver `docs/MONOREPO.md`, seção "O que a
-migração destrava".
-
-- [~] **Gerar os tipos do front a partir do OpenAPI da API.** *(parcial — ver o bloco no fim do item)*
-      `VidroFront/src/shared/types.ts:64-69` espelha **na mão** seis enums do backend
-      (`VideoStatus`, `VideoVisibility`, `ReactionType`, `PlaylistVisibility`, `PlaylistScope`,
-      `CommentSortOrder`), e as shapes de request/response de cada feature são redigitadas em
+- [~] **Generate the front's types from the API's OpenAPI.** *(partial — see the block at the end
+      of the item)*
+      `VidroFront/src/shared/types.ts:64-69` mirrors six backend enums **by hand** (`VideoStatus`,
+      `VideoVisibility`, `ReactionType`, `PlaylistVisibility`, `PlaylistScope`,
+      `CommentSortOrder`), and each feature's request/response shapes are retyped in
       `features/*/types.ts`.
-      **Conferi os seis: batem com o backend hoje** — cinco contra `VidroApi/src/VidroApi.Domain/Enums/`
-      e `CommentSortOrder` contra `Features/Comments/ListComments.cs:19` *(o enum mudou para
-      `Domain/Enums/CommentSortOrder.cs` em 2026-09-09)*. O problema não é estarem
-      errados, é **nada garantir que continuem certos**: `ReactionType` começa em `1`, não em `0`,
-      e é exatamente o tipo de detalhe que um refactor no backend leva junto sem ninguém notar no
-      front. O P0.1 ("4 rotas erradas no `features-index.md`") foi essa mesma classe de drift, só
-      que em doc.
-      Caminho: `MapOpenApi()` já existe (`VidroApi/src/VidroApi.Api/Program.cs:76`) mas está sob
-      `if (app.Environment.IsDevelopment())` — para gerar em CI, ou sobe a API em Development e
-      busca `/openapi/v1.json`, ou adiciona `Microsoft.Extensions.ApiDescription.Server`, que
-      emite o JSON no build sem subir nada. Daí `openapi-typescript` gera o `.d.ts`, e um job de
-      CI regenera e falha se o diff não for vazio.
-      **Não é drop-in:** a API envelopa tudo em `{ data: T }` e devolve enum como
-      `EnumValue { id, value }` — o tipo gerado descreve o envelope, e o `apiClient` é quem
-      desembrulha. Planejar a camada fina antes de trocar os tipos escritos à mão.
+      **I checked the six: they match the backend today** — five against
+      `VidroApi/src/VidroApi.Domain/Enums/` and `CommentSortOrder` against
+      `Features/Comments/ListComments.cs:19` *(the enum moved to
+      `Domain/Enums/CommentSortOrder.cs` on 2026-09-09)*. The problem is not that they are wrong,
+      it is that **nothing guarantees they stay right**: `ReactionType` starts at `1`, not `0`, and
+      it is exactly the kind of detail a backend refactor takes along without anyone noticing in
+      the front. P0.1 ("4 wrong routes in `features-index.md`") was this same class of drift, only
+      in a doc.
+      Path: `MapOpenApi()` already exists (`VidroApi/src/VidroApi.Api/Program.cs:76`) but is under
+      `if (app.Environment.IsDevelopment())` — to generate in CI, either start the API in
+      Development and fetch `/openapi/v1.json`, or add `Microsoft.Extensions.ApiDescription.Server`,
+      which emits the JSON at build time without starting anything. Then `openapi-typescript`
+      generates the `.d.ts`, and a CI job regenerates and fails if the diff is not empty.
+      **It is not drop-in:** the API wraps everything in `{ data: T }` and returns enums as
+      `EnumValue { id, value }` — the generated type describes the envelope, and the `apiClient`
+      is what unwraps it. Plan the thin layer before swapping the hand-written types.
 
-      > **PARCIALMENTE RESOLVIDO** *(2026-09-09)* — e o achado é que **o item, como estava escrito,
-      > não era alcançável**: montei a geração e o documento não descreve o que interessa.
+      > **PARTIALLY RESOLVED** *(2026-09-09)* — and the finding is that **the item, as written, was
+      > not achievable**: I set up the generation and the document does not describe what matters.
       >
-      > `Microsoft.Extensions.ApiDescription.Server` gera o documento no build, e ele sai assim:
+      > `Microsoft.Extensions.ApiDescription.Server` generates the document at build time, and it
+      > comes out like this:
       >
-      > | | resultado |
+      > | | result |
       > |---|---|
-      > | rotas / métodos / parâmetros | **43 de 43**, corretos |
-      > | operações com schema de **resposta** | **0 de 43** — os handlers devolvem `IResult`, sem `TypedResults`/`.Produces<T>()` |
-      > | schemas de request | 16 operações → **1 schema só**, chamado `Request` (o record aninhado de cada slice colide) |
-      > | os seis enums | `VideoVisibility` e `CommentSortOrder` viram `{"type":"integer"}` **sem valores**; os outros quatro nem aparecem |
+      > | routes / methods / parameters | **43 of 43**, correct |
+      > | operations with a **response** schema | **0 of 43** — the handlers return `IResult`, without `TypedResults`/`.Produces<T>()` |
+      > | request schemas | 16 operations → **a single schema**, named `Request` (each slice's nested record collides) |
+      > | the six enums | `VideoVisibility` and `CommentSortOrder` become `{"type":"integer"}` **without values**; the other four do not even appear |
       >
-      > Gerar `.d.ts` disso hoje **não pegaria o drift que motiva o item**. Então o item virou dois
-      > portões, cada um fechando um drift real:
+      > Generating a `.d.ts` from that today **would not catch the drift that motivates the item**.
+      > So the item became two gates, each closing a real drift:
       >
-      > 1. **`contracts/enums.json`** — golden dos seis enums, mesmo padrão do webhook, lido pelos
-      >    dois lados: `VidroApi/tests/.../Contracts/EnumContractTests.cs` (reflexão; sem container,
-      >    não usa `IClassFixture<ApiFactory>`) e `VidroFront/src/tests/enum-contract.test.ts`.
-      >    Os dois também falham se o golden listar enum que aquele lado não espelha mais.
-      >    **Verificado por mutação:** trocar `"Like": 1` por `0` no golden deixa os dois vermelhos.
-      > 2. **`VidroApi/openapi/v1.json` versionado** + passo no `api.yml` que regenera e falha no
-      >    diff. Trava as 43 rotas — a classe do P0.1 ("4 rotas erradas no `features-index`").
-      >    **Verificado por mutação:** renomear `/v1/feed` para `/v1/feeeed` produz diff.
+      > 1. **`contracts/enums.json`** — golden of the six enums, same pattern as the webhook, read by
+      >    both sides: `VidroApi/tests/.../Contracts/EnumContractTests.cs` (reflection; no
+      >    container, does not use `IClassFixture<ApiFactory>`) and
+      >    `VidroFront/src/tests/enum-contract.test.ts`. Both also fail if the golden lists an enum
+      >    that side no longer mirrors.
+      >    **Verified by mutation:** changing `"Like": 1` to `0` in the golden turns both red.
+      > 2. **Versioned `VidroApi/openapi/v1.json`** + a step in `api.yml` that regenerates and fails
+      >    on diff. It locks the 43 routes — P0.1's class ("4 wrong routes in `features-index`").
+      >    **Verified by mutation:** renaming `/v1/feed` to `/v1/feeeed` produces a diff.
       >
-      > Custos e pegadinhas, todos documentados em `VidroApi/openapi/README.md` e em
-      > **design-decisions #11** da API:
-      > a geração fica atrás de `-p:GenerateOpenApiDocument=true` (boota o host; build de todo dia
-      > não paga isso); precisa de `ASPNETCORE_ENVIRONMENT=Development` porque `AddInfrastructure`
-      > monta o client do MinIO na hora e o endpoint só existe no `appsettings.Development.json`;
-      > e o `Program.cs` **pula a migration** quando o processo é o `GetDocument.Insider`, porque
-      > gerar contrato não pode exigir Postgres de pé.
-      > De quebra: os três workflows passaram a disparar em `contracts/**` — sem isso o golden
-      > (o novo **e** os do webhook, que já estavam nessa situação) podia mudar sem CI nenhum ver.
+      > Costs and gotchas, all documented in `VidroApi/openapi/README.md` and in the API's
+      > **design-decisions #11**:
+      > generation sits behind `-p:GenerateOpenApiDocument=true` (it boots the host; the everyday
+      > build does not pay for it); it needs `ASPNETCORE_ENVIRONMENT=Development` because
+      > `AddInfrastructure` builds the MinIO client on the spot and the endpoint only exists in
+      > `appsettings.Development.json`; and `Program.cs` **skips the migration** when the process is
+      > `GetDocument.Insider`, because generating the contract cannot require Postgres to be up.
+      > Bonus: the three workflows now trigger on `contracts/**` — without that the golden (the new
+      > one **and** the webhook ones, which were already in that situation) could change with no CI
+      > seeing it.
       >
-      > **O que continua aberto** para o item fechar de verdade: a API declarar as respostas
-      > (`TypedResults`/`.Produces<T>()` nas 43 features), schema ID por feature para resolver a
-      > colisão de `Request`, e um transformer para os enums saírem com valores. Só então
-      > `openapi-typescript` + a camada fina do envelope `{ data: T }` fazem sentido.
+      > **What is still open** for the item to really close: the API declaring its responses
+      > (`TypedResults`/`.Produces<T>()` in the 43 features), a schema ID per feature to resolve the
+      > `Request` collision, and a transformer so the enums come out with values. Only then do
+      > `openapi-typescript` + the thin `{ data: T }` envelope layer make sense.
 
-- [x] ~~**Fixture de contrato compartilhada entre Processor e API para o webhook.**~~
-      **RESOLVIDO** *(2026-09-07)*. Quatro golden em `contracts/` (`video-processed-*.json`),
-      lidos pelos dois lados: `VidroProcessor/webhook_contract_test.go` prova que
-      `buildWebhookPayload` serializa **exatamente** aquilo, e `VideoProcessedTests.cs` faz POST
-      assinado do **mesmo arquivo** no endpoint real. Casos: sucesso completo, sucesso sem nenhum
-      artefato opcional e sem bloco de metadata, sucesso sem `processedPath` (→ `Failed`) e falha
-      permanente. O `videoId` é um placeholder que cada lado troca pelo id do seu teste.
-      Os payloads escritos à mão no teste da API foram deletados — os 6 testes que usavam
-      `BuildSuccessPayload` agora exercitam o contrato de verdade.
-      No caminho, `notifyWebhook` teve o mapeamento `JobState` → `Payload` extraído para
-      `buildWebhookPayload` (o resto era envio, não dava para testar sem servidor).
-      **Verificado por mutação dos dois lados:** renomear o `json:` tag de `previewPath` quebra o
-      teste Go; renomear `processedPath` no golden quebra o teste C#.
-      ~~**Falta o resto do contrato, hoje só documentado:** nome da fila
-      (`JobQueueSettings:QueueName` ↔ `PROCESSING_REQUEST_QUEUE`), `callback_url` e
-      `correlation_id` no `JobState`~~, e o layout de paths no MinIO.
-      *(2026-09-13: o `correlation_id` entrou no envelope com teste dos dois lados e verificação na
-      stack — mas cada lado testa o próprio nome de campo, que é exatamente a classe de drift que só
-      um golden pega. Candidato natural a `contracts/job-state.json`.)*
+- [x] ~~**Shared contract fixture between Processor and API for the webhook.**~~
+      **RESOLVED** *(2026-09-07)*. Four goldens in `contracts/` (`video-processed-*.json`), read by
+      both sides: `VidroProcessor/webhook_contract_test.go` proves `buildWebhookPayload` serializes
+      **exactly** that, and `VideoProcessedTests.cs` makes a signed POST of the **same file** to the
+      real endpoint. Cases: full success, success with no optional artifact and no metadata block,
+      success without `processedPath` (→ `Failed`) and permanent failure. The `videoId` is a
+      placeholder each side swaps for its test's id.
+      The hand-written payloads in the API test were deleted — the 6 tests that used
+      `BuildSuccessPayload` now exercise the real contract.
+      Along the way, `notifyWebhook` had its `JobState` → `Payload` mapping extracted into
+      `buildWebhookPayload` (the rest was sending, not testable without a server).
+      **Verified by mutation on both sides:** renaming the `json:` tag of `previewPath` breaks the
+      Go test; renaming `processedPath` in the golden breaks the C# test.
+      ~~**The rest of the contract is missing, only documented today:** queue name
+      (`JobQueueSettings:QueueName` ↔ `PROCESSING_REQUEST_QUEUE`), `callback_url` and
+      `correlation_id` in the `JobState`~~, and the MinIO path layout.
+      *(2026-09-13: `correlation_id` entered the envelope with tests on both sides and verification
+      on the stack — but each side tests its own field name, which is exactly the class of drift
+      only a golden catches. Natural candidate for `contracts/job-state.json`.)*
       **DONE** *(2026-10-12)* — `contracts/job-state.json` pins the queue name, the `job:<id>` key
       and the envelope (`status`, `callback_url`, `correlation_id`, `retry_count`, timestamps).
       API: `RedisJobQueueService.SerializeJobState`/`JobStateKey` extracted so `PublishJobAsync` and
@@ -522,495 +520,536 @@ migração destrava".
       `jobKey` prefix, or the queue in compose or in `.env-example`.
       **Only the MinIO path layout is still discipline.**
 
-### Confiabilidade do fluxo — achados da doc ponta a ponta *(2026-10-05)*
+### Flow reliability — findings from the end-to-end doc *(2026-10-05)*
 
-Achados ao escrever `docs/fluxo-ponta-a-ponta.md`. Os riscos graves foram fechados na onda B (2026-10-05).
+Found while writing `docs/end-to-end-flow.md`. The serious risks were closed in wave B
+(2026-10-05).
 
-**Doc/comentário que mente:**
-- [x] **RESOLVIDO** *(`1eaa603`, fila removida — também fechou o "falha depois do arquivamento")*. ~~**Ninguém consome `video_success_queue`.** O worker publica (`VidroProcessor/queue/client.go`,
-      `PublishSuccessMessage`), nenhum código da API lê. Afirmam o contrário:
+**Doc/comment that lies:**
+- [x] **RESOLVED** *(`1eaa603`, queue removed — also closed the "failure after archiving")*.
+      ~~**Nobody consumes `video_success_queue`.** The worker publishes (`VidroProcessor/queue/client.go`,
+      `PublishSuccessMessage`), no API code reads it. Claiming otherwise:
       `docs/troubleshooting-stuck-video.md:164,192`, `VidroProcessor/docs/agents/architecture.md:39`,
-      `design-decisions.md:113`. Decidir: corrigir as docs ou parar de publicar.~~
-- [x] **RESOLVIDO (doc)** *(`6581924`)*: só `ConsumeMessage`/`AcknowledgeMessage` passam pelo breaker, e a doc agora diz isso; envolver o resto é decisão aberta (bookkeeping não pode parar com breaker aberto). `LRem`/`LPush` do `RecoverStuckJobs` agora checam erro (`96ce073`, `ed9adac`, `2d97407`). Antes: O comentário em `internal/circuitbreaker/circuitbreaker.go:19` diz que o breaker do Redis
-      cobre "job state"; `setJobState` (`queue/job.go`) e o recovery chamam o Redis direto. Idem
-      os `LRem`/`LPush` de `RecoverStuckJobs`, que ainda ignoram o erro — e o `conventions.md` diz
-      que toda chamada Redis passa pelo breaker.
-- [x] **RESOLVIDO** *(2026-10-06)* ~~`docs/observabilidade.md` diz que os logs do worker levam `correlationID`; os de
-      `notifyWebhook` e `RecoverStuckJobs` usam o logger global e saem sem.~~ `JobState.Logger(videoID)`
-      monta o logger com `videoID` + `correlationID` e os dois caminhos passaram a usá-lo (mais o
-      log de rejeição permanente do `webhook.Notify`). Órfão sem `job:` não tem de onde ler o id.
+      `design-decisions.md:113`. Decide: fix the docs or stop publishing.~~
+- [x] **RESOLVED (doc)** *(`6581924`)*: only `ConsumeMessage`/`AcknowledgeMessage` go through the
+      breaker, and the doc now says so; wrapping the rest is an open decision (bookkeeping cannot
+      stop with the breaker open). `RecoverStuckJobs`'s `LRem`/`LPush` now check the error
+      (`96ce073`, `ed9adac`, `2d97407`). Before: the comment in
+      `internal/circuitbreaker/circuitbreaker.go:19` said the Redis breaker covers "job state";
+      `setJobState` (`queue/job.go`) and the recovery call Redis directly. Same for
+      `RecoverStuckJobs`'s `LRem`/`LPush`, which still ignored the error — and `conventions.md`
+      said every Redis call goes through the breaker.
+- [x] **RESOLVED** *(2026-10-06)* ~~`docs/observability.md` says the worker logs carry
+      `correlationID`; the `notifyWebhook` and `RecoverStuckJobs` ones use the global logger and
+      go out without it.~~ `JobState.Logger(videoID)` builds the logger with `videoID` +
+      `correlationID` and both paths now use it (plus the permanent rejection log of
+      `webhook.Notify`). An orphan without `job:` has nowhere to read the id from.
 
-**Riscos de comportamento:**
-- [x] **RESOLVIDO** *(`c6ba3da`: 90 min, pior caso do worker = 80 min travado em `contracts/processing-timeout.json` pelos dois lados; webhook fora de `Processing` agora loga warning. Backlog na fila acima de ~10 min ainda estoura — marcado com `ponytail:`)*. ~~**Timeout de 45 min da API dimensionado para uma tentativa** (`VideoSettings.cs:9-14`). Job
-      que usa os retries passa disso → vídeo vira `Failed` → o webhook de sucesso posterior é
-      descartado em silêncio (200).~~
-- [x] **RESOLVIDO** *(`16172fc`: `SetJobProcessing` devolve `ErrJobStateMissing` e o worker manda para o DLQ sem processar, raw intacto)*. ~~**`job:<id>` expirado ou apagado** → `SetJobProcessing` (`queue/job.go`) recria o estado sem
-      `callback_url` → o vídeo é processado e ninguém é avisado.~~
-- [x] **RESOLVIDO** *(`94147fd`: save → publish → commit numa transação; publish falho faz rollback e o vídeo fica `PendingUpload` para a reconciliação republicar. API design-decisions #14)*. ~~**`MinioUploadCompleted.cs:89-91` publica na fila antes do `SaveChanges`.** Se o save
-      falhar, o job roda e o webhook é ignorado; a reconciliação depois marca `Failed`.~~
-- [x] **RESOLVIDO** junto com a remoção da `video_success_queue` (`1eaa603`): o publish era o único passo crítico depois do arquivamento. Sobra um caso estreito: Redis fora no fechamento do job. ~~**Falha depois do arquivamento do raw não tem retry possível:** se o publish de sucesso
-      falha, `raw/<id>` já foi para `raw-archived/`, todo retry falha no download e o vídeo vira
-      `Failed` com os artefatos no bucket.~~
-- [x] **RESOLVIDO** *(2026-10-06)* ~~**Webhook pode apontar para arquivo inexistente:** `buildJobArtifacts` monta caminho a
-      partir do resultado do pipeline, não do upload; e o total de 5 thumbnails está fixo à parte
-      do `thumbnail.go:22`.~~ Upload opcional que falha zera o campo no resultado antes do
-      `buildJobArtifacts`; o 5 virou `processor_steps.ThumbnailCount`, lido pelo passo e pelo webhook.
-      Travado por `TestProcessNextMessage_FailedOptionalUploadIsNotReported`.
-- [x] **RESOLVIDO** *(2026-10-06)* ~~Órfão esgotado vai para o DLQ **sem webhook** (`queue/client.go`, `RecoverStuckJobs`)~~
-      — `StartRecovery`/`RecoverStuckJobs` recebem um `onDeadLettered` e o `main.go` o liga a
-      `Worker.NotifyDeadLettered` (o mesmo caminho do esgotamento normal). Órfão sem `job:` não tem
-      `callback_url` e segue sem webhook.
-- [x] **RESOLVIDO** *(2026-10-06)* ~~Erro permanente (vídeo inválido, acima do limite) é tentado 4 vezes como se fosse transitório.~~
-      Vídeo que o ffprobe rejeita vira `processor.ErrInvalidVideo` e o worker vai direto ao DLQ com
-      webhook de falha. Timeout do passo e ffprobe ausente continuam transitórios. O "acima do
-      limite" não tem checagem no worker, então não ganhou classificação.
-- [x] **RESOLVIDO** *(`85bd281`, `notEmpty`)*. ~~`WEBHOOK_SECRET` é opcional no worker (`config/config.go:34`) e obrigatório na API: vazio,
-      toda entrega toma 401. Deveria falhar no startup.~~
+**Behavior risks:**
+- [x] **RESOLVED** *(`c6ba3da`: 90 min, worker worst case = 80 min locked in
+      `contracts/processing-timeout.json` by both sides; a webhook outside `Processing` now logs a
+      warning. A queue backlog above ~10 min still blows it — marked with `ponytail:`)*.
+      ~~**The API's 45 min timeout sized for one attempt** (`VideoSettings.cs:9-14`). A job that
+      uses its retries goes past it → the video becomes `Failed` → the later success webhook is
+      silently dropped (200).~~
+- [x] **RESOLVED** *(`16172fc`: `SetJobProcessing` returns `ErrJobStateMissing` and the worker sends
+      it to the DLQ unprocessed, raw intact)*. ~~**`job:<id>` expired or deleted** →
+      `SetJobProcessing` (`queue/job.go`) recreates the state without `callback_url` → the video is
+      processed and nobody is told.~~
+- [x] **RESOLVED** *(`94147fd`: save → publish → commit in a transaction; a failed publish rolls
+      back and the video stays `PendingUpload` for the reconciliation to republish. API
+      design-decisions #14)*. ~~**`MinioUploadCompleted.cs:89-91` publishes to the queue before
+      `SaveChanges`.** If the save fails, the job runs and the webhook is ignored; reconciliation
+      later marks `Failed`.~~
+- [x] **RESOLVED** along with the removal of `video_success_queue` (`1eaa603`): the publish was the
+      only critical step after archiving. One narrow case remains: Redis down when the job closes.
+      ~~**A failure after archiving the raw has no possible retry:** if the success publish fails,
+      `raw/<id>` has already gone to `raw-archived/`, every retry fails on download and the video
+      becomes `Failed` with the artifacts in the bucket.~~
+- [x] **RESOLVED** *(2026-10-06)* ~~**The webhook may point at a file that does not exist:**
+      `buildJobArtifacts` builds the path from the pipeline result, not from the upload; and the
+      total of 5 thumbnails is fixed apart from `thumbnail.go:22`.~~ A failed optional upload zeroes
+      the field in the result before `buildJobArtifacts`; the 5 became
+      `processor_steps.ThumbnailCount`, read by the step and by the webhook.
+      Locked by `TestProcessNextMessage_FailedOptionalUploadIsNotReported`.
+- [x] **RESOLVED** *(2026-10-06)* ~~An exhausted orphan goes to the DLQ **without a webhook**
+      (`queue/client.go`, `RecoverStuckJobs`)~~ — `StartRecovery`/`RecoverStuckJobs` receive an
+      `onDeadLettered` and `main.go` wires it to `Worker.NotifyDeadLettered` (the same path as normal
+      exhaustion). An orphan without `job:` has no `callback_url` and goes on without a webhook.
+- [x] **RESOLVED** *(2026-10-06)* ~~A permanent error (invalid video, over the limit) is tried 4
+      times as if it were transient.~~ A video ffprobe rejects becomes `processor.ErrInvalidVideo`
+      and the worker goes straight to the DLQ with a failure webhook. A step timeout and a missing
+      ffprobe remain transient. "Over the limit" has no check in the worker, so it got no
+      classification.
+- [x] **RESOLVED** *(`85bd281`, `notEmpty`)*. ~~`WEBHOOK_SECRET` is optional in the worker
+      (`config/config.go:34`) and required in the API: empty, every delivery gets a 401. It should
+      fail at startup.~~
 
-**Sujeira no `internal/worker`** (código movido sem mudança em `1e9b466`):
-- [x] **RESOLVIDO** *(2026-10-06)* ~~`Run` gira sem backoff quando `processNextMessage` falha na hora (Redis
-      fora, breaker aberto).~~ Falha de leitura da fila (`errConsume`) pausa 1 s, cortada pelo
-      shutdown; job que falha não pausa. Travado por `TestRun_PausesAfterQueueReadError`.
-- [x] **RESOLVIDO** *(2026-10-06)* ~~`worker.go:117` — `if msg == nil` é inalcançável; `worker.go:129,299` têm chamada inline
-      dentro do `if`~~ — removido e extraído para variáveis nomeadas.
-- [x] **RESOLVIDO** *(2026-10-06)* ~~`architecture.md:64` ainda fala em "5-min hard timeout"~~.
+**Mess in `internal/worker`** (code moved without change in `1e9b466`):
+- [x] **RESOLVED** *(2026-10-06)* ~~`Run` spins without backoff when `processNextMessage` fails
+      immediately (Redis down, breaker open).~~ A queue read failure (`errConsume`) pauses 1 s, cut
+      short by shutdown; a failing job does not pause. Locked by
+      `TestRun_PausesAfterQueueReadError`.
+- [x] **RESOLVED** *(2026-10-06)* ~~`worker.go:117` — `if msg == nil` is unreachable;
+      `worker.go:129,299` have an inline call inside the `if`~~ — removed and extracted into named
+      variables.
+- [x] **RESOLVED** *(2026-10-06)* ~~`architecture.md:64` still talks about a "5-min hard
+      timeout"~~.
 
-**Achados das ondas B e C** *(2026-10-05)* — todos corrigidos; o que sobrou está no fim da lista:
-- [x] **RESOLVIDO** *(`6ab1353`)* `VideoReconciliationService` publicava antes do save em lote — o mesmo
-      bug do `94147fd`; agora salva → publica → commit por vídeo, dentro de transação.
-- [x] **RESOLVIDO** *(`cf24aa3`; requeue `96ce073`)* `queue/job.go` — `SetJobDone`/`SetJobFailed` ainda recriam estado ausente sem `callback_url`;
-      `RecoverStuckJobs` pula job no `:processing` sem estado, que fica lá para sempre;
-      `GetJobState` reporta qualquer erro do Redis como "job not found".
-- [x] **RESOLVIDO** *(`49c4d4d`)* `internal/webhook/webhook.go:76` — o ramo `if secret != ""` ficou inalcançável com o
-      `WEBHOOK_SECRET` obrigatório.
-- [x] **RESOLVIDO** *(`35a1aba`)* `docs/troubleshooting-stuck-video.md:56,87` e `VidroProcessor/docs/GETTING_STARTED.md` falam
-      em 3 tentativas / `retry_count 3`; o real é 4 tentativas e `retry_count` 4.
-- [x] **RESOLVIDO** *(`8ecdefb`)* Front, formulários de vídeo: `.max()` sem mensagem em `EditVideoForm.tsx:32-33` e
-      `UploadVideoForm.tsx:50-51`; descrição sem `trim` em `EditVideoForm.tsx:81` e `?? null` em
-      `UploadVideoForm.tsx:224` (mesmo bug do `2ccf91b`).
-- [x] **RESOLVIDO** *(`8ecdefb`, doc corrigida)* `VidroFront/docs/agents/conventions.md` dizia que os 8 forms usam `FormField` do shadcn; só
-      `SignInForm`/`SignUpForm` usam.
-- [x] **RESOLVIDO** *(`dd1bcf3`)* `uploadVideoFile` não removia o listener de abort do `signal`.
-- [x] **RESOLVIDO** *(`7066c3b`, `c930a66`, `5a78508`, `beb8b1c`, `65a38d6`, `904c9ff`, `c346e34`, `6725b88`, `cd3dca4`, `e262309`, `d8fc3a1`)*
-      Achados da onda C: `signal` já abortado, `<Select>` de canal controlado, resgate de `Processing` por vídeo,
-      resultado morto do handler do webhook, logs "Step N/M", JSON malformado → 400, cancelamento não logado
-      como erro, webhook sem retry em 4xx permanente, `GenerateTestVideo` respeitando a duração, infos do Biome.
-- [x] **RESOLVIDO** *(2026-10-06)* ~~`moveFromProcessing` não desfaz o `LREM` se o `LPUSH` falhar por erro de execução
-      (WRONGTYPE)~~ — o MULTI/EXEC virou um script Lua que faz `LPUSH` e só depois `LREM`; erro no
-      push aborta antes do remove e o job fica no `:processing` para o próximo sweep. Travado por
-      `TestMoveFromProcessing_FailedPushKeepsJobInProcessing` (verificado por mutação: `LREM` primeiro quebra).
-- [ ] **Ainda aberto (decisão):** `AcknowledgeMessage`/`RequeueJob` e as escritas de estado seguem sem breaker.
+**Findings from waves B and C** *(2026-10-05)* — all fixed; what remains is at the end of the list:
+- [x] **RESOLVED** *(`6ab1353`)* `VideoReconciliationService` published before the batch save — the
+      same bug as `94147fd`; now it saves → publishes → commits per video, inside a transaction.
+- [x] **RESOLVED** *(`cf24aa3`; requeue `96ce073`)* `queue/job.go` — `SetJobDone`/`SetJobFailed`
+      still recreated missing state without `callback_url`; `RecoverStuckJobs` skipped a job in
+      `:processing` without state, which stayed there forever; `GetJobState` reported any Redis
+      error as "job not found".
+- [x] **RESOLVED** *(`49c4d4d`)* `internal/webhook/webhook.go:76` — the `if secret != ""` branch
+      became unreachable with `WEBHOOK_SECRET` required.
+- [x] **RESOLVED** *(`35a1aba`)* `docs/troubleshooting-stuck-video.md:56,87` and
+      `VidroProcessor/docs/GETTING_STARTED.md` talked about 3 attempts / `retry_count 3`; the real
+      thing is 4 attempts and `retry_count` 4.
+- [x] **RESOLVED** *(`8ecdefb`)* Front, video forms: `.max()` without a message in
+      `EditVideoForm.tsx:32-33` and `UploadVideoForm.tsx:50-51`; description without `trim` in
+      `EditVideoForm.tsx:81` and `?? null` in `UploadVideoForm.tsx:224` (same bug as `2ccf91b`).
+- [x] **RESOLVED** *(`8ecdefb`, doc fixed)* `VidroFront/docs/agents/conventions.md` said the 8 forms
+      use shadcn's `FormField`; only `SignInForm`/`SignUpForm` do.
+- [x] **RESOLVED** *(`dd1bcf3`)* `uploadVideoFile` did not remove the abort listener from the
+      `signal`.
+- [x] **RESOLVED** *(`7066c3b`, `c930a66`, `5a78508`, `beb8b1c`, `65a38d6`, `904c9ff`, `c346e34`,
+      `6725b88`, `cd3dca4`, `e262309`, `d8fc3a1`)* Wave C findings: an already aborted `signal`,
+      controlled channel `<Select>`, per-video `Processing` rescue, dead result of the webhook
+      handler, "Step N/M" logs, malformed JSON → 400, cancellation not logged as an error, webhook
+      without retry on a permanent 4xx, `GenerateTestVideo` honoring the duration, Biome infos.
+- [x] **RESOLVED** *(2026-10-06)* ~~`moveFromProcessing` does not undo the `LREM` if the `LPUSH`
+      fails with an execution error (WRONGTYPE)~~ — the MULTI/EXEC became a Lua script that does
+      `LPUSH` and only then `LREM`; an error in the push aborts before the remove and the job stays
+      in `:processing` for the next sweep. Locked by
+      `TestMoveFromProcessing_FailedPushKeepsJobInProcessing` (verified by mutation: `LREM` first
+      breaks it).
+- [ ] **Still open (decision):** `AcknowledgeMessage`/`RequeueJob` and the state writes are still
+      without a breaker.
 
 **Front:**
-- [x] **RESOLVIDO** *(`379955e`)*. ~~O mesmo PUT presignado sem checar `ok` em `features/users/api.ts:22` e
-      `features/videos/api.ts:158` (o do avatar de canal foi corrigido em `4df47a8`).~~
-- [x] **RESOLVIDO** *(`2ccf91b`)*. ~~`CreateChannelForm.tsx:53` manda `''` em vez de `null` na descrição vazia (os de edição
-      mandam `null`); `:34` sem mensagem própria no `.max()`.~~
-- [x] **RESOLVIDO** *(`6ec743a`)*. ~~Visibility sem nome acessível: `<Label>` sem `htmlFor` em `CreatePlaylistForm.tsx:108` e
-      `EditPlaylistForm.tsx:99`.~~
+- [x] **RESOLVED** *(`379955e`)*. ~~The same presigned PUT without checking `ok` in
+      `features/users/api.ts:22` and `features/videos/api.ts:158` (the channel avatar one was
+      fixed in `4df47a8`).~~
+- [x] **RESOLVED** *(`2ccf91b`)*. ~~`CreateChannelForm.tsx:53` sends `''` instead of `null` for an
+      empty description (the edit ones send `null`); `:34` without its own message on `.max()`.~~
+- [x] **RESOLVED** *(`6ec743a`)*. ~~Visibility without an accessible name: `<Label>` without
+      `htmlFor` in `CreatePlaylistForm.tsx:108` and `EditPlaylistForm.tsx:99`.~~
 
 ---
 
-## P3 — UI / UX do frontend
+## P3 — Frontend UI / UX
 
-**O que já está bom (não mexer):** estados consistentes — skeletons em 7 telas,
-empty states em 12 lugares com texto próprio, `isPending` tratado em 23 arquivos,
-toasts (`sonner richColors`), forms com react-hook-form + zod, shadcn/ui coerente.
+**What is already good (do not touch):** consistent states — skeletons on 7 screens, empty states
+in 12 places with their own text, `isPending` handled in 23 files, toasts (`sonner richColors`),
+forms with react-hook-form + zod, coherent shadcn/ui.
 
-### Features construídas e desligadas
+### Features built and switched off
 
-- [x] ~~**Busca é uma feature morta de ponta a ponta.**~~ **RESOLVIDO** *(2026-09-07)*.
-      `searchVideos` + `useSearchVideos` (cursor, `SEARCH_LIMIT` 20), `search.tsx` lê a query
-      de `?q=` via `validateSearch` e renderiza o `VideoGrid` com "Load more", e o `Header`
-      ganhou um `<search>` com o campo. **Atenção ao contrato:** `limit` é obrigatório no
-      endpoint (`SearchVideos.cs`, `int limit` sem default) — omitir dá 400.
-- [x] ~~**`src/components/ThemeToggle.tsx` é código morto**~~ **RESOLVIDO** *(2026-09-07)*.
-      Plugado no `Header`. O componente vinha de outro projeto e estilizava com
-      `--chip-bg`/`--chip-line`/`--sea-ink`, que **não existem** no `styles.css` — teria
-      renderizado sem estilo. Refeito com o `Button` do shadcn + ícone (`Sun`/`Moon`/`Monitor`).
-      Fica de dívida o flash claro no primeiro paint (o tema só é aplicado depois da
-      hidratação); resolver exige script inline no `<head>` do `shellComponent`, marcado com
-      `ponytail:` no arquivo.
+- [x] ~~**Search is a dead feature end to end.**~~ **RESOLVED** *(2026-09-07)*.
+      `searchVideos` + `useSearchVideos` (cursor, `SEARCH_LIMIT` 20), `search.tsx` reads the query
+      from `?q=` via `validateSearch` and renders the `VideoGrid` with "Load more", and the `Header`
+      got a `<search>` with the field. **Mind the contract:** `limit` is required on the endpoint
+      (`SearchVideos.cs`, `int limit` with no default) — omitting it gives a 400.
+- [x] ~~**`src/components/ThemeToggle.tsx` is dead code**~~ **RESOLVED** *(2026-09-07)*.
+      Plugged into the `Header`. The component came from another project and styled with
+      `--chip-bg`/`--chip-line`/`--sea-ink`, which **do not exist** in `styles.css` — it would have
+      rendered unstyled. Redone with shadcn's `Button` + icon (`Sun`/`Moon`/`Monitor`).
+      Left as debt: the light flash on first paint (the theme is only applied after hydration);
+      fixing it needs an inline script in the `shellComponent`'s `<head>`, marked with `ponytail:`
+      in the file.
 
-### Acabamento
+### Finishing
 
-- [x] ~~**Header não é responsivo**~~ **RESOLVIDO** *(2026-09-07)*. Só CSS, sem drawer nem
-      componente novo: (a) rótulo de texto vira `sr-only` até **lg** — `sr-only`, não `hidden`,
-      para o nome acessível continuar no leitor de tela — e o `Dashboard`, que era só texto,
-      ganhou ícone (`LayoutDashboard`); (b) abaixo de **sm** a busca sai da primeira linha e
-      ocupa a segunda inteira (`flex-wrap` + `basis-full` + `order-last`), com o header em
-      `min-h-14 py-2` em vez de `h-14`.
-      **Medido no browser** (agent-browser, header autenticado, o caso mais cheio) — a lição do
-      `docs/padroes-a-importar.md` item 17 é exatamente esta, layout quebrado não falha teste de
-      conteúdo:
-      | largura | overflow | altura do header | largura da busca |
+- [x] ~~**The Header is not responsive**~~ **RESOLVED** *(2026-09-07)*. CSS only, no drawer nor
+      new component: (a) the text label becomes `sr-only` up to **lg** — `sr-only`, not `hidden`,
+      so the accessible name stays for the screen reader — and `Dashboard`, which was text only,
+      got an icon (`LayoutDashboard`); (b) below **sm** the search leaves the first row and takes
+      the whole second one (`flex-wrap` + `basis-full` + `order-last`), with the header at
+      `min-h-14 py-2` instead of `h-14`.
+      **Measured in the browser** (agent-browser, authenticated header, the fullest case) — the
+      lesson of `docs/patterns-to-import.md` item 17 is exactly this, a broken layout does not fail
+      a content test:
+      | width | overflow | header height | search width |
       |---|---|---|---|
-      | 320 | não | 89px | 288px |
-      | 375 | não | 89px | 343px |
-      | 640 | não | 57px | 313px |
-      | 1024 | não | 57px | 402px (rótulos aparecem) |
-      | 1280 | não | 57px | 448px |
-      **A primeira tentativa passava e estava errada:** só escondendo rótulo a partir de `sm`
-      não havia overflow em lugar nenhum, mas a busca sobrava com **17px** em 320px e **18px**
-      em 640px — cabia porque o campo era esmagado. É por isso que a asserção é a largura da
-      busca, não só `scrollWidth <= clientWidth`.
-- [x] ~~**`<html lang="pt-BR">` com a UI toda em inglês.**~~ **RESOLVIDO** *(2026-09-13)*.
-      **Decisão do dono do repo: inglês.** `lang="en"` no `__root.tsx` e "Meu Perfil" →
-      "My profile" no Header — eram as duas únicas ocorrências de português na UI (varri
-      `src/**/*.tsx`). As datas já estavam em `en-US`, então nada mais mudou.
-- [x] ~~**SEO é zero.**~~ **RESOLVIDO** *(2026-09-13)*. Helper `seo()`
-      (`src/shared/lib/seo.ts`) monta title + `description` + Open Graph + Twitter card, e as
-      **9 rotas** declaram o seu `head`: home, busca (com o termo), usuário e canal (dos params),
-      playlist e watch (do `loaderData`), e as três privadas com `noIndex`.
-      **O watch é o ponto do item** — é o link que se cola no chat: título do vídeo, descrição e
-      `og:image` da thumbnail, `og:type: video.other`.
-      **A armadilha que decidiu o desenho:** para o `head` ver o dado, o loader tem de devolver
-      algo — mas trocar `prefetchQuery` por `ensureQueryData` faria um vídeo que falhou derrubar a
-      **página** em vez de só a meta tag. O loader devolve o que houver no cache
-      (`queryClient.getQueryData`), e sem dado o `head` cai no default do root.
-      **Verificado rodando** (`bun run dev` + `curl`, SSR de verdade): home, `/search?q=jazz`
-      (com `robots: noindex`), `/alice/music` e `/dashboard` saem com o head certo, e
-      `/watch/<id inexistente>` com a API fora do ar cai no default sem quebrar a página.
-      **Não verificado:** o head do watch com vídeo real — exige a stack de pé com dado semeado.
-      Testes: `src/tests/seo.test.ts` (sufixo do título, card grande só com imagem, `noIndex`).
-      **Fica aberto:** `og:url` não é emitido (não existe URL pública configurada; o crawler cai na
-      URL que buscou) e o `og:image` do watch é presignado do MinIO — **expira**, então card
-      cacheado por tempo demais perde a imagem. Resolver exige artefato público ou proxy.
-- [x] ~~**Nenhum `errorComponent` ou `notFoundComponent` em nenhuma rota.**~~ **RESOLVIDO**
-      *(2026-09-07)*. Em vez de 11 rotas, **um lugar**: `src/router.tsx` registra
-      `defaultErrorComponent` e `defaultNotFoundComponent` (`components/RouteFallback.tsx`), que
-      toda rota herda — uma rota só declara os seus quando consegue fazer melhor. O fallback de
-      erro tem "Try again" (`router.invalidate()`) + link para a home, e mostra `error.message`
-      só em `import.meta.env.DEV`.
-      **Verificado rodando:** `/a/b/c/d` devolve a tela de "Page not found" já no SSR. O
-      fallback de *erro* não dá para conferir por `curl`: um throw no render durante SSR faz o
-      React trocar para render no cliente (`Switched to client rendering because the server
-      rendering errored`), então quem renderiza a tela é o browser.
-      **Achado no caminho:** `/rota-que-nao-existe` **não** é 404 — casa com `/$username`, que
-      renderiza "rota-que-nao-existe's channels". Rota de um segmento sempre vai cair no
-      `$username`; 404 de usuário inexistente é o `isError` daquela rota, não o do router.
-- [x] ~~`index.tsx` (home) e `dashboard.tsx` tratam `isPending` mas não `isError`.~~
-      **RESOLVIDO** *(2026-09-07)*. Home: `FeedSection` e `TrendingSection` com mensagem própria.
-      Dashboard: **era mentira na cara do usuário** — com a query falhando, `isPending` fica
-      falso e `playlists.length === 0`, então aparecia "No personal playlists yet." em vez de
-      erro. Agora `playlistsFailed` tem branch própria e o empty state exige `!playlistsFailed`
-      (via `hasNoPlaylists`/`hasPlaylists`, nomeados em vez de compostos inline).
-- [x] ~~**Devtools vão para produção**~~ **RESOLVIDO** *(2026-09-07)* — `<TanStackDevtools>`
-      agora atrás de `import.meta.env.DEV` em `__root.tsx`.
-- [~] **A11y rasa** — só ~10 arquivos têm qualquer `aria-*`/`alt`/`sr-only`.
-      *(2026-09-07: o Header deixou de ser o pior caso — `SearchBox` e `ThemeToggle` têm
-      `aria-label`, e a busca usa o elemento nativo `<search>`. O resto do app continua raso, e
-      o `<video>` sem `<track>` virou item de P5.)*
-      *(2026-09-13: fechados os controles cujo **ícone era o único significado**.* Os 6 botões de
-      reação (`CommentList`, `ReplyList`, `watch.$videoId`) tinham nome acessível vazio quando o
-      contador era zero — "botão, botão, botão" no leitor de tela — e no `watch` o nome era só o
-      número. Ganharam `sr-only`, o padrão que o Header já usava. As 6 estatísticas do `VideoCard`
-      (views/likes/dislikes) eram número solto: agora leem "12 views".
-      Travado por teste: `comment-list.test.tsx` consulta os botões por nome acessível
-      (`Like`, `Dislike 3`) — **verificado por mutação**, remover um `sr-only` deixa vermelho.
-      *Os botões só-ícone de verdade (`Trash2` em `dashboard`/`PlaylistItemList`, `Pencil`/
-      `ImagePlus` no `VideoCard`) já tinham `aria-label`.*
-      **Continua aberto:** ninguém rodou um audit (axe/Lighthouse) no app; o que foi feito aqui
-      saiu de leitura de código, não de ferramenta.)
+      | 320 | no | 89px | 288px |
+      | 375 | no | 89px | 343px |
+      | 640 | no | 57px | 313px |
+      | 1024 | no | 57px | 402px (labels show) |
+      | 1280 | no | 57px | 448px |
+      **The first attempt passed and was wrong:** just hiding labels from `sm` there was no
+      overflow anywhere, but the search was left with **17px** at 320px and **18px** at 640px — it
+      fit because the field was crushed. That is why the assertion is the search width, not just
+      `scrollWidth <= clientWidth`.
+- [x] ~~**`<html lang="pt-BR">` with the whole UI in English.**~~ **RESOLVED** *(2026-09-13)*.
+      **Repo owner's decision: English.** `lang="en"` in `__root.tsx` and "Meu Perfil" →
+      "My profile" in the Header — they were the only two occurrences of Portuguese in the UI (I
+      swept `src/**/*.tsx`). Dates were already `en-US`, so nothing else changed.
+- [x] ~~**SEO is zero.**~~ **RESOLVED** *(2026-09-13)*. A `seo()` helper
+      (`src/shared/lib/seo.ts`) builds title + `description` + Open Graph + Twitter card, and the
+      **9 routes** declare their `head`: home, search (with the term), user and channel (from the
+      params), playlist and watch (from `loaderData`), and the three private ones with `noIndex`.
+      **Watch is the point of the item** — it is the link that gets pasted in chat: video title,
+      description and the thumbnail's `og:image`, `og:type: video.other`.
+      **The trap that decided the design:** for `head` to see the data, the loader has to return
+      something — but swapping `prefetchQuery` for `ensureQueryData` would make a failed video take
+      down the **page** instead of just the meta tag. The loader returns whatever is in the cache
+      (`queryClient.getQueryData`), and without data `head` falls back to the root default.
+      **Verified running** (`bun run dev` + `curl`, real SSR): home, `/search?q=jazz` (with
+      `robots: noindex`), `/alice/music` and `/dashboard` come out with the right head, and
+      `/watch/<nonexistent id>` with the API down falls back to the default without breaking the
+      page.
+      **Not verified:** the watch head with a real video — it needs the stack up with seeded data.
+      Tests: `src/tests/seo.test.ts` (title suffix, large card only with an image, `noIndex`).
+      **Still open:** `og:url` is not emitted (there is no configured public URL; the crawler falls
+      back to the URL it fetched) and the watch `og:image` is a MinIO presigned URL — **it
+      expires**, so a card cached for too long loses its image. Fixing it needs a public artifact
+      or a proxy.
+- [x] ~~**No `errorComponent` or `notFoundComponent` on any route.**~~ **RESOLVED**
+      *(2026-09-07)*. Instead of 11 routes, **one place**: `src/router.tsx` registers
+      `defaultErrorComponent` and `defaultNotFoundComponent` (`components/RouteFallback.tsx`),
+      which every route inherits — a route only declares its own when it can do better. The error
+      fallback has "Try again" (`router.invalidate()`) + a link home, and shows `error.message`
+      only in `import.meta.env.DEV`.
+      **Verified running:** `/a/b/c/d` returns the "Page not found" screen already in SSR. The
+      *error* fallback cannot be checked with `curl`: a throw in render during SSR makes React
+      switch to client rendering (`Switched to client rendering because the server rendering
+      errored`), so the browser is what renders the screen.
+      **Found along the way:** `/route-that-does-not-exist` is **not** a 404 — it matches
+      `/$username`, which renders "route-that-does-not-exist's channels". A one-segment route will
+      always land on `$username`; a nonexistent user's 404 is that route's `isError`, not the
+      router's.
+- [x] ~~`index.tsx` (home) and `dashboard.tsx` handle `isPending` but not `isError`.~~
+      **RESOLVED** *(2026-09-07)*. Home: `FeedSection` and `TrendingSection` with their own
+      message. Dashboard: **it was lying to the user's face** — with the query failing,
+      `isPending` turns false and `playlists.length === 0`, so it showed "No personal playlists
+      yet." instead of an error. Now `playlistsFailed` has its own branch and the empty state
+      requires `!playlistsFailed` (via `hasNoPlaylists`/`hasPlaylists`, named instead of composed
+      inline).
+- [x] ~~**Devtools ship to production**~~ **RESOLVED** *(2026-09-07)* — `<TanStackDevtools>` now
+      behind `import.meta.env.DEV` in `__root.tsx`.
+- [~] **Shallow a11y** — only ~10 files have any `aria-*`/`alt`/`sr-only`.
+      *(2026-09-07: the Header stopped being the worst case — `SearchBox` and `ThemeToggle` have
+      `aria-label`, and search uses the native `<search>` element. The rest of the app is still
+      shallow, and the `<video>` without `<track>` became a P5 item.)*
+      *(2026-09-13: closed the controls whose **icon was the only meaning**.* The 6 reaction
+      buttons (`CommentList`, `ReplyList`, `watch.$videoId`) had an empty accessible name when the
+      count was zero — "button, button, button" on the screen reader — and in `watch` the name was
+      just the number. They got `sr-only`, the pattern the Header already used. The 6 `VideoCard`
+      stats (views/likes/dislikes) were a loose number: now they read "12 views".
+      Locked by test: `comment-list.test.tsx` queries the buttons by accessible name (`Like`,
+      `Dislike 3`) — **verified by mutation**, removing an `sr-only` turns it red.
+      *The real icon-only buttons (`Trash2` in `dashboard`/`PlaylistItemList`, `Pencil`/
+      `ImagePlus` in `VideoCard`) already had `aria-label`.*
+      **Still open:** nobody has run an audit (axe/Lighthouse) on the app; what was done here came
+      from reading code, not from a tool.)
 
 ---
 
-## P4 — Documentação para humanos
+## P4 — Documentation for humans
 
-- [x] **README na raiz** *(2026-08-30)* — o que é o Vidro, os três serviços, como subir o stack,
-      portas/credenciais, testes, convenções e índice das docs da raiz.
-- [x] ~~**Não existe doc do fluxo ponta a ponta.**~~ **RESOLVIDO** *(2026-10-05, `9fec5e8`)* —
-      [`docs/fluxo-ponta-a-ponta.md`](docs/fluxo-ponta-a-ponta.md): estados, tempos e limites, as 8
-      passagens com payload/idempotência/falha, e "quem conserta o quê". Escrevê-la achou 11
-      divergências e riscos — ver "Confiabilidade do fluxo" no P2.
-      Texto original: não existia doc do fluxo ponta a ponta. Cada serviço documenta a própria caixa;
-      o caminho que importa — upload → presigned PUT → webhook `minio-upload-completed`
-      → fila Redis → pipeline → webhook `video-processed` → HLS no player — atravessa
-      os três. É a coisa mais difícil de reconstruir sozinho.
-      *(2026-08-30: o `README.md` da raiz agora traz esse fluxo em 8 passos + diagrama. Serve de
-      mapa, não substitui a doc — falta shape de cada payload, retries, e o que acontece quando
-      cada handoff falha.)*
-- [x] ~~**`VidroApi/README.md` tem 46 linhas e o quickstart não funciona.**~~ **O item é que estava
-      desatualizado** *(conferido em 2026-09-13)*. O arquivo tem 60 linhas e já cobre stack inteira,
-      API isolada, portas, nota de migration no startup e os comandos de EF — foi corrigido em
-      alguma leva anterior sem riscar o item aqui (a mesma classe do P0.1, agora no TODO).
-      **Verificado rodando**, não lendo: `dotnet run --project src/VidroApi.Api` contra o
-      `postgres`/`redis`/`minio` do compose sobe, `/health` responde `Healthy` e
-      `GET /v1/videos/trending?limit=3` devolve 200.
-- [x] ~~**60% do markdown do projeto é arqueologia.**~~ **RESOLVIDO** *(2026-09-13)*.
-      `VidroApi/docs/plans/` e `VidroFront/docs/plans/` deletados: **5.194 linhas**, 8 arquivos,
-      zero checkbox em aberto nos oito. O histórico continua no git; o que some é o custo de
-      varrer doc de fase concluída em toda tarefa.
-      Ponteiros ajustados na mesma leva (`VidroApi/CLAUDE.md`, `VidroFront/CLAUDE.md`,
-      `design-decisions.md #10`) — doc que aponta para arquivo inexistente é a mesma classe do P0.1.
-      **Duas coisas foram resgatadas antes de apagar**, porque eram futuro e não história:
-      o multipart upload com resume (virou item de P5 aqui embaixo) e as notificações, que já
-      estavam em P5. O resto da seção "Melhorias Futuras" do design da API já tinha sido feito
-      (busca) ou já mentia (`MediatR`, que o repo nunca usou — é o `Mediator` com source generator).
-
----
-
-## P5 — Produto (trabalho maior, mas é o que o usuário sente)
-
-- [ ] **Não existe histórico de exibição.** Há `RegisterVideoView.cs` com dedup por
-      janela, mas nenhuma entidade/endpoint de histórico, e nenhuma rota `/history`,
-      `/liked` ou `/subscriptions` no front. Lacuna mais óbvia para uma plataforma
-      de vídeo.
-- [ ] **Sem notificações** de vídeo novo em canal inscrito. `ChannelFollower` já
-      existe; falta o resto.
-- [ ] **Upload é um PUT presignado só, sem resume.** Um vídeo grande que perde a conexão
-      recomeça do zero. O caminho previsto desde o design da API é a S3 Multipart API com o
-      estado das partes no `localStorage` do cliente; atravessa API (`design-decisions.md #10`)
-      e front. Enquanto o produto não tiver upload grande de verdade, é especulativo.
-- [ ] **Nenhuma legenda/caption em lugar nenhum.** O pipeline não tem step de legenda, a API
-      não tem campo, e o `<video>` do `VideoPlayer.tsx` sai sem `<track>` — hoje suprimido com
-      `biome-ignore lint/a11y/useMediaCaption` **nomeando a lacuna**, não fingindo que não existe.
-      Para quem não ouve, todo vídeo da plataforma é inacessível. Atravessa os três serviços.
+- [x] **Root README** *(2026-08-30)* — what Vidro is, the three services, how to start the stack,
+      ports/credentials, tests, conventions and an index of the root docs.
+- [x] ~~**There is no end-to-end flow doc.**~~ **RESOLVED** *(2026-10-05, `9fec5e8`)* —
+      [`docs/end-to-end-flow.md`](docs/end-to-end-flow.md): states, times and limits, the 8
+      handoffs with payload/idempotency/failure, and "who fixes what". Writing it found 11
+      divergences and risks — see "Flow reliability" in P2.
+      Original text: there was no end-to-end flow doc. Each service documents its own box; the
+      path that matters — upload → presigned PUT → `minio-upload-completed` webhook → Redis queue
+      → pipeline → `video-processed` webhook → HLS in the player — crosses all three. It is the
+      hardest thing to reconstruct alone.
+      *(2026-08-30: the root `README.md` now carries this flow in 8 steps + a diagram. It serves as
+      a map, it does not replace the doc — it lacks each payload's shape, retries, and what happens
+      when each handoff fails.)*
+- [x] ~~**`VidroApi/README.md` has 46 lines and the quickstart does not work.**~~ **The item was
+      what was outdated** *(checked on 2026-09-13)*. The file has 60 lines and already covers the
+      whole stack, the API alone, ports, the migration-on-startup note and the EF commands — it was
+      fixed in some earlier batch without striking the item here (the same class as P0.1, now in
+      the TODO).
+      **Verified running**, not reading: `dotnet run --project src/VidroApi.Api` against the
+      compose's `postgres`/`redis`/`minio` starts, `/health` answers `Healthy` and
+      `GET /v1/videos/trending?limit=3` returns 200.
+- [x] ~~**60% of the project's markdown is archaeology.**~~ **RESOLVED** *(2026-09-13)*.
+      `VidroApi/docs/plans/` and `VidroFront/docs/plans/` deleted: **5,194 lines**, 8 files, zero
+      open checkboxes across the eight. The history stays in git; what goes away is the cost of
+      sweeping completed-phase docs on every task.
+      Pointers adjusted in the same batch (`VidroApi/CLAUDE.md`, `VidroFront/CLAUDE.md`,
+      `design-decisions.md #10`) — a doc pointing at a nonexistent file is the same class as P0.1.
+      **Two things were rescued before deleting**, because they were future and not history:
+      multipart upload with resume (became a P5 item below) and notifications, which were already
+      in P5. The rest of the "Future improvements" section of the API design had already been done
+      (search) or was already lying (`MediatR`, which the repo never used — it is `Mediator` with a
+      source generator).
 
 ---
 
-## P6 — VidroProcessor: performance do pipeline e escalabilidade
+## P5 — Product (bigger work, but it is what the user feels)
 
-Vindo do antigo `VidroProcessor/docs/roadmap.md`, absorvido aqui em 2026-08-30 — era um
-segundo backlog do mesmo worker, sem nenhum item em comum com este arquivo. O que já estava
-concluído lá não foi copiado: quem quer saber o que existe lê
-`VidroProcessor/docs/agents/features-index.md`, que mapeia feature → arquivo.
+- [ ] **There is no watch history.** There is `RegisterVideoView.cs` with dedup per window, but no
+      history entity/endpoint, and no `/history`, `/liked` or `/subscriptions` route in the front.
+      The most obvious gap for a video platform.
+- [ ] **No notifications** of a new video on a subscribed channel. `ChannelFollower` already
+      exists; the rest is missing.
+- [ ] **Upload is a single presigned PUT, without resume.** A large video that loses the connection
+      starts over from zero. The path planned since the API design is the S3 Multipart API with
+      the parts' state in the client's `localStorage`; it crosses the API
+      (`design-decisions.md #10`) and the front. Until the product has really large uploads, it is
+      speculative.
+- [ ] **No subtitles/captions anywhere.** The pipeline has no subtitle step, the API has no field,
+      and the `<video>` in `VideoPlayer.tsx` goes out without a `<track>` — suppressed today with
+      `biome-ignore lint/a11y/useMediaCaption` **naming the gap**, not pretending it does not
+      exist. For anyone who cannot hear, every video on the platform is inaccessible. It crosses
+      all three services.
 
-**Estado em 2026-09-03:** P-PERF1 a P-PERF4 estão **implementados no código** e estavam
-marcados `[ ]` aqui — mesma classe de drift do P0.1 ("documentação que mente"), agora do lado
-do TODO. Corrigidos abaixo com `arquivo:linha`. **O ganho nunca foi medido:** a meta de
-"~2–3 min" não tem antes/depois, mas o P-PERF6 com vídeo real *(2026-10-08)* a torna plausível:
-~26 s por job para 55 s de 1080p, ~2 min extrapolando para 500 MB.
+---
 
-**Custo original:** um vídeo de ~500 MB / 1080p levava vários minutos.
+## P6 — VidroProcessor: pipeline performance and scalability
 
-### 🔴 Prioridade alta
+Coming from the old `VidroProcessor/docs/roadmap.md`, absorbed here on 2026-08-30 — it was a
+second backlog of the same worker, with no item in common with this file. What was already done
+there was not copied: whoever wants to know what exists reads
+`VidroProcessor/docs/agents/features-index.md`, which maps feature → file.
 
-- [x] ~~**P-PERF5: `WORKER_COUNT` × passos paralelos oversubscreve a CPU.**~~ **RESOLVIDO**
-      *(2026-09-07)*. `processor.DefaultWorkerCount(numCPU, parallelSteps, maxParallelSteps)`
-      = `numCPU / processos FFmpeg por job`, piso 1; `workerCount(cfg)` no `main.go` (mesmo
-      padrão de `jobTimeout`/`JobBudget`). Num host de 8 cores: **2 workers** em vez de 8, e
-      ~8 FFmpeg simultâneos em vez de até 32. Desligar `PARALLEL_NON_CRITICAL_STEPS` ou baixar
-      `MAX_PARALLEL_POST_TRANSCODE_STEPS` para 1 devolve 1 worker por core sozinho — nenhum
-      knob novo. `WORKER_COUNT > 0` continua mandando.
-      O clamp `[1,4]` que estava inline em `runNonCriticalStepsParallel` virou
-      `clampParallelSteps`, compartilhado com o default: teste que copia a condição não pega
-      drift (mesma lição dos testes de `queue/`).
-      Docs reescritas: decisão **#9** (título, âncora e índice), `config.md:41`,
+**State on 2026-09-03:** P-PERF1 to P-PERF4 are **implemented in the code** and were marked `[ ]`
+here — the same class of drift as P0.1 ("docs that lie"), now on the TODO side. Fixed below with
+`file:line`. **The gain was never measured:** the "~2–3 min" goal has no before/after, but P-PERF6
+with a real video *(2026-10-08)* makes it plausible: ~26 s per job for 55 s of 1080p, ~2 min
+extrapolating to 500 MB.
+
+**Original cost:** a ~500 MB / 1080p video took several minutes.
+
+### 🔴 High priority
+
+- [x] ~~**P-PERF5: `WORKER_COUNT` × parallel steps oversubscribes the CPU.**~~ **RESOLVED**
+      *(2026-09-07)*. `processor.DefaultWorkerCount(numCPU, parallelSteps, maxParallelSteps)` =
+      `numCPU / FFmpeg processes per job`, floor 1; `workerCount(cfg)` in `main.go` (same pattern
+      as `jobTimeout`/`JobBudget`). On an 8-core host: **2 workers** instead of 8, and ~8
+      simultaneous FFmpeg instead of up to 32. Turning off `PARALLEL_NON_CRITICAL_STEPS` or
+      lowering `MAX_PARALLEL_POST_TRANSCODE_STEPS` to 1 gives back 1 worker per core by itself — no
+      new knob. `WORKER_COUNT > 0` still wins.
+      The `[1,4]` clamp that was inline in `runNonCriticalStepsParallel` became
+      `clampParallelSteps`, shared with the default: a test that copies the condition does not
+      catch drift (the same lesson as the `queue/` tests).
+      Docs rewritten: decision **#9** (title, anchor and index), `config.md:41`,
       `architecture.md:27`, `features-index.md:9`, `GETTING_STARTED.md:213`.
-      Testes: `internal/processor/workers_test.go` — a invariante é
-      `workers × passos paralelos ≤ cores`. **Verificado por mutação:** trocar
-      `processesPerJob` por `1` quebra 2 dos 4 testes.
-      **Medido** *(2026-10-06)*: ver P-PERF6 — o joelho da curva é em 2 workers, igual ao default.
-      Com vídeo real *(2026-10-08)* a curva é plana: 2 workers não ganham nem perdem.
+      Tests: `internal/processor/workers_test.go` — the invariant is
+      `workers × parallel steps ≤ cores`. **Verified by mutation:** changing `processesPerJob` to
+      `1` breaks 2 of the 4 tests.
+      **Measured** *(2026-10-06)*: see P-PERF6 — the knee of the curve is at 2 workers, same as the
+      default. With a real video *(2026-10-08)* the curve is flat: 2 workers neither gain nor lose.
 
-### 🟡 Prioridade média
+### 🟡 Medium priority
 
-- [x] **RESOLVIDO** *(`98600b7`)* flags `ENABLE_THUMBNAILS/AUDIO/PREVIEW/STREAMING` (padrão ligado), contrato
-      já aceitava artefatos omitidos; `JobBudget` segue o valor com tudo ligado. ~~**P-OPT1: tornar os passos não-críticos opcionais.** Passos 4–7 não são necessários
-      para toda superfície do produto: hoje o front toca o **MP4 processado** + thumbnails —
-      `GetVideo` monta `videoUrl` a partir de `ProcessedPath` e nunca expõe `hlsPath`.
-      Config (flags de env) para **pular** qualquer combinação reduz tempo de FFmpeg e escrita
-      no MinIO. Caminho crítico: validate → analyze → transcode → upload.~~
-      **Coordenação com a API:** payload do webhook / `VideoArtifacts` precisa aceitar caminhos
-      omitidos onde já são nullable (`HlsPath`), e o handler `VideoProcessed` + cleanup precisam
-      tolerar artefato opcional faltando.
+- [x] **RESOLVED** *(`98600b7`)* `ENABLE_THUMBNAILS/AUDIO/PREVIEW/STREAMING` flags (on by default),
+      the contract already accepted omitted artifacts; `JobBudget` keeps the value with everything
+      on. ~~**P-OPT1: make the non-critical steps optional.** Steps 4–7 are not needed for every
+      product surface: today the front plays the **processed MP4** + thumbnails — `GetVideo`
+      builds `videoUrl` from `ProcessedPath` and never exposes `hlsPath`.
+      Config (env flags) to **skip** any combination reduces FFmpeg time and MinIO writes. Critical
+      path: validate → analyze → transcode → upload.~~
+      **Coordination with the API:** the webhook payload / `VideoArtifacts` must accept omitted
+      paths where they are already nullable (`HlsPath`), and the `VideoProcessed` handler + cleanup
+      must tolerate a missing optional artifact.
 
-      > ⚠️ **Não leia isso como "HLS é código morto".**
-      > `VidroFront/src/features/videos/components/VideoPlayer.tsx` já detecta `.m3u8` e toca via
-      > `hls.js`; o player está ligado, só falta o campo na API. HLS está a uma mudança de
-      > `GetVideo` de virar o caminho principal de reprodução — coloque o passo atrás de uma
-      > flag, não apague.
+      > ⚠️ **Do not read this as "HLS is dead code".**
+      > `VidroFront/src/features/videos/components/VideoPlayer.tsx` already detects `.m3u8` and
+      > plays it via `hls.js`; the player is wired, only the API field is missing. HLS is one
+      > `GetVideo` change away from becoming the main playback path — put the step behind a flag,
+      > do not delete it.
 
-### 🟢 Prioridade baixa
+### 🟢 Low priority
 
-- [x] **P-PERF6 — benchmark feito** *(2026-10-05; vídeo real em 2026-10-08)*. `internal/processor/pipeline_bench_test.go`
-      (`go test ./internal/processor -run '^$' -bench . -benchtime 3x -count 3`; tabela e como rodar em
-      `VidroProcessor/docs/TESTING.md`). Clipe sintético de 10 s, 8 cores/16 threads, ffmpeg 9.0.2:
-      transcode 0,45 s; passos 4–7 sequencial 1,48 s, paralelo max=1 1,47 s, max=2 1,00 s, max=4 0,97 s;
-      `ProcessVideo` com tudo ligado 1,47 s contra 0,50 s com `ENABLE_*` desligados.
-      **Confirma:** P-PERF3 (~1,5× com paralelo; quase todo o ganho já em max=2) e P-OPT1 (−66%).
-      **Não confirma:** P-PERF1/2 (sem antes/depois, já são o código), nem o "~2–3 min" — 10 s
-      sintéticos não são 500 MB reais.
-      **Segunda metade** *(2026-10-06)*: `BenchmarkConcurrentJobs` (lote de 8 jobs, 1/2/4/8 workers):
-      11,7 s → 9,8 s → 9,5 s → 9,4 s. **Confirma P-PERF5:** o joelho é em 2 workers, que é o
-      `DefaultWorkerCount` neste host; mais que isso não rende.
-      **Vídeo real** *(2026-10-08)*, `BENCH_VIDEO` com 55 s de 1080p30 HEVC (100 MB), `-count 1`:
-      205 s → 202 s → 207 s → 207 s — **plano**, diferença dentro do ruído. ~26 s por job: um job só já
-      satura os 16 threads, então o worker extra não rende nem atrapalha (o ganho no sintético era
-      startup de processo). Extrapolando por duração, 500 MB do mesmo bitrate ≈ 2 min: o "~2–3 min"
-      do P-PERF1–4 fica plausível, ainda sem antes/depois.
+- [x] **P-PERF6 — benchmark done** *(2026-10-05; real video on 2026-10-08)*.
+      `internal/processor/pipeline_bench_test.go`
+      (`go test ./internal/processor -run '^$' -bench . -benchtime 3x -count 3`; table and how to
+      run it in `VidroProcessor/docs/TESTING.md`). Synthetic 10 s clip, 8 cores/16 threads, ffmpeg
+      9.0.2: transcode 0.45 s; steps 4–7 sequential 1.48 s, parallel max=1 1.47 s, max=2 1.00 s,
+      max=4 0.97 s; `ProcessVideo` with everything on 1.47 s against 0.50 s with `ENABLE_*` off.
+      **Confirms:** P-PERF3 (~1.5× with parallel; almost all the gain already at max=2) and P-OPT1
+      (−66%).
+      **Does not confirm:** P-PERF1/2 (no before/after, they already are the code), nor the
+      "~2–3 min" — 10 synthetic seconds are not 500 real MB.
+      **Second half** *(2026-10-06)*: `BenchmarkConcurrentJobs` (batch of 8 jobs, 1/2/4/8 workers):
+      11.7 s → 9.8 s → 9.5 s → 9.4 s. **Confirms P-PERF5:** the knee is at 2 workers, which is the
+      `DefaultWorkerCount` on this host; more than that does not pay off.
+      **Real video** *(2026-10-08)*, `BENCH_VIDEO` with 55 s of 1080p30 HEVC (100 MB), `-count 1`:
+      205 s → 202 s → 207 s → 207 s — **flat**, difference within the noise. ~26 s per job: a single
+      job already saturates the 16 threads, so the extra worker neither helps nor hurts (the gain
+      in the synthetic one was process startup). Extrapolating by duration, 500 MB at the same
+      bitrate ≈ 2 min: P-PERF1–4's "~2–3 min" becomes plausible, still without before/after.
 
-### ~~Concluído~~ ✅ — P-PERF1 a P-PERF4 *(marcados em 2026-09-03; código já estava lá)*
+### ~~Done~~ ✅ — P-PERF1 to P-PERF4 *(marked on 2026-09-03; the code was already there)*
 
-- [x] ~~**P-PERF1: HLS em comando único (maior impacto).**~~ `segmentForStreamingSingleCommand`
-      (`internal/processor/processor-steps/streaming.go:114`) monta uma invocação só, com
-      `-filter_complex` (`:134`) e um `-map` por variante — FFmpeg lê o input uma vez. O loop
-      sequencial sobreviveu de propósito, como fallback (`:100`).
-- [x] ~~**P-PERF2: preset de transcode `medium` → `fast`.**~~ `transcode.go:32` usa
-      `-preset fast`, CRF inalterado. O caminho NVENC usa o preset de `NVENC_PRESET`
-      (default `p5`).
-- [x] ~~**P-PERF3: paralelizar os passos não-críticos 4–7.**~~ `runNonCriticalStepsParallel`
-      (`internal/processor/processor.go:195`): semáforo dimensionado por
-      `MaxParallelPostTranscodeSteps`, `sync.WaitGroup` e mutex no `result`. **Não** usa
-      `errgroup` como o item previa — passo não-crítico que falha não pode cancelar os irmãos,
-      que é exatamente a política que o `errgroup` aplicaria.
-- [x] ~~**P-PERF4: guard rails para o pipeline otimizado.**~~ Os quatro no lugar: teto de
-      FFmpeg paralelos por job (`processor.go:197-203`, com clamp em `[1,4]` — passar mais que
-      4 é silenciosamente ignorado, e 4 é o número de passos); métrica por passo preservada
-      (`processor.go:276`, `metrics.ProcessingStepDuration`); fallback do HLS de comando único
-      para o sequencial (`streaming.go:86-97`, atrás de `HLS_SINGLE_COMMAND_FALLBACK`); e as
-      quatro flags de env em `config/config.go:41-44`, documentadas em
-      `docs/agents/config.md:48-51`.
+- [x] ~~**P-PERF1: HLS in a single command (biggest impact).**~~
+      `segmentForStreamingSingleCommand` (`internal/processor/processor-steps/streaming.go:114`)
+      builds a single invocation, with `-filter_complex` (`:134`) and one `-map` per variant —
+      FFmpeg reads the input once. The sequential loop survived on purpose, as a fallback
+      (`:100`).
+- [x] ~~**P-PERF2: transcode preset `medium` → `fast`.**~~ `transcode.go:32` uses `-preset fast`,
+      CRF unchanged. The NVENC path uses the preset from `NVENC_PRESET` (default `p5`).
+- [x] ~~**P-PERF3: parallelize the non-critical steps 4–7.**~~ `runNonCriticalStepsParallel`
+      (`internal/processor/processor.go:195`): a semaphore sized by
+      `MaxParallelPostTranscodeSteps`, `sync.WaitGroup` and a mutex on `result`. It does **not**
+      use `errgroup` as the item planned — a failing non-critical step must not cancel its
+      siblings, which is exactly the policy `errgroup` would apply.
+- [x] ~~**P-PERF4: guard rails for the optimized pipeline.**~~ All four in place: a cap on
+      parallel FFmpeg per job (`processor.go:197-203`, clamped to `[1,4]` — passing more than 4 is
+      silently ignored, and 4 is the number of steps); per-step metric preserved
+      (`processor.go:276`, `metrics.ProcessingStepDuration`); fallback from single-command HLS to
+      sequential (`streaming.go:86-97`, behind `HLS_SINGLE_COMMAND_FALLBACK`); and the four env
+      flags in `config/config.go:41-44`, documented in `docs/agents/config.md:48-51`.
 
-      > O teto do P-PERF4 protege contra pico de CPU/RAM **dentro de um job**. Ele não vê os
-      > outros workers do mesmo host — é essa lacuna que o P-PERF5 fecha.
+      > P-PERF4's cap protects against a CPU/RAM spike **within a job**. It does not see the other
+      > workers on the same host — that is the gap P-PERF5 closes.
 
-**Longo prazo — escalabilidade:**
+**Long term — scalability:**
 
-- [ ] **Auto-scaling:** subir workers conforme o tamanho da fila.
-- [ ] **Escala horizontal:** várias instâncias do worker em máquinas diferentes.
-      É o que faria a matriz de perfis de hardware descartada no P-PERF6 passar a fazer
-      sentido: com uma máquina só, não faz.
-- [ ] **Prioridade na fila:** vídeos curtos primeiro, longos em fila separada.
+- [ ] **Auto-scaling:** add workers according to the queue size.
+- [ ] **Horizontal scaling:** several worker instances on different machines.
+      It is what would make the hardware profile matrix discarded in P-PERF6 start to make sense:
+      with a single machine, it does not.
+- [ ] **Queue priority:** short videos first, long ones in a separate queue.
 
 ---
 
-## Sujeira pequena
+## Small mess
 
-- [x] ~~**Limpar o que o `biome check` acusa no `VidroFront`**~~ **RESOLVIDO** *(2026-09-07)*.
-      Zero erros; `bun run lint` (`biome ci`) roda no `.github/workflows/front.yml`.
-      **Custou uma decisão de convenção.** Dos 109 erros, **72 eram "arquivo precisa de
-      formatação"**, e o formatter do Biome **colapsa ternário curto em uma linha**, contra a
-      regra do `CLAUDE.md` da raiz que valia para os três serviços — sem opção no Biome para
-      preservar. Resolvido **relaxando a regra**: ternário curto passou a caber em uma linha
-      nos três serviços, e o formatter ficou ligado com a config alinhada ao código
-      (2 espaços, aspas simples, sem ponto e vírgula). 62 arquivos reformatados num commit
-      mecânico, mais 33 de ordem de import e `useImportType`.
-      Os 8 de mão: os 3 `noArrayIndexKey` eram `biome-ignore` **mal posicionado** (a suppression
-      vale só para a linha seguinte e o `key={i}` caía duas abaixo); os 3
-      `useExhaustiveDependencies` estavam "suprimidos" por um `// eslint-disable-next-line` —
-      **comentário morto, este repo não usa ESLint** — e viraram dependência honesta
-      (`loadedVideoId` no corpo do efeito, porque navegar entre vídeos reusa a rota em vez de
-      remontar); 1 `noStaticElementInteractions` é falso positivo (preview decorativo no hover,
-      o card já é `Link` focável) e 1 `useMediaCaption` é **lacuna real**, ver P5.
-      Sobram 11 `noNonNullAssertion` e 7 infos, todos **warning** — não quebram o CI. Cada `!`
-      continua sendo um crash em potencial (mesma classe do BUG-1); fica como item próprio.
-      **Duas armadilhas do Biome que custaram tempo e estão documentadas no `CLAUDE.md` do
-      front:** comentário `//` no `biome.json` quebra a config **em silêncio** (cai no default
-      e passa a lintar `dist/`: 83 → 148 arquivos), e `biome-ignore` com motivo em duas linhas
-      vira "unused suppression" sem aplicar a regra.
+- [x] ~~**Clean up what `biome check` reports in `VidroFront`**~~ **RESOLVED** *(2026-09-07)*.
+      Zero errors; `bun run lint` (`biome ci`) runs in `.github/workflows/front.yml`.
+      **It cost a convention decision.** Of the 109 errors, **72 were "file needs formatting"**,
+      and the Biome formatter **collapses a short ternary onto one line**, against the root
+      `CLAUDE.md` rule that applied to all three services — with no Biome option to preserve it.
+      Resolved by **relaxing the rule**: a short ternary may now fit on one line in all three
+      services, and the formatter stayed on with the config aligned to the code (2 spaces, single
+      quotes, no semicolons). 62 files reformatted in a mechanical commit, plus 33 for import order
+      and `useImportType`.
+      The 8 by hand: the 3 `noArrayIndexKey` were a **misplaced** `biome-ignore` (the suppression
+      only applies to the next line and the `key={i}` fell two lines below); the 3
+      `useExhaustiveDependencies` were "suppressed" by an `// eslint-disable-next-line` — **a dead
+      comment, this repo does not use ESLint** — and became an honest dependency (`loadedVideoId`
+      in the effect body, because navigating between videos reuses the route instead of
+      remounting); 1 `noStaticElementInteractions` is a false positive (decorative preview on
+      hover, the card is already a focusable `Link`) and 1 `useMediaCaption` is a **real gap**, see
+      P5.
+      11 `noNonNullAssertion` and 7 infos remain, all **warnings** — they do not break CI. Each `!`
+      is still a potential crash (same class as BUG-1); it stays as its own item.
+      **Two Biome traps that cost time and are documented in the front's `CLAUDE.md`:** a `//`
+      comment in `biome.json` breaks the config **silently** (it falls back to the default and
+      starts linting `dist/`: 83 → 148 files), and a `biome-ignore` with a two-line reason becomes
+      an "unused suppression" without applying the rule.
 
-- [x] ~~**`noUncheckedIndexedAccess` desligado no front**~~ **RESOLVIDO** *(2026-09-07)*.
-      Ligado no `tsconfig.json`. **Custou 4 correções, todas em teste** — o código de produção
-      passou limpo de primeira porque já tratava índice com `?? undefined`/`?.`
-      (`video.thumbnailUrls[0] ?? undefined`). Os 4 eram `mockFetch.mock.calls[0]`
-      destruturado direto; viraram guard com mensagem própria em vez de `!`, que o `biome`
-      acusaria. Verificado que a flag morde de fato (um `const first: string = items[0]`
-      temporário quebra o build). Regra escrita em
-      `VidroFront/docs/agents/conventions.md`.
+- [x] ~~**`noUncheckedIndexedAccess` off in the front**~~ **RESOLVED** *(2026-09-07)*.
+      Enabled in `tsconfig.json`. **It cost 4 fixes, all in tests** — the production code passed
+      clean on the first try because it already handled indexing with `?? undefined`/`?.`
+      (`video.thumbnailUrls[0] ?? undefined`). The 4 were `mockFetch.mock.calls[0]` destructured
+      directly; they became a guard with its own message instead of `!`, which `biome` would
+      report. Verified that the flag really bites (a temporary `const first: string = items[0]`
+      breaks the build). Rule written in `VidroFront/docs/agents/conventions.md`.
 
-- [x] ~~**Os 11 `noNonNullAssertion` que sobraram no front.**~~ **RESOLVIDO** *(2026-09-13)*.
-      Zero `noNonNullAssertion` no `biome check`. Os 9 de `queryFn` viraram `skipToken` — o
-      `enabled: !!x` saiu junto, porque `skipToken` já deixa a query no mesmo estado, e agora é o
-      **tipo** que garante o parâmetro em vez de uma promessa ao compilador. Regra registrada em
-      `VidroFront/docs/agents/conventions.md`.
-      Os 2 de `CommentList`/`ReplyList` eram outra coisa: `content` é `string | null` de verdade
-      no contrato (comentário apagado), e o `!` estava num ramo que **não** é o de `isDeleted` —
-      viraram `?? ''`.
-      34 testes passando, `typecheck` e `build` limpos.
+- [x] ~~**The 11 `noNonNullAssertion` left in the front.**~~ **RESOLVED** *(2026-09-13)*.
+      Zero `noNonNullAssertion` in `biome check`. The 9 in `queryFn` became `skipToken` — the
+      `enabled: !!x` went with them, because `skipToken` already leaves the query in the same
+      state, and now it is the **type** that guarantees the parameter instead of a promise to the
+      compiler. Rule recorded in `VidroFront/docs/agents/conventions.md`.
+      The 2 in `CommentList`/`ReplyList` were something else: `content` really is
+      `string | null` in the contract (deleted comment), and the `!` was in a branch that is
+      **not** the `isDeleted` one — they became `?? ''`.
+      34 tests passing, `typecheck` and `build` clean.
 
-- [x] ~~**Nada rodava `tsc --noEmit` no front** — nem script, nem CI.~~ **RESOLVIDO**
-      *(2026-09-07)*. `"typecheck": "tsc --noEmit"` no `package.json` + passo **Typecheck** no
-      `.github/workflows/front.yml`, antes do test.
-      **A doc subestimava:** `docs/padroes-a-importar.md` (item 15) dizia "uma linha cada" —
-      o compilador acusava **23 erros pré-existentes** em 11 arquivos, todos zerados junto:
-      8 de símbolo não usado, 5 de `ReactionType` (const, não tipo) usado como tipo — daí o
-      novo `ReactionTypeValue` em `shared/types.ts` —, 6 de generics de `react-hook-form`
-      (`z.coerce.number()` produz input `unknown` no zod 4; virou `z.number()`, já que os
-      dois `setValue` afetados já convertiam com `Number()`), 2 de narrowing que não
-      sobrevive dentro de closure em `watch.$videoId.tsx`, e 1 **bug real**:
-      `currentUserId={currentUser?.id}` — `UserProfile` tem `userId`, não `id`, então o
-      `isOwner` do `CommentList` era sempre falso e ninguém via os botões de editar/apagar
-      no próprio comentário. Era exatamente o tipo de erro que o portão existe para pegar.
+- [x] ~~**Nothing ran `tsc --noEmit` in the front** — neither a script nor CI.~~ **RESOLVED**
+      *(2026-09-07)*. `"typecheck": "tsc --noEmit"` in `package.json` + a **Typecheck** step in
+      `.github/workflows/front.yml`, before test.
+      **The doc underestimated it:** `docs/patterns-to-import.md` (item 15) said "one line each" —
+      the compiler reported **23 pre-existing errors** in 11 files, all zeroed along: 8 unused
+      symbols, 5 of `ReactionType` (a const, not a type) used as a type — hence the new
+      `ReactionTypeValue` in `shared/types.ts` —, 6 of `react-hook-form` generics
+      (`z.coerce.number()` produces an `unknown` input in zod 4; it became `z.number()`, since the
+      two affected `setValue` calls already converted with `Number()`), 2 of narrowing that does
+      not survive inside a closure in `watch.$videoId.tsx`, and 1 **real bug**:
+      `currentUserId={currentUser?.id}` — `UserProfile` has `userId`, not `id`, so
+      `CommentList`'s `isOwner` was always false and nobody saw the edit/delete buttons on their
+      own comment. It was exactly the kind of error the gate exists to catch.
 
-- [x] ~~**Nenhum linter no `VidroProcessor`**~~ **RESOLVIDO** *(2026-09-07)*. `.golangci.yml`
-      com 15 linters, cada um sendo uma regra que já estava escrita em prosa no
-      `conventions.md`: `errorlint` (`%w`), `nilerr`, `forbidigo` (`os.Getenv` só no
-      `config/config.go`, `time.Now` fora dos passos), `depguard` (zerolog no worker; passo de
-      pipeline não importa MinIO/Redis), `godox` (FIXME/HACK/XXX barrados, **TODO liberado**),
-      `noctx`, `bodyclose`, `nolintlint` + os baratos. Formatters `gofumpt` + `goimports`.
-      O passo **Lint** do `processor.yml` substituiu os passos de `gofmt` e `go vet`.
-      **Custou 74 achados**, todos zerados. Os que eram bug de verdade e não estilo:
-      - `queue/client.go` fazia `result.(*Message)` sem checar — asserção crua no retorno
-        `any` do circuit breaker, ou seja, panic no worker se o tipo mudasse.
-      - 5 `fmt.Errorf(... %v, err)` em `main.go` quebravam o `errors.Is` de quem chamasse, e
-        um `err != context.Canceled` no loop do worker falharia com erro embrulhado.
-      - `streaming.go:258` descartava a saída da primeira tentativa NVENC (`ineffassign`).
-      - `main.go` engolia o erro de `shutdownTracing` no `defer`; agora loga.
-      O resto foi mecânico: 16 de formatação, 13 `//nolint:errcheck` que ficaram redundantes
-      em teste, 5 `intrange`, `os.Remove`/`w.Write` com `_ =` explícito, `exec.Command` →
-      `CommandContext(t.Context())` no helper de teste e `http.NewRequestWithContext` no
-      webhook (com o motivo de ser `context.Background()` escrito no código).
-      Único `//nolint` novo: `BRPopLPush` (SA1019), que é decisão documentada (#1).
+- [x] ~~**No linter in `VidroProcessor`**~~ **RESOLVED** *(2026-09-07)*. `.golangci.yml` with 15
+      linters, each one a rule already written in prose in `conventions.md`: `errorlint` (`%w`),
+      `nilerr`, `forbidigo` (`os.Getenv` only in `config/config.go`, `time.Now` outside the steps),
+      `depguard` (zerolog in the worker; a pipeline step does not import MinIO/Redis), `godox`
+      (FIXME/HACK/XXX banned, **TODO allowed**), `noctx`, `bodyclose`, `nolintlint` + the cheap
+      ones. Formatters `gofumpt` + `goimports`.
+      The **Lint** step in `processor.yml` replaced the `gofmt` and `go vet` steps.
+      **It cost 74 findings**, all zeroed. The ones that were real bugs and not style:
+      - `queue/client.go` did `result.(*Message)` without checking — a raw assertion on the
+        circuit breaker's `any` return, i.e. a panic in the worker if the type changed.
+      - 5 `fmt.Errorf(... %v, err)` in `main.go` broke the callers' `errors.Is`, and an
+        `err != context.Canceled` in the worker loop would fail with a wrapped error.
+      - `streaming.go:258` discarded the output of the first NVENC attempt (`ineffassign`).
+      - `main.go` swallowed the `shutdownTracing` error in the `defer`; now it logs it.
+      The rest was mechanical: 16 formatting, 13 `//nolint:errcheck` that had become redundant in
+      tests, 5 `intrange`, `os.Remove`/`w.Write` with an explicit `_ =`, `exec.Command` →
+      `CommandContext(t.Context())` in the test helper and `http.NewRequestWithContext` in the
+      webhook (with the reason for `context.Background()` written in the code).
+      The only new `//nolint`: `BRPopLPush` (SA1019), which is a documented decision (#1).
 
-- [x] ~~**O `context` do job não atravessa `queue/` e `minio/`**~~ — achado pelos 16 avisos de
-      `contextcheck`, que por isso ficou **desligado** no `.golangci.yml`.
-      As funções públicas dos dois pacotes (`GetJobState`, `SetJobFailed`, `HealthCheck`,
+- [x] ~~**The job's `context` does not cross `queue/` and `minio/`**~~ — found through the 16
+      `contextcheck` warnings, which is why it was left **off** in `.golangci.yml`.
+      The public functions of both packages (`GetJobState`, `SetJobFailed`, `HealthCheck`,
       `GetQueueSize`, `DownloadVideo`, `UploadVideo`, `UploadDirectory`, `ArchiveRawVideo`,
-      `PublishSuccessMessage`...) não aceitam `context.Context` e usam `context.Background()`
-      por dentro. Consequência real: quando o orçamento do job estoura ou o worker recebe
-      `SIGTERM`, o cancelamento **não chega** ao Redis nem ao MinIO — o download de 500 MB
-      segue até o fim, e o teto de 30s do shutdown gracioso (design-decisions #12) conta com
-      operações que não sabem que devem parar.
-      É refactor de assinatura pública dos dois pacotes (+ call sites no `main.go`), não
-      limpeza de lint. Quando estiver feito, religar o `contextcheck`.
+      `PublishSuccessMessage`...) do not accept a `context.Context` and use `context.Background()`
+      inside. Real consequence: when the job budget runs out or the worker gets `SIGTERM`, the
+      cancellation **does not reach** Redis or MinIO — the 500 MB download carries on to the end,
+      and the 30s graceful shutdown cap (design-decisions #12) counts on operations that do not
+      know they should stop.
+      It is a refactor of both packages' public signatures (+ call sites in `main.go`), not lint
+      cleanup. Once done, turn `contextcheck` back on.
 
-      > **RESOLVIDO** *(2026-09-09)*. As 11 funções públicas do `queue/` e as 6 do `minio/`
-      > recebem `context.Context` como primeiro parâmetro e o repassam ao Redis/MinIO;
-      > `contextcheck` está **ligado** no `.golangci.yml`, e dos 16 achados sobraram **2**, os
-      > dois `go notifyWebhook` — detachado de propósito, com `//nolint:contextcheck` nomeando o
-      > motivo (o webhook sai de um defer, quase sempre com o contexto do job já cancelado;
-      > quem limita é o timeout de 10s do próprio client HTTP).
+      > **RESOLVED** *(2026-09-09)*. The 11 public functions in `queue/` and the 6 in `minio/`
+      > receive `context.Context` as the first parameter and pass it on to Redis/MinIO;
+      > `contextcheck` is **on** in `.golangci.yml`, and of the 16 findings **2** remain, both
+      > `go notifyWebhook` — detached on purpose, with a `//nolint:contextcheck` naming the reason
+      > (the webhook goes out from a defer, almost always with the job's context already
+      > cancelled; what bounds it is the HTTP client's own 10s timeout).
       >
-      > **A armadilha, e é a parte que importa:** fechar o job (`SetJobFailed`, `RequeueJob`,
-      > `MoveToDLQ`, `AcknowledgeMessage`, `SetJobDone`) é exatamente o que **tem** que acontecer
-      > *depois* do cancelamento. Rodar isso no contexto cancelado deixaria o vídeo preso em
-      > `:processing` para sempre — pior que o bug original. Então `processNextMessage` monta um
-      > segundo contexto com `context.WithoutCancel(ctx)` + 10s (`bookkeepingTimeout`) e usa esse
-      > para toda escrita de estado e para o ack. O I/O pesado (download, transcode, uploads,
-      > publish de sucesso) continua no `processCtx`, que **deve** ser cancelável.
-      > `WithoutCancel` preserva os valores — o logger do job junto — e derruba só o cancelamento.
-      > Regra registrada como **design-decisions #13**.
+      > **The trap, and it is the part that matters:** closing the job (`SetJobFailed`,
+      > `RequeueJob`, `MoveToDLQ`, `AcknowledgeMessage`, `SetJobDone`) is exactly what **has** to
+      > happen *after* the cancellation. Running it on the cancelled context would leave the video
+      > stuck in `:processing` forever — worse than the original bug. So `processNextMessage` builds
+      > a second context with `context.WithoutCancel(ctx)` + 10s (`bookkeepingTimeout`) and uses it
+      > for every state write and for the ack. The heavy I/O (download, transcode, uploads, success
+      > publish) stays on `processCtx`, which **must** be cancellable.
+      > `WithoutCancel` keeps the values — the job logger along — and drops only the cancellation.
+      > Rule recorded as **design-decisions #13**.
       >
-      > Achado no caminho: o `//nolint:staticcheck` do `BRPopLPush` estava no fim da linha e, com
-      > o `contextcheck` ligado, o `nolintlint` passou a acusá-lo de "unused" **mesmo suprimindo
-      > o SA1019 de verdade** (conferido removendo o directive: o SA1019 volta). Mover o directive
-      > para a linha de cima resolve — e ficou mais legível.
+      > Found along the way: the `//nolint:staticcheck` on `BRPopLPush` was at the end of the line
+      > and, with `contextcheck` on, `nolintlint` started reporting it as "unused" **even though it
+      > really suppressed SA1019** (checked by removing the directive: SA1019 comes back). Moving
+      > the directive to the line above solves it — and it became more readable.
       >
-      > Testes: `TestQueueOperations_StopOnCanceledContext` (as 11 entradas públicas, uma
-      > por subteste) e `TestRecoverStuckJobs_StopsOnCanceledContext`. Cobertura do `queue`
-      > **60.3% → 75.8%**. **Verificado por mutação:** voltar o `client.Get` do `GetJobState`
-      > para `context.Background()` quebra o subteste de `GetJobState`.
+      > Tests: `TestQueueOperations_StopOnCanceledContext` (the 11 public entry points, one per
+      > subtest) and `TestRecoverStuckJobs_StopsOnCanceledContext`. `queue` coverage
+      > **60.3% → 75.8%**. **Verified by mutation:** putting `GetJobState`'s `client.Get` back on
+      > `context.Background()` breaks the `GetJobState` subtest.
 
-- [x] ~~`VidroProcessor/minio/client.go:34` — `const token = ""`~~ **RESOLVIDO** *(2026-10-05,
-      `9969632`)* — virou `staticCredentialsSessionToken`, com o porquê (session token só vale
-      para credencial temporária do STS). Texto original: `const token = "" // TODO: Ver se precisa
-      adicionar esse token`. **É o único marcador TODO/FIXME/HACK/BUG em todo o
-      código dos três repos** (varredura em `.cs`, `.ts`, `.tsx`, `.go`, `.json`,
-      `.css`) — o código é limpo nesse aspecto; os bugs registrados estavam só nos docs.
+- [x] ~~`VidroProcessor/minio/client.go:34` — `const token = ""`~~ **RESOLVED** *(2026-10-05,
+      `9969632`)* — it became `staticCredentialsSessionToken`, with the why (a session token only
+      applies to temporary STS credentials). Original text: `const token = "" // TODO: Ver se
+      precisa adicionar esse token`. **It is the only TODO/FIXME/HACK/BUG marker in all the code of
+      the three repos** (sweep over `.cs`, `.ts`, `.tsx`, `.go`, `.json`, `.css`) — the code is
+      clean in that respect; the recorded bugs were only in the docs.
 
 ---
 
-## Ordem sugerida
+## Suggested order
 
-*(Revista em 2026-10-06, depois do resto de "Confiabilidade do fluxo".)* Já fechados: P-OPT1, P-PERF6 (inclusive com vídeo real), todos os achados das ondas B e C, formulários de vídeo, P0, P0.1, P1, a fila combinada de
-2026-09-07, SEO + idioma, P-PERF1 a P-PERF5, laço do worker testável, testes de
-`channels`/`playlists`, doc do fluxo ponta a ponta, e todo o bloco "Confiabilidade do fluxo" (sobra só
-a decisão de breaker no `AcknowledgeMessage`/`RequeueJob`).
+*(Revised on 2026-10-06, after the rest of "Flow reliability".)* Already closed: P-OPT1, P-PERF6
+(including with a real video), every finding of waves B and C, video forms, P0, P0.1, P1, the
+combined queue of 2026-09-07, SEO + language, P-PERF1 to P-PERF5, testable worker loop,
+`channels`/`playlists` tests, the end-to-end flow doc, and the whole "Flow reliability" block (only
+the breaker decision on `AcknowledgeMessage`/`RequeueJob` remains).
 
 1. ~~**`contracts/job-state.json`**~~ ✅ *(2026-10-12)* — the job envelope, `job:<id>` key and
    queue name are locked by golden on both sides. The next contract gap is the MinIO path layout.
-2. **Tipos gerados do OpenAPI** (P2, parcial) — muito trabalho para ganho incremental.
-3. Maiores, para depois: E2E upload → play (P2), histórico/notificações/legendas (P5), degrau 4 de
-   observabilidade (collector de traces).
+2. **OpenAPI-generated types** (P2, partial) — a lot of work for an incremental gain.
+3. Bigger, for later: E2E upload → play (P2), history/notifications/captions (P5), observability
+   rung 4 (trace collector).
