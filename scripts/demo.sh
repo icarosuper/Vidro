@@ -33,7 +33,10 @@ done
 cd "$(dirname "$0")/.."
 
 step "Starting the stack (first build takes a few minutes)"
-docker compose up -d --build
+# A failed up (e.g. a host port already taken) can leave containers with no network, and a plain
+# rerun keeps them: the API then dies resolving "postgres". `down` (volumes kept) clears it.
+docker compose up -d --build ||
+  fail "the stack did not start — free the port named above, run 'docker compose down', then rerun"
 
 # minio-init creates the bucket and the upload notification, and restarts MinIO to do it — an
 # upload before it exits either fails or never reaches the API. It also starts only once the API

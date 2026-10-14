@@ -35,7 +35,7 @@ Shared infra: **Postgres** (data), **Redis** (job queue), **MinIO** (objects), *
 make demo
 ```
 
-Brings the stack up, generates a 10 s test video with the worker's FFmpeg, uploads it through the real path (presigned PUT → MinIO webhook → Redis → worker → HMAC webhook), waits for `PendingUpload → Processing → Ready` and prints the player URL. Needs docker, curl and jq; safe to rerun. Demo login: `demo@example.com` / `demo-password` (the video is public, so the player needs none). Source: [`scripts/demo.sh`](scripts/demo.sh).
+Brings the stack up, generates a 10 s test video with the worker's FFmpeg, uploads it through the real path (presigned PUT → MinIO webhook → Redis → worker → HMAC webhook), waits for `PendingUpload → Processing → Ready` and prints the player URL. Needs docker, curl and jq; safe to rerun. If the stack fails to start because a host port is taken (5432, 5000, 3000…), free it and run `docker compose down` before rerunning — a failed start can leave containers without a network, and a plain rerun keeps them. Demo login: `demo@example.com` / `demo-password` (the video is public, so the player needs none). Source: [`scripts/demo.sh`](scripts/demo.sh).
 
 Just the stack, no demo video:
 
