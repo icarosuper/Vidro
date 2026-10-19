@@ -61,7 +61,7 @@ Steps 4–7 run parallel by default (`runNonCriticalStepsParallel`, bounded by `
 | Lifecycle rule | `minio/client.go` (`configureRawArchivedLifecycle`) | Auto-deletes `raw-archived/` after 30 days |
 | Health check | `minio/client.go` (`HealthCheck`) | |
 
-Object layout inside bucket:
+Object layout inside bucket (locked by `../contracts/minio-paths.json`, builders in `minio/paths.go`):
 - `raw/<videoID>` — uploaded by API
 - `processed/<videoID>_processed` — MP4 output
 - `thumbnails/<videoID>/thumb_001.jpg..005.jpg`
@@ -78,6 +78,7 @@ Object layout inside bucket:
 | Payload mapping | `internal/worker/worker.go` (`BuildWebhookPayload`) | `queue.JobState` → `Payload`; optional artifacts and the metadata block may be absent |
 | Contract goldens | `../contracts/video-processed-*.json` (monorepo root) | Shared with VidroApi — both sides test the same files, see `../contracts/README.md` |
 | Job envelope golden | `../contracts/job-state.json`, `job_state_contract_test.go` | Queue name, `job:<id>` key and the `JobState` fields the API writes — the worker reads exactly the golden |
+| MinIO path golden | `../contracts/minio-paths.json`, `minio_paths_contract_test.go` | Object keys the API writes and this worker reads/writes — both sides test the same file |
 | Delivery with retry | `internal/webhook/webhook.go` (`Notify`) | 3 attempts, exponential backoff, 10s HTTP timeout; retries only network errors, 5xx and 429 — other 4xx fail at once |
 | HMAC signature | `internal/webhook/webhook.go` (`send`) | `X-Webhook-Signature: sha256=<hex>`; `WEBHOOK_SECRET` is required |
 | Caller wiring | `internal/worker/worker.go` (`notifyWebhook`) | Fires on success + permanent DLQ failure |

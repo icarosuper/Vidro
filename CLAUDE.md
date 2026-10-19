@@ -21,10 +21,10 @@ change together, in the same commit, and that is the right behavior, not scope c
 case, if something is missing in another service, tell the user before touching it.
 
 **Shared contract** (Redis queue names, the job envelope, MinIO paths, the webhook shape): change
-both sides **in the same commit**. The `video-processed` webhook payload and the job the API
-publishes (queue name, `job:<id>` key, envelope fields) are locked by test: the goldens in
-[`contracts/`](contracts/README.md) are read by the worker and by the API, so changing a field
-means editing the golden and both sides together. Only the MinIO path layout is still discipline.
+both sides **in the same commit**. The `video-processed` webhook payload, the job the API
+publishes (queue name, `job:<id>` key, envelope fields) and the MinIO object-key layout are locked
+by test: the goldens in [`contracts/`](contracts/README.md) are read by the worker and by the API,
+so changing a field means editing the golden and both sides together.
 It is the main reason this is a monorepo — both P0s in `docs/TODO.md` were contract divergences nobody
 saw for months. See `VidroProcessor/docs/agents/design-decisions.md`.
 

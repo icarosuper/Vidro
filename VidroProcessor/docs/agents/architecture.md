@@ -102,7 +102,8 @@ Each of steps 4-7 can be skipped with `ENABLE_THUMBNAILS|AUDIO|PREVIEW|STREAMING
 
 ## Object storage layout
 
-All under single MinIO bucket `MINIO_BUCKET_NAME`:
+All under single MinIO bucket `MINIO_BUCKET_NAME`. Keys are locked by
+[`contracts/minio-paths.json`](../../../contracts/minio-paths.json) (`minio/paths.go`):
 
 ```
 raw/<id>                             ← API upload

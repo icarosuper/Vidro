@@ -159,6 +159,7 @@ bugs:
   is the net that would have caught BUG-1 on the spot. *(2026-10-12)* The job the API publishes is
   locked too: `contracts/job-state.json` pins the queue name (`JobQueueSettings:QueueName` ↔
   `PROCESSING_REQUEST_QUEUE`), the `job:<id>` key and the envelope (`callback_url`,
-  `correlation_id`). **Still missing:** the MinIO path layout, which is only documented.
+  `correlation_id`). *(2026-10-19)* The MinIO object-key layout joined them in
+  `contracts/minio-paths.json`.
 
 Neither needs a monorepo tool. They needed the monorepo.

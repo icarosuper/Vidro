@@ -34,6 +34,10 @@
     <Content Include="..\..\..\contracts\processing-timeout.json"
              Link="contracts\%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest" />
+    <!-- MinIO object layout shared with VidroProcessor -->
+    <Content Include="..\..\..\contracts\minio-paths.json"
+             Link="contracts\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\src\VidroApi.Api\appsettings.json"
              Link="api-appsettings.json"
              CopyToOutputDirectory="PreserveNewest" />

@@ -245,8 +245,8 @@ func ArchiveRawVideo(ctx context.Context, videoID string) error {
 }
 
 func archiveRawVideo(ctx context.Context, videoID string) error {
-	srcPath := getObjectPath(VideoTypeRaw, videoID)
-	dstPath := getObjectPath(VideoTypeRawArchived, videoID)
+	srcPath := RawObject(videoID)
+	dstPath := RawArchivedObject(videoID)
 
 	// CopyObject in MinIO is the way to "move" — there is no native rename operation
 	src := minio.CopySrcOptions{Bucket: cfg.MinioBucketName, Object: srcPath}

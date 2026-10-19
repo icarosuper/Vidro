@@ -8,6 +8,7 @@ using VidroApi.Domain.Entities;
 using VidroApi.Domain.Errors;
 using VidroApi.Domain.Errors.EntityErrors;
 using VidroApi.Infrastructure.Persistence;
+using VidroApi.Infrastructure.Services;
 
 namespace VidroApi.Api.Features.Channels;
 
@@ -68,7 +69,7 @@ public static class DeleteChannel
                 .ToListAsync(ct);
 
             foreach (var videoId in videoIds)
-                db.PendingStorageCleanups.Add(new PendingStorageCleanup($"raw/{videoId}", isPrefix: false, now));
+                db.PendingStorageCleanups.Add(new PendingStorageCleanup(MinioObjectKeys.Raw(videoId), isPrefix: false, now));
 
             var artifacts = await db.VideoArtifacts
                 .Where(a => videoIds.Contains(a.VideoId))
@@ -84,7 +85,7 @@ public static class DeleteChannel
                     db.PendingStorageCleanups.Add(new PendingStorageCleanup(artifact.AudioPath, isPrefix: false, now));
                 if (artifact.HlsPath is not null)
                     db.PendingStorageCleanups.Add(new PendingStorageCleanup(artifact.HlsPath, isPrefix: true, now));
-                db.PendingStorageCleanups.Add(new PendingStorageCleanup($"thumbnails/{artifact.VideoId}/", isPrefix: true, now));
+                db.PendingStorageCleanups.Add(new PendingStorageCleanup(MinioObjectKeys.ThumbnailsCleanupPrefix(artifact.VideoId), isPrefix: true, now));
             }
         }
     }

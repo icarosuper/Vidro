@@ -14,6 +14,12 @@ import (
 // paths from it, so it is the single source for how many files the API will be told exist.
 const ThumbnailCount = 5
 
+// ThumbnailFileName is the object name of the i-th generated thumbnail (1-based).
+// Locked by contracts/minio-paths.json together with ThumbnailCount.
+func ThumbnailFileName(index int) string {
+	return fmt.Sprintf("thumb_%03d.jpg", index)
+}
+
 // ThumbnailConfig defines the configuration for thumbnail generation.
 type ThumbnailConfig struct {
 	Count  int
@@ -50,7 +56,7 @@ func GenerateThumbnails(ctx context.Context, inputPath, outputDir string) error 
 
 	for i := 1; i <= config.Count; i++ {
 		timestamp := interval * float64(i)
-		thumbnailPath := filepath.Join(outputDir, fmt.Sprintf("thumb_%03d.jpg", i))
+		thumbnailPath := filepath.Join(outputDir, ThumbnailFileName(i))
 
 		cmd := exec.CommandContext(ctx, "ffmpeg",
 			"-ss", strconv.FormatFloat(timestamp, 'f', 2, 64),

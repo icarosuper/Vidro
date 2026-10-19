@@ -9,6 +9,7 @@ using VidroApi.Domain.Enums;
 using VidroApi.Domain.Errors;
 using VidroApi.Domain.Errors.EntityErrors;
 using VidroApi.Infrastructure.Persistence;
+using VidroApi.Infrastructure.Services;
 using VidroApi.Infrastructure.Settings;
 
 namespace VidroApi.Api.Features.Videos;
@@ -62,7 +63,7 @@ public static class UploadVideoThumbnail
                     : Errors.Video.NotOwner();
             }
 
-            var objectKey = $"thumbnails/{cmd.VideoId}/custom.jpg";
+            var objectKey = MinioObjectKeys.CustomThumbnail(cmd.VideoId);
             var ttlHours = minioOptions.Value.UploadUrlTtlHours;
             var ttl = TimeSpan.FromHours(ttlHours);
             var uploadExpiresAt = clock.UtcNow.AddHours(ttlHours);

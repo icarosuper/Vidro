@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using VidroApi.Application.Abstractions;
 using VidroApi.Domain.Enums;
 using VidroApi.Infrastructure.Persistence;
+using VidroApi.Infrastructure.Services;
 using VidroApi.Infrastructure.Settings;
 
 namespace VidroApi.Api.BackgroundServices;
@@ -112,7 +113,7 @@ public class VideoReconciliationService(
     {
         try
         {
-            var rawObjectKey = $"raw/{video.Id}";
+            var rawObjectKey = MinioObjectKeys.Raw(video.Id);
             var fileExistsInMinio = await minio.ObjectExistsAsync(rawObjectKey, ct);
 
             if (fileExistsInMinio)

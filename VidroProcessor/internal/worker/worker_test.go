@@ -255,7 +255,7 @@ func TestProcessNextMessage_FailedOptionalUploadIsNotReported(t *testing.T) {
 	if artifacts.Thumbnails != "" {
 		t.Errorf("Thumbnails = %q, want empty: the upload failed", artifacts.Thumbnails)
 	}
-	wantAudio := "audio/" + videoID + ".mp3"
+	wantAudio := minio.AudioObject(videoID)
 	if artifacts.Audio != wantAudio {
 		t.Errorf("Audio = %q, want %q: its upload succeeded", artifacts.Audio, wantAudio)
 	}
@@ -281,7 +281,7 @@ func TestProcessNextMessage_CompletedJobIsAcked(t *testing.T) {
 	if state.RetryCount != 0 {
 		t.Fatalf("RetryCount = %d, want 0", state.RetryCount)
 	}
-	wantVideoArtifact := "processed/" + videoID + "_processed"
+	wantVideoArtifact := minio.ProcessedObject(videoID)
 	if state.Artifacts == nil || state.Artifacts.Video != wantVideoArtifact {
 		t.Fatalf("Artifacts = %+v, want Video %q", state.Artifacts, wantVideoArtifact)
 	}

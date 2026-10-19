@@ -8,6 +8,7 @@ using VidroApi.Domain.Enums;
 using VidroApi.Domain.Errors;
 using VidroApi.Domain.Errors.EntityErrors;
 using VidroApi.Infrastructure.Persistence;
+using VidroApi.Infrastructure.Services;
 using VidroApi.Infrastructure.Settings;
 
 namespace VidroApi.Api.Features.Videos;
@@ -44,7 +45,7 @@ public static class MinioUploadCompleted
             if (!isUploadEvent)
                 return Results.Ok();
 
-            var videoId = ParseVideoIdFromKey(req.Key);
+            var videoId = MinioObjectKeys.TryParseVideoIdFromNotificationKey(req.Key);
             if (videoId is null)
                 return Results.Ok();
 
@@ -57,18 +58,6 @@ public static class MinioUploadCompleted
                 ct);
             return Results.Ok();
         });
-
-    private static Guid? ParseVideoIdFromKey(string key)
-    {
-        // Key format: "{bucket}/raw/{videoId}"
-        var segments = key.Split('/');
-        var rawSegmentIndex = Array.IndexOf(segments, "raw");
-        if (rawSegmentIndex < 0 || rawSegmentIndex + 1 >= segments.Length)
-            return null;
-
-        var videoIdSegment = segments[rawSegmentIndex + 1];
-        return Guid.TryParse(videoIdSegment, out var videoId) ? videoId : null;
-    }
 
     public class Handler(AppDbContext db, IJobQueueService jobQueue, IDateTimeProvider clock, IOptions<ApiSettings> apiOptions)
         : IRequestHandler<Command, UnitResult<Error>>

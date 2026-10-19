@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"video-processor/internal/worker"
+	"video-processor/minio"
 	"video-processor/queue"
 )
 
@@ -31,11 +32,11 @@ func contractGolden(t *testing.T, name string) []byte {
 
 func TestBuildWebhookPayload_MatchesContractGoldens(t *testing.T) {
 	fullArtifacts := &queue.JobArtifacts{
-		Video:      "processed/" + contractVideoID + "_processed",
-		Thumbnails: "thumbnails/" + contractVideoID,
-		Audio:      "audio/" + contractVideoID + ".mp3",
-		Preview:    "preview/" + contractVideoID + "_preview.mp4",
-		HLS:        "hls/" + contractVideoID,
+		Video:      minio.ProcessedObject(contractVideoID),
+		Thumbnails: minio.ThumbnailsPrefix(contractVideoID),
+		Audio:      minio.AudioObject(contractVideoID),
+		Preview:    minio.PreviewObject(contractVideoID),
+		HLS:        minio.HLSPrefix(contractVideoID),
 	}
 	fullMetadata := &queue.VideoMetadata{
 		Duration:   120.5,
@@ -67,7 +68,7 @@ func TestBuildWebhookPayload_MatchesContractGoldens(t *testing.T) {
 			golden: "video-processed-success-minimal.json",
 			state: queue.JobState{
 				Status:    queue.JobStatusDone,
-				Artifacts: &queue.JobArtifacts{Video: "processed/" + contractVideoID + "_processed"},
+				Artifacts: &queue.JobArtifacts{Video: minio.ProcessedObject(contractVideoID)},
 			},
 		},
 		{

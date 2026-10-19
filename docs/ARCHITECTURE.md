@@ -228,17 +228,12 @@ CI workflow triggers on `contracts/**`, so renaming a field turns both builds re
 |---|---|
 | `job-state.json` | API → worker: queue name, `job:{videoId}` key, envelope fields (`callback_url`, `correlation_id`, `retry_count`, …) |
 | `video-processed-*.json` (4 cases) | worker → API: result webhook, success with full, minimal and missing output, and failure |
+| `minio-paths.json` | API ↔ worker: object keys inside the bucket (`raw/{videoId}`, artifacts, `raw-archived/`, custom thumbnail) and the compose notification prefix |
 | `processing-timeout.json` | worker's worst-case duration vs. the API's `Processing` timeout |
 | `enums.json` | API → front: the six enums the front mirrors by hand as integers |
 
 The API's URL surface is also versioned: [`VidroApi/openapi/v1.json`](../VidroApi/openapi/v1.json)
 is generated, and CI fails if it changes without being committed.
-
-**Not pinned:** the MinIO object layout. Output paths are safe, because the worker reports them in
-the webhook and the API stores what it receives. The input key is the untested seam: `raw/{videoId}`
-is agreed in four places that no test connects: the API signs it (`CreateVideo`) and parses it back
-from the MinIO event, the reconciler checks it exists, the compose's notification filters on the
-`raw/` prefix, and the worker downloads it.
 
 The repo is a monorepo mainly so that a contract change lands on both sides in one commit
 ([`MONOREPO.md`](MONOREPO.md)).

@@ -188,7 +188,7 @@ Inside the same handler (`MinioUploadCompleted.cs`, `Handle`), in a transaction,
    reports.
 6. Writes `status: done` with `artifacts` and `metadata`, and fires the webhook.
 
-**Bucket layout** (`buildJobArtifacts`):
+**Bucket layout** (`BuildJobArtifacts`, locked by [`contracts/minio-paths.json`](../contracts/minio-paths.json)):
 
 | Object | Written by | Note |
 |---|---|---|
@@ -265,7 +265,7 @@ capped at 10 s (`bookkeepingTimeout`).
   thumbnails for 1 h (`GetVideo.cs:65-78`, `appsettings.json:20-21`). A URL that expires mid-playback
   requires reloading the video.
 - The paths come from the webhook as they are. An optional artifact whose upload failed in step 6.5
-  is dropped from the result before `buildJobArtifacts`, so the webhook reports it as absent.
+  is dropped from the result before `BuildJobArtifacts`, so the webhook reports it as absent.
 
 ---
 

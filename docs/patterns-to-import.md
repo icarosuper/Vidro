@@ -112,7 +112,8 @@ the payload struct in Go and the `Request` in C# and fails when the fields diver
 > code. What remained as discipline only was the rest of the contract (queue name,
 > `callback_url`, MinIO paths).
 > *(2026-10-12)* The queue name and the job envelope (`callback_url`, `correlation_id`) joined it
-> in `contracts/job-state.json`; only the MinIO paths are still discipline.
+> in `contracts/job-state.json`.
+> *(2026-10-19)* The MinIO object-key layout joined it in `contracts/minio-paths.json`.
 
 ### 4. Typed fake, never a mock (from mamut-api)
 
@@ -285,7 +286,8 @@ locked. Now it is.
 4. **Logging section in the API's `conventions.md`** (item 7) — the only section missing compared
    to the other two services
 5. ✅ ~~**Go↔C# contract test by AST**~~ (item 3) — covered by the webhook golden in `contracts/`
-   (2026-09-07), without AST, and by the job envelope golden (2026-10-12)
+   (2026-09-07), without AST, the job envelope golden (2026-10-12) and the MinIO path golden
+   (2026-10-19)
 
 The rest (items 4, 5, 6, 8, 9, 11, 12, 13, 14, 17) has no dependency between items and can come in
 as the corresponding area is touched. **Closed:** 1, 3, 10, 15, 16, 18. Item 2 lost half its scope:
@@ -295,6 +297,8 @@ one of the two AST checker candidates ceased to exist.
 
 ## Already resolved
 
+- **2026-10-19** — item 3 closed: the MinIO object-key layout is locked by
+  `contracts/minio-paths.json`, tested from both sides.
 - **2026-10-12** — item 3 extended: the queue name and the job envelope are locked by
   `contracts/job-state.json`, tested from both sides.
 - **2026-09-09** — `contextcheck` enabled in the Processor: `queue/` and `minio/` now receive

@@ -20,9 +20,9 @@ func TestGenerateThumbnails_ValidVideo(t *testing.T) {
 		t.Error("GenerateThumbnails() did not create the output directory")
 	}
 
-	expectedThumbnails := []string{
-		"thumb_001.jpg", "thumb_002.jpg", "thumb_003.jpg",
-		"thumb_004.jpg", "thumb_005.jpg",
+	expectedThumbnails := make([]string, ThumbnailCount)
+	for i := 1; i <= ThumbnailCount; i++ {
+		expectedThumbnails[i-1] = ThumbnailFileName(i)
 	}
 
 	for _, filename := range expectedThumbnails {

@@ -11,6 +11,7 @@ using VidroApi.Domain.Enums;
 using VidroApi.Domain.Errors;
 using VidroApi.Domain.Errors.EntityErrors;
 using VidroApi.Infrastructure.Persistence;
+using VidroApi.Infrastructure.Services;
 using VidroApi.Infrastructure.Settings;
 
 namespace VidroApi.Api.Features.Videos;
@@ -109,7 +110,7 @@ public static class CreateVideo
             var video = new Video(channel.Id, cmd.Title, cmd.Description, cmd.Tags,
                 cmd.Visibility, uploadExpiresAt, clock.UtcNow);
 
-            var objectKey = $"raw/{video.Id}";
+            var objectKey = MinioObjectKeys.Raw(video.Id);
             var ttl = TimeSpan.FromHours(ttlHours);
             var (uploadUrl, _) = await minio.GenerateUploadUrlAsync(objectKey, ttl, ct);
 

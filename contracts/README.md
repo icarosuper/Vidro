@@ -7,6 +7,7 @@ same file**: if one diverges, the other's CI breaks.
 |---|---|
 | `video-processed-*.json` | `VidroProcessor` → `VidroApi` (webhook payload) |
 | `job-state.json` | `VidroApi` → `VidroProcessor` (queue name, `job:<id>` key and job envelope) |
+| `minio-paths.json` | `VidroApi` ↔ `VidroProcessor` (object-key layout inside the bucket) |
 | `enums.json` | `VidroApi` → `VidroFront` (the six enums mirrored by hand) |
 | `processing-timeout.json` | `VidroProcessor` → `VidroApi` (a job's worst case vs. the `Processing` timeout) |
 
@@ -52,7 +53,30 @@ Who tests it:
   and in `VidroProcessor/.env-example` — which is why `processor.yml` also triggers on
   `docker-compose.yml`.
 
-Not covered: the MinIO path layout, which is still discipline.
+## `minio-paths.json` — object keys inside the bucket
+
+The API writes `raw/<videoId>` (presigned PUT) and parses the MinIO notification
+`{bucket}/raw/<videoId>`; the worker downloads that object, uploads the artifacts and reports
+those paths on the webhook. A custom thumbnail lives under the same prefix the worker uses for
+generated ones. The compose notification filter (`--prefix raw/`) is the same prefix. Until this
+golden, each of those strings was written by hand in a different file.
+
+The `videoId` is the same placeholder as the other goldens.
+
+Who tests it:
+
+- `VidroApi/tests/VidroApi.UnitTests/Contracts/MinioPathsContractTests.cs` —
+  `MinioObjectKeys` (the same functions `CreateVideo`, cleanup, the custom thumbnail and
+  `MinioUploadCompleted` call) match the golden, and `TryParseVideoIdFromNotificationKey` reads
+  `{bucket}/raw/<id>` and ignores a key outside `raw/`. Unit test: no Docker.
+- `VidroProcessor/minio_paths_contract_test.go` — `minio.RawObject` and the other builders,
+  `BuildJobArtifacts` and `BuildWebhookPayload`'s thumbnail list match the golden;
+  `ThumbnailCount` / `ThumbnailFileName` are the single source for the five files; compose's
+  `--prefix` matches `rawPrefix`.
+
+**Verified by mutation:** renaming `RawObject` to `uploads/` turns the Go test red; renaming
+`RawPrefix` to `uploads` turns two C# tests red (the key no longer matches, and the notification
+parser returns null).
 
 ## `enums.json` — the six enums the front mirrors by hand
 

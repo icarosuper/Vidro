@@ -8,6 +8,7 @@ using VidroApi.Domain.Entities;
 using VidroApi.Domain.Errors;
 using VidroApi.Domain.Errors.EntityErrors;
 using VidroApi.Infrastructure.Persistence;
+using VidroApi.Infrastructure.Services;
 
 namespace VidroApi.Api.Features.Videos;
 
@@ -73,7 +74,7 @@ public static class DeleteVideo
 
         private void StageStorageCleanup(Video video, DateTimeOffset now)
         {
-            db.PendingStorageCleanups.Add(new PendingStorageCleanup($"raw/{video.Id}", isPrefix: false, now));
+            db.PendingStorageCleanups.Add(new PendingStorageCleanup(MinioObjectKeys.Raw(video.Id), isPrefix: false, now));
 
             if (video.Artifacts is null)
                 return;
@@ -85,7 +86,7 @@ public static class DeleteVideo
                 db.PendingStorageCleanups.Add(new PendingStorageCleanup(video.Artifacts.AudioPath, isPrefix: false, now));
             if (video.Artifacts.HlsPath is not null)
                 db.PendingStorageCleanups.Add(new PendingStorageCleanup(video.Artifacts.HlsPath, isPrefix: true, now));
-            db.PendingStorageCleanups.Add(new PendingStorageCleanup($"thumbnails/{video.Id}/", isPrefix: true, now));
+            db.PendingStorageCleanups.Add(new PendingStorageCleanup(MinioObjectKeys.ThumbnailsCleanupPrefix(video.Id), isPrefix: true, now));
         }
     }
 }

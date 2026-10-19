@@ -45,6 +45,8 @@ webhook without an optional artifact that failed to upload, `correlationID` in t
 logs, and the atomic `LREM` of `moveFromProcessing`.
 *(2026-10-12)* **`contracts/job-state.json`**: queue name, `job:<id>` key and job envelope locked by
 golden on both sides (API and worker), mutation-verified.
+*(2026-10-19)* **`contracts/minio-paths.json`**: object-key layout inside the bucket locked by
+golden on both sides (API and worker), mutation-verified.
 Items marked `[x]` carry the commit and what was left in place.
 
 **Overall state:** the features are done (every Front phase ✅, API plan 100% checked, Processor
@@ -500,7 +502,7 @@ section "What the migration unlocks".
       Go test; renaming `processedPath` in the golden breaks the C# test.
       ~~**The rest of the contract is missing, only documented today:** queue name
       (`JobQueueSettings:QueueName` ↔ `PROCESSING_REQUEST_QUEUE`), `callback_url` and
-      `correlation_id` in the `JobState`~~, and the MinIO path layout.
+      `correlation_id` in the `JobState`, and the MinIO path layout.~~
       *(2026-09-13: `correlation_id` entered the envelope with tests on both sides and verification
       on the stack — but each side tests its own field name, which is exactly the class of drift
       only a golden catches. Natural candidate for `contracts/job-state.json`.)*
@@ -518,7 +520,15 @@ section "What the migration unlocks".
       sides), the queue (both) or the `job:` prefix (both); in C#, renaming `callback_url`, the
       key prefix, or the `appsettings.json` queue; in Go, renaming the `correlation_id` tag or the
       `jobKey` prefix, or the queue in compose or in `.env-example`.
-      **Only the MinIO path layout is still discipline.**
+      **DONE** *(2026-10-19)* — `contracts/minio-paths.json` pins the object keys (`raw/<id>`,
+      artifacts, `raw-archived/`, custom thumbnail under the same prefix, five `thumb_00N.jpg`)
+      and the compose `--prefix raw/`. API: `MinioObjectKeys` extracted so `CreateVideo`,
+      cleanup, the custom thumbnail and `MinioUploadCompleted` call the same functions
+      (`MinioPathsContractTests.cs`, unit, no Docker). Worker: `minio.RawObject` and the other
+      builders feed `BuildJobArtifacts` and the uploads; `ThumbnailFileName` is the single source
+      for the step and the webhook; compose's notification prefix is checked against `rawPrefix`.
+      **Verified by mutation:** `RawObject` → `uploads/` turns the Go test red; `RawPrefix` →
+      `uploads` turns two C# tests red.
 
 ### Flow reliability — findings from the end-to-end doc *(2026-10-05)*
 
@@ -1049,7 +1059,9 @@ combined queue of 2026-09-07, SEO + language, P-PERF1 to P-PERF5, testable worke
 the breaker decision on `AcknowledgeMessage`/`RequeueJob` remains).
 
 1. ~~**`contracts/job-state.json`**~~ ✅ *(2026-10-12)* — the job envelope, `job:<id>` key and
-   queue name are locked by golden on both sides. The next contract gap is the MinIO path layout.
-2. **OpenAPI-generated types** (P2, partial) — a lot of work for an incremental gain.
-3. Bigger, for later: E2E upload → play (P2), history/notifications/captions (P5), observability
+   queue name are locked by golden on both sides.
+2. ~~**MinIO path layout**~~ ✅ *(2026-10-19)* — `contracts/minio-paths.json` locks the object keys
+   on both sides. The shared contract is now fully golden (webhook, job envelope, paths, timeout).
+3. **OpenAPI-generated types** (P2, partial) — a lot of work for an incremental gain.
+4. Bigger, for later: E2E upload → play (P2), history/notifications/captions (P5), observability
    rung 4 (trace collector).
