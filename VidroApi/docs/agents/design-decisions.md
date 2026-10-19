@@ -124,7 +124,8 @@ per object path or prefix) **inside the same transaction** that deletes the DB r
 `StorageCleanupService` drains the table in the background.
 
 Use `isPrefix: true` for paths that need `DeleteObjectsByPrefixAsync` (HLS segments, thumbnails
-folder).
+folder). Stage both `raw/{videoId}` and `raw-archived/{videoId}`: after a successful process the
+object has moved, and a failed archive leaves it in `raw/`. MinIO delete of a missing key is a no-op.
 
 **Why:** a direct delete cannot be rolled back with the transaction, so a failure halfway leaves
 either orphaned objects or rows pointing at objects that no longer exist.

@@ -3,6 +3,10 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using VidroApi.Infrastructure.Persistence;
+using VidroApi.Infrastructure.Services;
 using VidroApi.IntegrationTests.Common;
 
 namespace VidroApi.IntegrationTests.Channels;
@@ -26,6 +30,33 @@ public class DeleteChannelTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var response = await _client.DeleteAsync("/v1/channels/test-channel");
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task DeleteChannel_AsOwner_StagesRawAndRawArchivedCleanupForVideos()
+    {
+        var (accessToken, username) = await SignUpAndGetCredentials();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        await CreateChannel("test-channel", "My Channel");
+
+        var createResponse = await _client.PostAsJsonAsync(
+            $"/v1/users/{username}/channels/test-channel/videos",
+            new { title = "Video to Delete", tags = Array.Empty<string>(), visibility = 0 });
+        var createBody = await createResponse.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        var videoId = Guid.Parse(createBody.GetProperty("data").GetProperty("videoId").GetString()!);
+
+        var response = await _client.DeleteAsync("/v1/channels/test-channel");
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var stagedPaths = await db.PendingStorageCleanups
+            .Select(cleanup => cleanup.ObjectPath)
+            .ToListAsync();
+
+        stagedPaths.Should().Contain(MinioObjectKeys.Raw(videoId));
+        stagedPaths.Should().Contain(MinioObjectKeys.RawArchived(videoId),
+            "after processing the raw lives in raw-archived/; archive can also fail and leave it in raw/");
     }
 
     [Fact]

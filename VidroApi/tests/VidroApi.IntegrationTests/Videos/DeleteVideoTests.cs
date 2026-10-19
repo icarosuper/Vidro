@@ -5,6 +5,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using VidroApi.Infrastructure.Persistence;
+using VidroApi.Infrastructure.Services;
 using VidroApi.IntegrationTests.Common;
 
 namespace VidroApi.IntegrationTests.Videos;
@@ -28,6 +32,27 @@ public class DeleteVideoTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var response = await _client.DeleteAsync($"/v1/videos/{videoId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task DeleteVideo_AsOwner_StagesRawAndRawArchivedCleanup()
+    {
+        var (accessToken, videoId) = await CreateReadyVideo();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await _client.DeleteAsync($"/v1/videos/{videoId}");
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var stagedPaths = await db.PendingStorageCleanups
+            .Select(cleanup => cleanup.ObjectPath)
+            .ToListAsync();
+
+        stagedPaths.Should().Contain(MinioObjectKeys.Raw(videoId),
+            "a job that failed to archive still has the object in raw/");
+        stagedPaths.Should().Contain(MinioObjectKeys.RawArchived(videoId),
+            "after a successful process the raw lives in raw-archived/, not raw/");
     }
 
     [Fact]

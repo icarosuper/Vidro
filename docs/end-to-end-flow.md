@@ -193,7 +193,7 @@ Inside the same handler (`MinioUploadCompleted.cs`, `Handle`), in a transaction,
 | Object | Written by | Note |
 |---|---|---|
 | `raw/<videoId>` | browser (step 2) | gone after step 6.4 |
-| `raw-archived/<videoId>` | worker | deleted by the lifecycle after 30 days |
+| `raw-archived/<videoId>` | worker | deleted on video/channel delete, otherwise by the lifecycle after 30 days |
 | `processed/<videoId>_processed` | worker | the MP4 the player plays; `Content-Type: video/mp4` |
 | `thumbnails/<videoId>/thumb_00{1..5}.jpg` | worker | `processor_steps.ThumbnailCount` (5), single source for the step and the webhook |
 | `audio/<videoId>.mp3` | worker | |

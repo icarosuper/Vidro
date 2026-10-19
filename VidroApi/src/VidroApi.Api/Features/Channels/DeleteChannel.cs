@@ -69,7 +69,10 @@ public static class DeleteChannel
                 .ToListAsync(ct);
 
             foreach (var videoId in videoIds)
+            {
                 db.PendingStorageCleanups.Add(new PendingStorageCleanup(MinioObjectKeys.Raw(videoId), isPrefix: false, now));
+                db.PendingStorageCleanups.Add(new PendingStorageCleanup(MinioObjectKeys.RawArchived(videoId), isPrefix: false, now));
+            }
 
             var artifacts = await db.VideoArtifacts
                 .Where(a => videoIds.Contains(a.VideoId))

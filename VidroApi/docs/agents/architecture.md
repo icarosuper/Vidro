@@ -129,6 +129,7 @@ Locked by [`contracts/minio-paths.json`](../../../contracts/minio-paths.json); b
 | Path | Owner | Content |
 |---|---|---|
 | `raw/{videoId}` | API | Original upload |
+| `raw-archived/{videoId}` | VideoProcessor | Archived raw; API stages it for cleanup on delete |
 | `processed/{videoId}_processed` | VideoProcessor | Transcoded video |
 | `thumbnails/{videoId}/` | VideoProcessor | 5 JPG frames |
 | `audio/{videoId}.mp3` | VideoProcessor | Audio track |

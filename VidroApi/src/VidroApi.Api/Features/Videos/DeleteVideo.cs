@@ -75,6 +75,7 @@ public static class DeleteVideo
         private void StageStorageCleanup(Video video, DateTimeOffset now)
         {
             db.PendingStorageCleanups.Add(new PendingStorageCleanup(MinioObjectKeys.Raw(video.Id), isPrefix: false, now));
+            db.PendingStorageCleanups.Add(new PendingStorageCleanup(MinioObjectKeys.RawArchived(video.Id), isPrefix: false, now));
 
             if (video.Artifacts is null)
                 return;
