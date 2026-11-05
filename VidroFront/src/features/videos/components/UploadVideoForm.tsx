@@ -20,6 +20,7 @@ import { getApiErrorMessage } from '#/shared/lib/error-messages'
 import { VideoStatus, VideoVisibility } from '#/shared/types'
 import { uploadVideoFile } from '../api'
 import { useCreateVideo, useUploadThumbnail, useVideoStatus } from '../hooks'
+import { VIDEO_VISIBILITY_OPTIONS } from './visibility-options'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -36,11 +37,7 @@ type Props = {
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
 
-const VISIBILITY_OPTIONS = [
-  { label: 'Public', value: '0' },
-  { label: 'Unlisted', value: '1' },
-  { label: 'Private', value: '2' },
-]
+const DEFAULT_VISIBILITY = String(VideoVisibility.Public)
 
 const MAX_TAGS = 10
 const TITLE_MAX = 100
@@ -192,7 +189,7 @@ export function UploadVideoForm({ username }: Props) {
     formState: { errors },
   } = useForm<UploadFormValues>({
     resolver: zodResolver(uploadSchema),
-    defaultValues: { channelId: '', visibility: '0' },
+    defaultValues: { channelId: '', visibility: DEFAULT_VISIBILITY },
   })
 
   const selectedChannelId = watch('channelId')
@@ -426,14 +423,14 @@ export function UploadVideoForm({ username }: Props) {
       <div className="space-y-2">
         <Label htmlFor="visibility">Visibility</Label>
         <Select
-          defaultValue="0"
+          defaultValue={DEFAULT_VISIBILITY}
           onValueChange={(val) => setValue('visibility', val)}
         >
           <SelectTrigger id="visibility">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {VISIBILITY_OPTIONS.map((opt) => (
+            {VIDEO_VISIBILITY_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>

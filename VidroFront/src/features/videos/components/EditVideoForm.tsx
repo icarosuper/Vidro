@@ -17,14 +17,9 @@ import { getApiErrorMessage } from '#/shared/lib/error-messages'
 import { VideoVisibility } from '#/shared/types'
 import { useUpdateVideo } from '../hooks'
 import type { ChannelVideoSummary } from '../types'
+import { VIDEO_VISIBILITY_OPTIONS } from './visibility-options'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const VISIBILITY_OPTIONS = [
-  { label: 'Public', value: '0' },
-  { label: 'Unlisted', value: '1' },
-  { label: 'Private', value: '2' },
-]
 
 const MAX_TAGS = 10
 const TITLE_MAX = 100
@@ -154,7 +149,7 @@ export function EditVideoForm({ video, onSuccess }: Props) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {VISIBILITY_OPTIONS.map((opt) => (
+            {VIDEO_VISIBILITY_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>

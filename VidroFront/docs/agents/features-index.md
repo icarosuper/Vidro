@@ -84,6 +84,7 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 | `components/VideoPlayer.tsx` | HLS player |
 | `components/UploadVideoForm.tsx` | Creates the video + upload + polling |
 | `components/EditVideoForm.tsx` | |
+| `components/visibility-options.ts` | `VIDEO_VISIBILITY_OPTIONS` — the visibility `<Select>` options shared by the upload and edit forms, built from `VideoVisibility` |
 
 **Backend endpoints:**
 - `GET /v1/videos/trending?limit`
