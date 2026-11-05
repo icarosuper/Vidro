@@ -7,7 +7,7 @@ Read this doc before creating routes, new features or cross-cutting changes (api
 - **Framework:** TanStack Start (selective SSR, file-based routing)
 - **Data fetching:** TanStack Query
 - **UI:** shadcn/ui + Tailwind CSS v4
-- **Forms:** in-house components + inline validation (no react-hook-form)
+- **Forms:** react-hook-form + zod (`zodResolver`) — pattern in [conventions.md](conventions.md)
 - **Notifications:** sonner (`toastApiError` centralizes API errors)
 - **Package manager:** bun
 - **Lint/format:** Biome
