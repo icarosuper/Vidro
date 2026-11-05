@@ -3,7 +3,8 @@ const errorMessages: Record<string, string> = {
   'resource.not_found': 'Resource not found.',
   'request.unauthorized': 'You must be signed in to do this.',
   'request.forbidden': "You don't have permission to do this.",
-  'internal.server_error': 'Something went wrong. Please try again.',
+  // Sent by the API's ExceptionMiddleware on an unhandled exception (500)
+  internal_error: 'Something went wrong. Please try again.',
   'request.too_many_requests':
     'Too many attempts. Please wait a moment and try again.',
   'request.failed': 'Something went wrong. Please try again.',
