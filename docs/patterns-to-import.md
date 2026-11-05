@@ -30,7 +30,7 @@ script, a test. That is where the gain is.
 
 `VidroProcessor/.golangci.yml` exists, with 15 linters, and the **Lint** step of
 `.github/workflows/processor.yml` replaced the separate `gofmt` and `go vet` steps.
-It cost **74 findings** and one decision per finding (details in `TODO.md`, "Small mess").
+It cost **74 findings** and one decision per finding (details in the closed "Small mess" section of `TODO.md`: `git show c5ee886:docs/TODO.md`).
 Two deviations from mamut-api, both deliberate:
 
 - ~~**`contextcheck` was left out**~~ ✅ *(enabled on 2026-09-09)*: its 16 findings were all the
@@ -236,7 +236,7 @@ There is no reference repo; what follows is suggestion, with two concrete gaps f
 **The "one line each" estimate was wrong:** turning the compiler on revealed **23 pre-existing
 errors** in 11 files, fixed in the same batch — including a real bug (`currentUser?.id` on a
 `UserProfile` that only has `userId`, leaving `CommentList`'s `isOwner` always false). Details in
-`TODO.md`, under "Small mess". Lesson for the items still open here: **turning on a checker counts
+the closed "Small mess" section of `TODO.md` (`git show c5ee886:docs/TODO.md`). Lesson for the items still open here: **turning on a checker counts
 the errors it finds** — the real cost is the cleanup, not the configuration. See item 16 (biome),
 which already knew this.
 

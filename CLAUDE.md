@@ -149,13 +149,14 @@ request already covers is not "in passing", it is the work.
 
 1. **Run the tests** of the service you touched (`dotnet test` / `bun run test` / `go test ./...`).
 2. **Update the affected docs in the same batch** — each file's trigger is in the service's
-   `CLAUDE.md`. An outdated doc costs more than missing code: `docs/TODO.md` has a whole
+   `CLAUDE.md`. An outdated doc costs more than missing code: `docs/TODO.md` had a whole
    section ("Docs that lie") that only existed because of that.
    The **root** docs have triggers too:
-   - **`docs/TODO.md`** — the task closes, advances or discovers an item: strike/update the item in the
-     body **and** the "Closed so far" summary at the top **and** the "Suggested order" at the end.
-     All three together — striking only the body is what left the suggested order pointing at
-     work already done.
+   - **`docs/TODO.md`** — the file holds open work only. The task closes an item: **delete** it from
+     the body, add a line to the "Closed so far" summary at the top **and** update the "Suggested
+     order" at the end. It advances or discovers one: update/add it in the body and the order. All
+     together — touching only the body is what left the suggested order pointing at work already
+     done. Git keeps the text of what was closed.
    - **`docs/observability.md`, `docs/patterns-to-import.md`, `docs/MONOREPO.md`** — you closed a
      gap, step or item they list: mark it ✅ there too, including in the "Suggested order" and in
      the "What already exists" section when there is one.

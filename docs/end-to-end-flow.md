@@ -6,8 +6,8 @@ handoff fails**. Each service documents its own box in `docs/agents/`; only what
 boundary goes here.
 
 Everything was checked against the code on **2026-10-05** and cites `file:line` from the root. The
-worker loop is moving from `VidroProcessor/main.go` to `VidroProcessor/internal/worker/worker.go`
-(P2 in `TODO.md`); for it the citations use the **function name**, which survives the move.
+worker loop moved from `VidroProcessor/main.go` to `VidroProcessor/internal/worker/worker.go` on
+2026-10-05; for it the citations use the **function name**, which survives a move.
 
 Video stuck halfway? The runbook is
 [`troubleshooting-stuck-video.md`](troubleshooting-stuck-video.md). Following a video through the
