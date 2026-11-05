@@ -13,7 +13,4 @@ public static class CommonErrors
 
     public static Error Forbidden(string message = "You do not have permission to perform this action.") =>
         new("request.forbidden", message, ErrorType.Forbidden);
-
-    public static Error InternalServerError(string message = "An unexpected error occurred.") =>
-        new("internal.server_error", message, ErrorType.Validation);
 }
