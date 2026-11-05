@@ -4,6 +4,9 @@ const errorMessages: Record<string, string> = {
   'request.unauthorized': 'You must be signed in to do this.',
   'request.forbidden': "You don't have permission to do this.",
   'internal.server_error': 'Something went wrong. Please try again.',
+  'request.too_many_requests':
+    'Too many attempts. Please wait a moment and try again.',
+  'request.failed': 'Something went wrong. Please try again.',
 
   // User
   'user.email_conflict': 'This email address is already in use.',

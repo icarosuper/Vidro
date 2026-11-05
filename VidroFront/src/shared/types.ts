@@ -30,6 +30,9 @@ export const API_ERROR_CODES = {
   PLAYLIST_NOT_OWNER: 'playlist.not_owner',
   PLAYLIST_VIDEO_ALREADY_IN: 'playlist.video_already_in_playlist',
   PLAYLIST_VIDEO_NOT_IN: 'playlist.video_not_in_playlist',
+  // Front-only: given by apiClient to a 4xx with no body (the API sends none for these)
+  TOO_MANY_REQUESTS: 'request.too_many_requests',
+  REQUEST_FAILED: 'request.failed',
 } as const
 
 export type ApiErrorCode =

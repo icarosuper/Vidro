@@ -1,4 +1,5 @@
 import type { ApiError } from '#/shared/api'
+import { API_ERROR_CODES } from '#/shared/types'
 import { CORRELATION_ID_HEADER, newCorrelationId } from './correlation-id'
 import { tokenStore } from './token-store'
 
@@ -16,6 +17,39 @@ export class ApiClientError extends Error {
 }
 
 type RenewTokenCallback = () => Promise<string>
+
+// Not every 4xx carries a body: the API's JWT middleware answers a missing or expired token with a
+// bare 401, and the rate limiter a bare 429. Those get a code from the status, so callers always
+// receive an ApiClientError instead of the SyntaxError `response.json()` throws on an empty body.
+const BODILESS_ERRORS: Record<number, ApiError> = {
+  401: { code: API_ERROR_CODES.UNAUTHORIZED, message: 'Unauthorized' },
+  429: {
+    code: API_ERROR_CODES.TOO_MANY_REQUESTS,
+    message: 'Too many requests',
+  },
+}
+
+function parseApiError(text: string): ApiError | null {
+  try {
+    const parsed: unknown = JSON.parse(text)
+    const hasErrorCode =
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      typeof (parsed as ApiError).code === 'string'
+    return hasErrorCode ? (parsed as ApiError) : null
+  } catch {
+    return null
+  }
+}
+
+async function readApiError(response: Response): Promise<ApiError> {
+  const body = parseApiError(await response.text())
+  const fallback = BODILESS_ERRORS[response.status] ?? {
+    code: API_ERROR_CODES.REQUEST_FAILED,
+    message: `Request failed with status ${response.status}`,
+  }
+  return body ?? fallback
+}
 
 // Loaders run this on the server during SSR and again in the browser. In Docker the two
 // need different hosts: the browser reaches the API on the published port, the SSR process
@@ -67,20 +101,18 @@ async function request<T>(
       return request<T>(method, path, body, signal, true)
     } catch {
       tokenStore.clear()
-      const data = (await response.json()) as ApiError
+      const error = await readApiError(response)
       throw new ApiClientError(
-        data.code,
-        data.message,
+        error.code,
+        error.message,
         response.status,
         correlationId,
       )
     }
   }
 
-  const data = await response.json()
-
   if (!response.ok) {
-    const error = data as ApiError
+    const error = await readApiError(response)
     throw new ApiClientError(
       error.code,
       error.message,
@@ -88,6 +120,8 @@ async function request<T>(
       correlationId,
     )
   }
+
+  const data = await response.json()
 
   // Every success response has the shape { data: T }
   return (data as { data: T }).data
@@ -122,10 +156,8 @@ async function uploadRequest<T>(
     return undefined as T
   }
 
-  const data = await response.json()
-
   if (!response.ok) {
-    const error = data as ApiError
+    const error = await readApiError(response)
     throw new ApiClientError(
       error.code,
       error.message,
@@ -134,6 +166,7 @@ async function uploadRequest<T>(
     )
   }
 
+  const data = await response.json()
   return (data as { data: T }).data
 }
 

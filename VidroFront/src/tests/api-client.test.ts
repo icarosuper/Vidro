@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { tokenStore } from '#/shared/lib/token-store'
+import { API_ERROR_CODES } from '#/shared/types'
 
-// Mock do fetch global
+// Global fetch mock
 const mockFetch = vi.fn()
 vi.stubGlobal('fetch', mockFetch)
 
-// Helper para criar respostas mock
+// Builds a mocked JSON response
 function mockResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -23,7 +24,7 @@ afterEach(() => {
 })
 
 describe('apiClient', () => {
-  it('faz GET sem token quando não há sessão', async () => {
+  it('sends a GET without a token when there is no session', async () => {
     const { apiClient } = await import('#/shared/lib/api-client')
     mockFetch.mockResolvedValueOnce(mockResponse({ data: { id: '1' } }))
 
@@ -38,7 +39,7 @@ describe('apiClient', () => {
     expect(result).toEqual({ id: '1' })
   })
 
-  it('injeta o Authorization header quando há token', async () => {
+  it('adds the Authorization header when there is a token', async () => {
     tokenStore.set('meu-access-token')
     const { apiClient } = await import('#/shared/lib/api-client')
     mockFetch.mockResolvedValueOnce(mockResponse({ data: { id: '1' } }))
@@ -51,7 +52,7 @@ describe('apiClient', () => {
     )
   })
 
-  it('lança ApiError tipado em resposta de erro', async () => {
+  it('throws a typed ApiClientError on an error response', async () => {
     const { apiClient, ApiClientError } = await import(
       '#/shared/lib/api-client'
     )
@@ -70,7 +71,7 @@ describe('apiClient', () => {
     })
   })
 
-  it('tenta renovar o token uma vez em caso de 401', async () => {
+  it('tries renewing the token once on a 401', async () => {
     tokenStore.set('token-expirado')
     const { apiClient } = await import('#/shared/lib/api-client')
 
@@ -93,7 +94,7 @@ describe('apiClient', () => {
     expect(result).toEqual({ id: '1' })
   })
 
-  it('lança erro e limpa o token quando a renovação falha', async () => {
+  it('throws and clears the token when the renewal fails', async () => {
     tokenStore.set('token-expirado')
     const { apiClient, ApiClientError } = await import(
       '#/shared/lib/api-client'
@@ -113,7 +114,7 @@ describe('apiClient', () => {
     expect(tokenStore.get()).toBeNull()
   })
 
-  it('faz POST com body JSON', async () => {
+  it('sends a POST with a JSON body', async () => {
     const { apiClient } = await import('#/shared/lib/api-client')
     mockFetch.mockResolvedValueOnce(
       mockResponse({ data: { videoId: 'abc' } }, 201),
@@ -138,7 +139,7 @@ describe('apiClient', () => {
     expect(result).toEqual({ videoId: 'abc' })
   })
 
-  it('retorna undefined em respostas 204', async () => {
+  it('returns undefined on 204 responses', async () => {
     const { apiClient } = await import('#/shared/lib/api-client')
     mockFetch.mockResolvedValueOnce(new Response(null, { status: 204 }))
 
@@ -148,12 +149,62 @@ describe('apiClient', () => {
 
     expect(result).toBeUndefined()
   })
+
+  // The API's JWT middleware and rate limiter answer with no body; reading one as JSON used to
+  // throw a SyntaxError, so the toast lost the error code.
+  it('gives a bodiless 401 an unauthorized code when the renewal fails', async () => {
+    tokenStore.set('expired-token')
+    const { apiClient, ApiClientError } = await import(
+      '#/shared/lib/api-client'
+    )
+    apiClient.setRenewTokenCallback(
+      vi.fn().mockRejectedValue(new Error('refresh failed')),
+    )
+    mockFetch.mockResolvedValueOnce(new Response(null, { status: 401 }))
+
+    const error = await apiClient.get('/v1/test').catch((e) => e)
+
+    expect(error).toBeInstanceOf(ApiClientError)
+    expect(error).toMatchObject({
+      code: API_ERROR_CODES.UNAUTHORIZED,
+      status: 401,
+    })
+  })
+
+  it('gives a bodiless 429 a too-many-requests code', async () => {
+    const { apiClient, ApiClientError } = await import(
+      '#/shared/lib/api-client'
+    )
+    mockFetch.mockResolvedValueOnce(new Response(null, { status: 429 }))
+
+    const error = await apiClient.post('/v1/auth/signin', {}).catch((e) => e)
+
+    expect(error).toBeInstanceOf(ApiClientError)
+    expect(error).toMatchObject({
+      code: API_ERROR_CODES.TOO_MANY_REQUESTS,
+      status: 429,
+    })
+  })
+
+  it('gives an error body without a code a generic code', async () => {
+    const { apiClient } = await import('#/shared/lib/api-client')
+    mockFetch.mockResolvedValueOnce(
+      mockResponse({ errors: [{ field: 'Title', message: 'Required' }] }, 400),
+    )
+
+    const error = await apiClient.post('/v1/test', {}).catch((e) => e)
+
+    expect(error).toMatchObject({
+      code: API_ERROR_CODES.REQUEST_FAILED,
+      status: 400,
+    })
+  })
 })
 
 describe('correlation id', () => {
-  it('manda um X-Correlation-ID diferente em cada requisição', async () => {
+  it('sends a different X-Correlation-ID on every request', async () => {
     const { apiClient } = await import('#/shared/lib/api-client')
-    // Uma Response só pode ser lida uma vez — cada chamada precisa da sua.
+    // A Response can only be read once — each call needs its own.
     mockFetch.mockResolvedValueOnce(mockResponse({ data: { id: '1' } }))
     mockFetch.mockResolvedValueOnce(mockResponse({ data: { id: '2' } }))
 
@@ -171,7 +222,7 @@ describe('correlation id', () => {
     expect(sentIds[0]).not.toBe(sentIds[1])
   })
 
-  it('guarda no erro o id que foi enviado, para o usuário citar no suporte', async () => {
+  it('keeps the id that was sent on the error, for the user to quote to support', async () => {
     const { apiClient, ApiClientError } = await import(
       '#/shared/lib/api-client'
     )

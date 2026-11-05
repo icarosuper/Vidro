@@ -99,6 +99,7 @@ export function useVideo(videoId: string) {
 - Serializes the JSON body; handles `204 No Content`
 - On **401**: calls `renewTokenCallback` (configured in `__root.tsx`), sets the new token, retries **once**. If the retry fails, clears the token and throws `ApiClientError`
 - On error, throws `ApiClientError { code, message, status, correlationId }` — always use `toastApiError`
+- An error with no `{ code, message }` body still becomes an `ApiClientError`: the API's bare 401 (JWT middleware) gets `request.unauthorized`, the bare 429 (rate limiter) `request.too_many_requests`, anything else `request.failed` — front-only codes in `API_ERROR_CODES`
 - Deserializes the `{ data: T }` envelope, returns `T`
 
 ### Correlation ID
