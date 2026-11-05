@@ -1,21 +1,25 @@
 # Features index
 
-Map cada feature: arquivos, endpoints, hooks, tipos. **Atualize sempre q add/remove endpoints, hooks ou components.**
+Maps each feature: files, endpoints, hooks, types. **Update it whenever you add/remove endpoints, hooks or components.**
+
+Every feature's `types.ts` is a barrel: the names listed below are re-exports of the generated
+aliases in `#/shared/api` (`src/shared/api/types.ts`), not hand-written shapes. See "Generated API
+types" in [architecture.md](architecture.md).
 
 ## auth — `src/features/auth/`
 
-Auth (signup/signin/signout), token renew, modal global. Ver [auth.md](auth.md) padrão.
+Auth (signup/signin/signout), token renewal, global modal. See [auth.md](auth.md) for the pattern.
 
-| Arquivo | Conteúdo |
+| File | Contents |
 |---|---|
 | `server.ts` | `serverSignUp`, `serverSignIn`, `serverSignOut`, `renewToken`, `getInitialToken` |
 | `hooks.tsx` | `AuthProvider`, `AuthModalProvider`, `useIsAuthenticated`, `useSignIn`, `useSignUp`, `useSignOut`, `useAuthModal` |
-| `types.ts` | `SignUpRequest`, `SignInRequest`, `AuthTokens` |
-| `components/AuthModal.tsx` | Modal global login/signup |
+| `types.ts` | Re-exports from `#/shared/api`: `SignUpRequest`, `SignInRequest`, `AuthTokens` |
+| `components/AuthModal.tsx` | Global login/signup modal |
 | `components/SignInForm.tsx` | |
 | `components/SignUpForm.tsx` | |
 
-**Endpoints backend (via server.ts):**
+**Backend endpoints (via server.ts):**
 - `POST /v1/auth/signup`
 - `POST /v1/auth/signin`
 - `POST /v1/auth/signout`
@@ -25,36 +29,36 @@ Auth (signup/signin/signout), token renew, modal global. Ver [auth.md](auth.md) 
 
 ## users — `src/features/users/`
 
-Perfil usuário autenticado + avatar upload.
+Authenticated user's profile + avatar upload.
 
-| Arquivo | Conteúdo |
+| File | Contents |
 |---|---|
 | `api.ts` | `getMe`, `uploadAvatar` |
 | `hooks.ts` | `useCurrentUser`, `useUploadAvatar`, `userKeys.me()` |
-| `types.ts` | `UserProfile` |
+| `types.ts` | Re-exports from `#/shared/api`: `UserProfile`, `UploadAvatarResponse` |
 | `components/ProfileInfo.tsx` | |
 | `components/AvatarUpload.tsx` | Upload via presigned URL |
 
-**Endpoints backend:**
+**Backend endpoints:**
 - `GET /v1/users/me`
-- `POST /v1/users/me/avatar` (retorna presigned URL; upload PUT direto storage)
+- `POST /v1/users/me/avatar` (returns a presigned URL; the upload is a direct PUT to storage)
 
 ---
 
 ## channels — `src/features/channels/`
 
-CRUD canais, follow/unfollow, avatar.
+Channel CRUD, follow/unfollow, avatar.
 
-| Arquivo | Conteúdo |
+| File | Contents |
 |---|---|
 | `api.ts` | `getUserChannels`, `getChannel`, `createChannel`, `updateChannel`, `followChannel`, `unfollowChannel`, `uploadChannelAvatar` |
 | `hooks.ts` | `useUserChannels`, `useChannel`, `useCreateChannel`, `useUpdateChannel`, `useFollowChannel`, `useUnfollowChannel`, `useUploadChannelAvatar` |
-| `types.ts` | `Channel`, `ChannelSummary`, `ChannelsResponse`, `CreateChannelRequest/Response`, `UpdateChannelRequest`, `UploadAvatarResponse` |
+| `types.ts` | Re-exports from `#/shared/api`: `Channel`, `ChannelSummary`, `ChannelsResponse`, `CreateChannelRequest/Response`, `UpdateChannelRequest`, `UploadAvatarResponse` |
 | `components/CreateChannelForm.tsx` | |
 | `components/EditChannelForm.tsx` | |
-| `components/SubscribeButton.tsx` | Toggle follow/unfollow c/ optimistic feel |
+| `components/SubscribeButton.tsx` | Follow/unfollow toggle with an optimistic feel |
 
-**Endpoints backend:**
+**Backend endpoints:**
 - `GET /v1/users/{username}/channels`
 - `GET /v1/users/{username}/channels/{handle}`
 - `POST /v1/channels`
@@ -67,48 +71,48 @@ CRUD canais, follow/unfollow, avatar.
 
 ## videos — `src/features/videos/`
 
-Trending, feed, busca, detalhe, reações, upload (create + presigned + status polling), thumbnail, CRUD, listagem por canal.
+Trending, feed, search, detail, reactions, upload (create + presigned + status polling), thumbnail, CRUD, listing by channel.
 
-| Arquivo | Conteúdo |
+| File | Contents |
 |---|---|
-| `api.ts` | `getTrending`, `getFeed`, `searchVideos`, `getVideo`, `registerView`, `reactToVideo`, `removeReaction`, `getChannelVideos`, `createVideo`, `uploadVideoFile` (XHR c/ progresso), `updateVideo`, `uploadThumbnail` |
+| `api.ts` | `getTrending`, `getFeed`, `searchVideos`, `getVideo`, `registerView`, `reactToVideo`, `removeReaction`, `getChannelVideos`, `createVideo`, `uploadVideoFile` (XHR with progress), `updateVideo`, `uploadThumbnail` |
 | `hooks.ts` | `useTrending`, `useFeed`, `useSearchVideos`, `useVideo`, `useRegisterView`, `useReactToVideo`, `useRemoveReaction`, `useVideoStatus`, `useCreateVideo`, `useUpdateVideo`, `useChannelVideos`, `useUploadThumbnail` |
-| `server.ts` | `fetchVideoSsr` — loader de `/watch/$videoId` |
-| `types.ts` | `Video`, `VideoSummary`, `ChannelVideoSummary`, `TrendingResponse`, `FeedPage`, `SearchPage`, `ChannelVideosPage`, `CreateVideoRequest/Response`, `UpdateVideoRequest/Response`, `ThumbnailUploadResponse` |
-| `components/VideoCard.tsx` | Card reutilizável (home/feed e canal). Props: `hideChannelInfo` oculta avatar/nome canal; `isOwner` exibe btn editar, overlay status e badge visibilidade |
-| `components/VideoGrid.tsx` | |
-| `components/VideoPlayer.tsx` | Player HLS |
-| `components/UploadVideoForm.tsx` | Cria vídeo + upload + polling |
+| `server.ts` | `fetchVideoSsr` — loader for `/watch/$videoId` |
+| `types.ts` | Re-exports from `#/shared/api`: `Video`, `VideoSummary`, `ChannelVideoSummary`, `TrendingResponse`, `FeedPage`, `SearchPage`, `ChannelVideosPage`, `CreateVideoRequest/Response`, `UpdateVideoRequest/Response`, `ThumbnailUploadResponse` |
+| `components/VideoCard.tsx` | Reusable card (home/feed and channel). Props: `hideChannelInfo` hides the channel avatar/name; `isOwner` shows the edit button, status overlay and visibility badge. Exports `VideoCardVideo`, the shape it renders |
+| `components/VideoGrid.tsx` | Takes `VideoCardVideo[]` (the shape `VideoCard` renders), not a generated alias — search results lack `dislikeCount` |
+| `components/VideoPlayer.tsx` | HLS player |
+| `components/UploadVideoForm.tsx` | Creates the video + upload + polling |
 | `components/EditVideoForm.tsx` | |
 
-**Endpoints backend:**
+**Backend endpoints:**
 - `GET /v1/videos/trending?limit`
 - `GET /v1/feed?limit&cursor`
-- `GET /v1/videos/search?q&limit&cursor` (`limit` obrigatório)
+- `GET /v1/videos/search?q&limit&cursor` (`limit` required)
 - `GET /v1/videos/{videoId}`
 - `POST /v1/videos/{videoId}/view`
 - `POST /v1/videos/{videoId}/react`
 - `DELETE /v1/videos/{videoId}/react`
 - `GET /v1/users/{username}/channels/{handle}/videos?limit&cursor`
-- `POST /v1/users/{username}/channels/{handle}/videos` (retorna `uploadUrl` presigned)
+- `POST /v1/users/{username}/channels/{handle}/videos` (returns a presigned `uploadUrl`)
 - `PUT /v1/videos/{videoId}`
 - `POST /v1/videos/{videoId}/thumbnail` (presigned)
 
-**Upload flow:** `createVideo` → PUT direto `uploadUrl` c/ progresso via `XMLHttpRequest` → `useVideoStatus` polling até `VideoStatus.Ready` ou `Failed`.
+**Upload flow:** `createVideo` → direct PUT to `uploadUrl` with progress via `XMLHttpRequest` → `useVideoStatus` polls until `VideoStatus.Ready` or `Failed`.
 
 ---
 
 ## comments — `src/features/comments/`
 
-| Arquivo | Conteúdo |
+| File | Contents |
 |---|---|
 | `api.ts` | `listComments`, `listReplies`, `addComment`, `editComment`, `deleteComment`, `reactToComment`, `removeCommentReaction` |
 | `hooks.ts` | `useComments`, `useReplies`, `useAddComment`, `useEditComment`, `useDeleteComment`, `useReactToComment`, `useRemoveCommentReaction`, `commentKeys` |
-| `types.ts` | `CommentSummary`, `CommentsPage`, `ReplySummary`, `RepliesPage` |
-| `components/CommentList.tsx` | Lista paginada c/ sort Recent/Popular, form add |
-| `components/ReplyList.tsx` | Replies lazy-loaded por comentário, form reply inline |
+| `types.ts` | Re-exports from `#/shared/api`: `CommentSummary`, `CommentsPage`, `ReplySummary`, `RepliesPage` |
+| `components/CommentList.tsx` | Paginated list with Recent/Popular sort, add form |
+| `components/ReplyList.tsx` | Replies lazy-loaded per comment, inline reply form |
 
-**Endpoints backend:**
+**Backend endpoints:**
 - `GET /v1/videos/{videoId}/comments?sort&limit&cursor`
 - `GET /v1/comments/{commentId}/replies?limit&cursor`
 - `POST /v1/videos/{videoId}/comments`
@@ -121,17 +125,17 @@ Trending, feed, busca, detalhe, reações, upload (create + presigned + status p
 
 ## playlists — `src/features/playlists/`
 
-| Arquivo | Conteúdo |
+| File | Contents |
 |---|---|
 | `api.ts` | `createPlaylist`, `getPlaylist`, `updatePlaylist`, `deletePlaylist`, `listChannelPlaylists`, `listUserPlaylists`, `addVideoToPlaylist`, `removeVideoFromPlaylist` |
 | `hooks.ts` | `usePlaylist`, `useChannelPlaylists`, `useUserPlaylists`, `useCreatePlaylist`, `useUpdatePlaylist`, `useDeletePlaylist`, `useAddVideoToPlaylist`, `useRemoveVideoFromPlaylist`, `playlistKeys` |
-| `types.ts` | `PlaylistSummary`, `Playlist`, `PlaylistItem`, `PlaylistsPage`, `CreatePlaylistRequest`, `CreatePlaylistResponse`, `UpdatePlaylistRequest` |
-| `components/PlaylistCard.tsx` | Card resumido c/ videoCount e badge visibilidade |
-| `components/CreatePlaylistForm.tsx` | Form criação (nome, descrição, visibilidade; scope/channelId via props) |
-| `components/EditPlaylistForm.tsx` | Form edição (nome, descrição, visibilidade) |
-| `components/PlaylistItemList.tsx` | Lista vídeos c/ thumbnail, duração e btn remoção (owner-only) |
+| `types.ts` | Re-exports from `#/shared/api`: `PlaylistSummary`, `Playlist`, `PlaylistItem`, `PlaylistsPage`, `CreatePlaylistRequest`, `CreatePlaylistResponse`, `UpdatePlaylistRequest` |
+| `components/PlaylistCard.tsx` | Summary card with videoCount and visibility badge |
+| `components/CreatePlaylistForm.tsx` | Create form (name, description, visibility; scope/channelId via props) |
+| `components/EditPlaylistForm.tsx` | Edit form (name, description, visibility) |
+| `components/PlaylistItemList.tsx` | Video list with thumbnail, duration and remove button (owner-only) |
 
-**Endpoints backend:**
+**Backend endpoints:**
 - `POST /v1/playlists`
 - `GET /v1/playlists/{playlistId}`
 - `PUT /v1/playlists/{playlistId}`
@@ -143,29 +147,32 @@ Trending, feed, busca, detalhe, reações, upload (create + presigned + status p
 
 ---
 
-## Rotas (`src/routes/`)
+## Routes (`src/routes/`)
 
-| Rota | Arquivo | Estratégia | Auth | Features consumidas |
+| Route | File | Strategy | Auth | Features consumed |
 |---|---|---|---|---|
-| `/` | `index.tsx` | SSR | pública | videos (trending/feed) |
-| `/watch/$videoId` | `watch.$videoId.tsx` | SSR | pública | videos, channels, comments |
-| `/search` | `search.tsx` | SSR | pública | videos (busca; query em `?q=`, campo no `Header`) |
-| `/$username` | `$username.tsx` + `$username.index.tsx` | SSR | pública | users, channels |
-| `/$username/$channel` | `$username.$channel.tsx` | SSR | pública | channels, videos, playlists |
-| `/playlists/$playlistId` | `playlists.$playlistId.tsx` | SSR | opcional | playlists |
+| `/` | `index.tsx` | SSR | public | videos (trending/feed) |
+| `/watch/$videoId` | `watch.$videoId.tsx` | SSR | public | videos, channels, comments |
+| `/search` | `search.tsx` | SSR | public | videos (search; query in `?q=`, field in the `Header`) |
+| `/$username` | `$username.tsx` + `$username.index.tsx` | SSR | public | users, channels |
+| `/$username/$channel` | `$username.$channel.tsx` | SSR | public | channels, videos, playlists |
+| `/playlists/$playlistId` | `playlists.$playlistId.tsx` | SSR | optional | playlists |
 | `/upload` | `upload.tsx` | client-only | **required** | videos |
 | `/dashboard` | `dashboard.tsx` | client-only | **required** | playlists |
 | `/settings` | `settings.tsx` | client-only | **required** | users |
 
 ## Shared
 
-| Módulo | Arquivo | Conteúdo |
+| Module | File | Contents |
 |---|---|---|
-| api client | `src/shared/lib/api-client.ts` | `apiClient`, `ApiClientError` (com `correlationId`), `setRenewTokenCallback` |
-| correlation id | `src/shared/lib/correlation-id.ts` | `CORRELATION_ID_HEADER`, `newCorrelationId()` — um id por requisição, mandado em `X-Correlation-ID` |
+| api client | `src/shared/lib/api-client.ts` | `apiClient`, `ApiClientError` (with `correlationId`), `setRenewTokenCallback` |
+| correlation id | `src/shared/lib/correlation-id.ts` | `CORRELATION_ID_HEADER`, `newCorrelationId()` — one id per request, sent in `X-Correlation-ID` |
 | token store | `src/shared/lib/token-store.ts` | `tokenStore` (get/set/clear/subscribe) |
-| tipos base | `src/shared/types.ts` | `ApiSuccess`, `ApiError`, `ValidationError`, `EnumValue`, `CursorPage`, `PagedResult`, `API_ERROR_CODES`, `VideoStatus`, `VideoVisibility`, `ReactionType` + `ReactionTypeValue` (o tipo do valor; o const é só valor), `PlaylistVisibility`, `PlaylistScope`, `CommentSortOrder`. **Os seis enums são travados por `contracts/enums.json`** — mudar um valor aqui sem mudar o golden quebra o CI dos dois lados |
-| erros | `src/shared/lib/error-messages.ts` | Map `code → mensagem user-facing` |
+| API types (aliases) | `src/shared/api/types.ts` (barrel `src/shared/api/index.ts`, imported as `#/shared/api`) | Named aliases over the generated `components['schemas'][...]` — every feature's request/response types, plus `EnumValue` |
+| API schema (generated) | `src/shared/api/schema.d.ts` | **Generated by `bun run openapi` from `../VidroApi/openapi/v1.json` — do not edit.** Committed, ignored by Biome; CI regenerates it and fails on a diff |
+| base types | `src/shared/types.ts` | `ApiError`, `ValidationError`, `API_ERROR_CODES`, `VideoStatus`, `VideoVisibility`, `ReactionType` + `ReactionTypeValue` (the value's type; the const is only a value), `PlaylistVisibility`, `PlaylistScope`, `CommentSortOrder`. **The six enums are pinned by `contracts/enums.json`** — changing a value here without changing the golden breaks CI on both sides |
+| enum member | `src/shared/lib/enum-member.ts` | `toEnumMember(enumObject, raw)` — turns a `<Select>` string into the typed enum id; throws on an unknown value |
+| errors | `src/shared/lib/error-messages.ts` | Map `code → user-facing message` |
 | toast | `src/shared/lib/toast-error.ts` | `toastApiError(error)` |
-| components globais | `src/components/` | `Header` (busca + `ThemeToggle`; responsivo por CSS — rótulo `sr-only` até `lg`, busca na segunda linha abaixo de `sm`), `ThemeToggle` (light → dark → auto, persistido em `localStorage`), `RouteFallback` (`RouteErrorFallback` + `RouteNotFoundFallback`, registrados como default do router), `TimeAgo`, `ui/*` (shadcn) |
-| integração | `src/integrations/tanstack-query/` | `QueryClient` + devtools |
+| global components | `src/components/` | `Header` (search + `ThemeToggle`; responsive via CSS — `sr-only` label up to `lg`, search on the second line below `sm`), `ThemeToggle` (light → dark → auto, persisted in `localStorage`), `RouteFallback` (`RouteErrorFallback` + `RouteNotFoundFallback`, registered as the router's defaults), `TimeAgo`, `ui/*` (shadcn) |
+| integration | `src/integrations/tanstack-query/` | `QueryClient` + devtools |

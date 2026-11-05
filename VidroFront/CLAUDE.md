@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guia nav Claude Code repo. Regras críticas aqui; resto em `docs/agents/`.
+Navigation guide for Claude Code in this repo. Critical rules are here; the rest lives in `docs/agents/`.
 
 Commit convention, branching, edit scope, language, release/tags and the "bad code nearby" rule
 live **once**, in the monorepo root `../CLAUDE.md` (loaded automatically alongside this file). Short
@@ -8,66 +8,67 @@ version: everything in English (code, docs, file names, commits), conventional c
 line only; straight to `master` unless the user approves a branch; **never commit without an
 explicit request**.
 
-## Projeto
+## Project
 
-Reescrita frontend Vidro (plataforma vídeo). Backend .NET `../VidroApi/` completo. Frontend construído incremental, fase a fase.
+Frontend rewrite of Vidro (a video platform). The .NET backend in `../VidroApi/` is complete. The frontend is built incrementally, phase by phase.
 
-## Regras sempre ativas
+## Always-on rules
 
-- **Endpoints da API:** antes implementar endpoint frontend, **leia `../VidroApi/docs/agents/features-index.md`** p/ confirmar path exato, arquivo fonte backend (`src/VidroApi.Api/Features/...`) e shape request/response. Não adivinhe paths.
-- **Sem `fetch` direto:** todo HTTP via `apiClient` (`src/shared/lib/api-client.ts`). Exceções: uploads presigned e `features/*/server.ts`.
+- **API endpoints:** before implementing an endpoint in the frontend, **read `../VidroApi/docs/agents/features-index.md`** to confirm the exact path and the backend source file (`src/VidroApi.Api/Features/...`). Do not guess paths. The request/response shapes come from the generated types (`#/shared/api`, built from the API's OpenAPI document) — do not hand-write them.
+- **No direct `fetch`:** all HTTP goes through `apiClient` (`src/shared/lib/api-client.ts`). Exceptions: presigned uploads and `features/*/server.ts`.
 
-## Comandos
+## Commands
 
 ```bash
 bun run dev                                 # http://localhost:3000
 bun run build
-bun run typecheck                           # tsc --noEmit (roda no CI)
-bun run test                                # todos
-bun run test src/tests/api-client.test.ts   # um arquivo
-bun run lint                                # biome ci (roda no CI)
-biome check                                 # o mesmo, com saída para iterar local
+bun run typecheck                           # tsc --noEmit (runs in CI)
+bun run test                                # all
+bun run test src/tests/api-client.test.ts   # one file
+bun run lint                                # biome ci (runs in CI)
+biome check                                 # the same, with output for iterating locally
+bun run openapi                             # regenerates src/shared/api/schema.d.ts from ../VidroApi/openapi/v1.json (CI fails if stale)
 ```
 
-**O formatter manda na formatação** — `bun run lint` (`biome ci`) roda no CI e falha com
-arquivo fora do padrão (2 espaços, aspas simples, sem ponto e vírgula). Ele colapsa ternário
-curto em uma linha, e a regra da raiz foi ajustada para permitir isso; não tente preservar
-ternário de três linhas curto, o formatter desfaz.
+**The formatter decides formatting** — `bun run lint` (`biome ci`) runs in CI and fails on any
+file that does not follow the standard (2 spaces, single quotes, no semicolons). It collapses a
+short ternary onto one line, and the root rule was adjusted to allow that; do not try to keep a
+short ternary on three lines, the formatter undoes it.
 
-Três armadilhas do Biome que custam tempo:
+Three Biome traps that cost time:
 
-- Comentário `//` dentro do `biome.json` **quebra a config em silêncio** — cai no default e
-  passa a lintar `dist/` (83 → 148 arquivos), sem erro nenhum.
-- `biome-ignore` só funciona com o motivo em **uma linha**; quebrado em duas vira "unused
-  suppression" e a regra continua acusando.
-- A suppression vale só para a **linha seguinte**. Em JSX multi-linha ela vai **dentro da
-  tag**, colada no atributo (`key={i}`) — se ficar antes do `<div`, o formatter reposiciona o
-  atributo e a suppression descola.
+- A `//` comment inside `biome.json` **silently breaks the config** — it falls back to the default
+  and starts linting `dist/` (83 → 148 files), with no error at all.
+- `biome-ignore` only works with the reason on **one line**; split across two it becomes an
+  "unused suppression" and the rule keeps firing.
+- A suppression applies only to the **next line**. In multi-line JSX it goes **inside the
+  tag**, right next to the attribute (`key={i}`) — if it sits before the `<div`, the formatter
+  moves the attribute and the suppression comes loose.
 
-## Stack resumida
+## Stack summary
 
-TanStack Start (SSR seletivo, file-based routing) · TanStack Query · shadcn/ui + Tailwind v4 · bun · Biome · Vitest
+TanStack Start (selective SSR, file-based routing) · TanStack Query · shadcn/ui + Tailwind v4 · bun · Biome · Vitest
 
-`VITE_API_URL` → backend .NET (default `http://localhost:5000`)
+`VITE_API_URL` → .NET backend (default `http://localhost:5000`)
 
-## Onde ler o quê
+## What to read when
 
-Leia doc **antes** tarefa descrita. Pular → infringir padrões que existem por motivo.
+Read the doc **before** the task it describes. Skipping it → breaking patterns that exist for a reason.
 
-- **[docs/agents/architecture.md](docs/agents/architecture.md)** — Antes criar rotas, mexer camadas, `apiClient`, tipos compartilhados ou providers root. Cobre layout `src/`, responsabilidades, regra API client, estratégia renderização, formatos resposta API, query keys.
+- **[docs/agents/architecture.md](docs/agents/architecture.md)** — Before creating routes, touching layers, `apiClient`, shared types or root providers. Covers the `src/` layout, responsibilities, the API client rule, generated API types, rendering strategy, API response formats, query keys.
 
-- **[docs/agents/conventions.md](docs/agents/conventions.md)** — Antes escrever qualquer código: naming, layout feature module, padrões `api.ts`/`hooks.ts`, error handling, imports. (Legibilidade — vars nomeadas, ternários em 3 linhas, extração de função — está no `../CLAUDE.md` da raiz e vale para os três serviços.) Traz também o **checklist de endpoint novo** e o de **feature module nova** — siga o checklist em vez de copiar um vizinho de olho.
+- **[docs/agents/conventions.md](docs/agents/conventions.md)** — Before writing any code: naming, feature module layout, `api.ts`/`hooks.ts` patterns, error handling, imports. (Readability — named variables, ternary formatting, function extraction — is in the root `../CLAUDE.md` and applies to all three services.) It also holds the **new endpoint checklist** and the **new feature module checklist** — follow the checklist instead of eyeballing a neighbor and copying it.
 
-- **[docs/agents/auth.md](docs/agents/auth.md)** — Antes mexer sign in/up/out, proteção rota, `tokenStore`, `renewToken`, ou qualquer coisa SSR hydration. Cobre regra ordem sign out e padrão server snapshot em `useIsAuthenticated`.
+- **[docs/agents/auth.md](docs/agents/auth.md)** — Before touching sign in/up/out, route protection, `tokenStore`, `renewToken`, or anything about SSR hydration. Covers the sign-out ordering rule and the server snapshot pattern in `useIsAuthenticated`.
 
-- **[docs/agents/features-index.md](docs/agents/features-index.md)** — Antes criar/mexer feature, ou buscar "onde está endpoint X / hook Y". Mapa cada feature: arquivos, endpoints backend, hooks, tipos, componentes. **Atualize ao add/remover endpoints, hooks ou componentes.**
+- **[docs/agents/features-index.md](docs/agents/features-index.md)** — Before creating/touching a feature, or when looking for "where is endpoint X / hook Y". Maps each feature: files, backend endpoints, hooks, types, components. **Update it when adding/removing endpoints, hooks or components.**
 
-## Manter as docs em dia
+## Keeping the docs up to date
 
-O ciclo pós-implementação (testes → docs → commit sugerido) está no `../CLAUDE.md` da raiz. O que é
-específico daqui é **qual** arquivo atualizar:
+The post-implementation cycle (tests → docs → suggested commit) is in the root `../CLAUDE.md`. What
+is specific to this service is **which** file to update:
 
-- Add/remover endpoint, hook ou componente → `docs/agents/features-index.md`
-- Mudar camadas, `apiClient` ou estratégia de renderização → `docs/agents/architecture.md`
-- Qualquer mudança de auth → `docs/agents/auth.md`
-- Mudou uma convenção de código (raro) → `docs/agents/conventions.md`
+- Added/removed an endpoint, hook or component → `docs/agents/features-index.md`
+- Changed layers, `apiClient` or the rendering strategy → `docs/agents/architecture.md`
+- Any auth change → `docs/agents/auth.md`
+- Changed a code convention (rare) → `docs/agents/conventions.md`
