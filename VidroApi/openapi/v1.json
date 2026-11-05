@@ -32,15 +32,22 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/CreateVideoRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateVideoResponseApiResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -78,18 +85,21 @@
             "in": "query",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListChannelVideosResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -111,8 +121,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       },
@@ -133,7 +143,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetVideoResponseApiResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -156,7 +173,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/UpdateVideoRequest"
               }
             }
           },
@@ -164,7 +181,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateVideoResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -188,18 +212,21 @@
             "in": "query",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListFeedVideosResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -215,18 +242,21 @@
             "in": "query",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListTrendingVideosResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -240,7 +270,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/MinioUploadCompletedRequest"
               }
             }
           },
@@ -273,15 +303,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/ReactToVideoRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       },
@@ -301,8 +331,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -324,8 +354,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -349,11 +379,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -368,7 +394,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchVideosResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -391,7 +424,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadVideoThumbnailResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -415,7 +455,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCurrentUserResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -427,7 +474,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadAvatarResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -452,15 +506,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/AddVideoToPlaylistRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -474,15 +528,22 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/CreatePlaylistRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePlaylistResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -504,8 +565,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       },
@@ -526,7 +587,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetPlaylistResponseApiResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -549,15 +617,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/UpdatePlaylistRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -596,18 +664,21 @@
             "in": "query",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListPlaylistsByChannelPlaylistResponsePagedResultApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -638,18 +709,21 @@
             "in": "query",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListPlaylistsByUserPlaylistResponsePagedResultApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -680,8 +754,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -706,15 +780,22 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/AddCommentRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddCommentResponseApiResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -745,11 +826,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -764,7 +841,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListCommentsResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -786,8 +870,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       },
@@ -810,15 +894,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/EditCommentRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -843,11 +927,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -862,7 +942,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListRepliesResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -887,15 +974,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/ReactToCommentRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       },
@@ -915,8 +1002,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -930,15 +1017,22 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/CreateChannelRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateChannelResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -959,8 +1053,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       },
@@ -982,15 +1076,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/UpdateChannelRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -1019,8 +1113,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       },
@@ -1047,8 +1141,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -1078,7 +1172,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetChannelResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1100,7 +1201,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListUserChannelsResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1122,7 +1230,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadChannelAvatarResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1136,7 +1251,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/RenewTokenRequest"
               }
             }
           },
@@ -1144,7 +1259,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenewTokenResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1158,7 +1280,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/SignInRequest"
               }
             }
           },
@@ -1166,7 +1288,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1180,15 +1309,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/SignOutRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -1202,15 +1331,22 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Request"
+                "$ref": "#/components/schemas/SignUpRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignUpResponseApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1218,10 +1354,201 @@
   },
   "components": {
     "schemas": {
+      "AddCommentRequest": {
+        "required": [
+          "content",
+          "parentCommentId"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "parentCommentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "AddCommentResponse": {
+        "required": [
+          "commentId"
+        ],
+        "type": "object",
+        "properties": {
+          "commentId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "AddCommentResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AddCommentResponse"
+              }
+            ]
+          }
+        }
+      },
+      "AddVideoToPlaylistRequest": {
+        "required": [
+          "videoId"
+        ],
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "CommentSortOrder": {
+        "enum": [
+          0,
+          1
+        ],
         "type": "integer"
       },
-      "Request": {
+      "CreateChannelRequest": {
+        "required": [
+          "handle",
+          "name",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CreateChannelResponse": {
+        "required": [
+          "channelId",
+          "handle"
+        ],
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "handle": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateChannelResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CreateChannelResponse"
+              }
+            ]
+          }
+        }
+      },
+      "CreatePlaylistRequest": {
+        "required": [
+          "name",
+          "description",
+          "visibility",
+          "scope",
+          "channelId"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/PlaylistVisibility"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/PlaylistScope"
+          },
+          "channelId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "CreatePlaylistResponse": {
+        "required": [
+          "playlistId"
+        ],
+        "type": "object",
+        "properties": {
+          "playlistId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CreatePlaylistResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CreatePlaylistResponse"
+              }
+            ]
+          }
+        }
+      },
+      "CreateVideoRequest": {
+        "required": [
+          "title",
+          "description",
+          "tags",
+          "visibility"
+        ],
         "type": "object",
         "properties": {
           "title": {
@@ -1244,7 +1571,1791 @@
           }
         }
       },
+      "CreateVideoResponse": {
+        "required": [
+          "videoId",
+          "uploadUrl",
+          "uploadExpiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uploadUrl": {
+            "type": "string"
+          },
+          "uploadExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateVideoResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CreateVideoResponse"
+              }
+            ]
+          }
+        }
+      },
+      "EditCommentRequest": {
+        "required": [
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "EnumValue": {
+        "required": [
+          "id",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "GetChannelResponse": {
+        "required": [
+          "channelId",
+          "handle",
+          "name",
+          "description",
+          "followerCount",
+          "isFollowing",
+          "ownerId",
+          "ownerUsername",
+          "avatarUrl",
+          "ownerAvatarUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "handle": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "followerCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isFollowing": {
+            "type": "boolean"
+          },
+          "ownerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ownerUsername": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ownerAvatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "GetChannelResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GetChannelResponse"
+              }
+            ]
+          }
+        }
+      },
+      "GetCurrentUserResponse": {
+        "required": [
+          "userId",
+          "username",
+          "email",
+          "avatarUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "GetCurrentUserResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GetCurrentUserResponse"
+              }
+            ]
+          }
+        }
+      },
+      "GetPlaylistResponse": {
+        "required": [
+          "playlistId",
+          "name",
+          "description",
+          "visibility",
+          "scope",
+          "videoCount",
+          "channelId",
+          "createdAt",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "playlistId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/EnumValue"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/EnumValue"
+          },
+          "videoCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "channelId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GetPlaylistResponsePlaylistItemResponse"
+            }
+          }
+        }
+      },
+      "GetPlaylistResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GetPlaylistResponse"
+              }
+            ]
+          }
+        }
+      },
+      "GetPlaylistResponsePlaylistItemResponse": {
+        "required": [
+          "videoId",
+          "title",
+          "thumbnailUrl",
+          "durationSeconds"
+        ],
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "thumbnailUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "durationSeconds": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "GetVideoResponse": {
+        "required": [
+          "videoId",
+          "channelId",
+          "channelHandle",
+          "channelName",
+          "channelAvatarUrl",
+          "ownerUsername",
+          "title",
+          "description",
+          "tags",
+          "visibility",
+          "status",
+          "viewCount",
+          "likeCount",
+          "dislikeCount",
+          "commentCount",
+          "thumbnailUrls",
+          "videoUrl",
+          "userReaction",
+          "isFollowingChannel",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "channelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "channelHandle": {
+            "type": "string"
+          },
+          "channelName": {
+            "type": "string"
+          },
+          "channelAvatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ownerUsername": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/EnumValue"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EnumValue"
+          },
+          "viewCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "likeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dislikeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "commentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "thumbnailUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "videoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "userReaction": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnumValue"
+              }
+            ]
+          },
+          "isFollowingChannel": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GetVideoResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GetVideoResponse"
+              }
+            ]
+          }
+        }
+      },
+      "ListChannelVideosResponse": {
+        "required": [
+          "videos",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "videos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListChannelVideosResponseVideoSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ListChannelVideosResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ListChannelVideosResponse"
+              }
+            ]
+          }
+        }
+      },
+      "ListChannelVideosResponseVideoSummary": {
+        "required": [
+          "videoId",
+          "channelHandle",
+          "ownerUsername",
+          "title",
+          "description",
+          "tags",
+          "visibility",
+          "status",
+          "viewCount",
+          "likeCount",
+          "thumbnailUrls",
+          "channelAvatarUrl",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "channelHandle": {
+            "type": "string"
+          },
+          "ownerUsername": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/EnumValue"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EnumValue"
+          },
+          "viewCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "likeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "thumbnailUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "channelAvatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ListCommentsResponse": {
+        "required": [
+          "comments",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListCommentsResponseCommentSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ListCommentsResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ListCommentsResponse"
+              }
+            ]
+          }
+        }
+      },
+      "ListCommentsResponseCommentSummary": {
+        "required": [
+          "commentId",
+          "userId",
+          "username",
+          "content",
+          "isDeleted",
+          "likeCount",
+          "dislikeCount",
+          "replyCount",
+          "userReaction",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "commentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          },
+          "content": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isDeleted": {
+            "type": "boolean"
+          },
+          "likeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dislikeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "replyCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "userReaction": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnumValue"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ListFeedVideosResponse": {
+        "required": [
+          "videos",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "videos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListFeedVideosResponseVideoSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ListFeedVideosResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ListFeedVideosResponse"
+              }
+            ]
+          }
+        }
+      },
+      "ListFeedVideosResponseVideoSummary": {
+        "required": [
+          "videoId",
+          "channelId",
+          "channelHandle",
+          "channelName",
+          "channelAvatarUrl",
+          "ownerUsername",
+          "title",
+          "description",
+          "tags",
+          "viewCount",
+          "likeCount",
+          "dislikeCount",
+          "thumbnailUrls",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "channelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "channelHandle": {
+            "type": "string"
+          },
+          "channelName": {
+            "type": "string"
+          },
+          "channelAvatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ownerUsername": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "viewCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "likeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dislikeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "thumbnailUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ListPlaylistsByChannelPlaylistResponse": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "visibility",
+          "videoCount",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/EnumValue"
+          },
+          "videoCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ListPlaylistsByChannelPlaylistResponsePagedResult": {
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListPlaylistsByChannelPlaylistResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ListPlaylistsByChannelPlaylistResponsePagedResultApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ListPlaylistsByChannelPlaylistResponsePagedResult"
+              }
+            ]
+          }
+        }
+      },
+      "ListPlaylistsByUserPlaylistResponse": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "visibility",
+          "videoCount",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/EnumValue"
+          },
+          "videoCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ListPlaylistsByUserPlaylistResponsePagedResult": {
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListPlaylistsByUserPlaylistResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ListPlaylistsByUserPlaylistResponsePagedResultApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ListPlaylistsByUserPlaylistResponsePagedResult"
+              }
+            ]
+          }
+        }
+      },
+      "ListRepliesResponse": {
+        "required": [
+          "replies",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "replies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListRepliesResponseReplySummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ListRepliesResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ListRepliesResponse"
+              }
+            ]
+          }
+        }
+      },
+      "ListRepliesResponseReplySummary": {
+        "required": [
+          "commentId",
+          "userId",
+          "username",
+          "content",
+          "isDeleted",
+          "likeCount",
+          "dislikeCount",
+          "userReaction",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "commentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          },
+          "content": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isDeleted": {
+            "type": "boolean"
+          },
+          "likeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dislikeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "userReaction": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnumValue"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ListTrendingVideosResponse": {
+        "required": [
+          "videos"
+        ],
+        "type": "object",
+        "properties": {
+          "videos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListTrendingVideosResponseVideoSummary"
+            }
+          }
+        }
+      },
+      "ListTrendingVideosResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ListTrendingVideosResponse"
+              }
+            ]
+          }
+        }
+      },
+      "ListTrendingVideosResponseVideoSummary": {
+        "required": [
+          "videoId",
+          "channelId",
+          "channelHandle",
+          "channelName",
+          "channelAvatarUrl",
+          "ownerUsername",
+          "title",
+          "description",
+          "tags",
+          "viewCount",
+          "likeCount",
+          "dislikeCount",
+          "thumbnailUrls",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "channelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "channelHandle": {
+            "type": "string"
+          },
+          "channelName": {
+            "type": "string"
+          },
+          "channelAvatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ownerUsername": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "viewCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "likeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dislikeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "thumbnailUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ListUserChannelsResponse": {
+        "required": [
+          "channels"
+        ],
+        "type": "object",
+        "properties": {
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListUserChannelsResponseChannelSummary"
+            }
+          }
+        }
+      },
+      "ListUserChannelsResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ListUserChannelsResponse"
+              }
+            ]
+          }
+        }
+      },
+      "ListUserChannelsResponseChannelSummary": {
+        "required": [
+          "channelId",
+          "handle",
+          "name",
+          "description",
+          "followerCount",
+          "isFollowing",
+          "avatarUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "handle": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "followerCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isFollowing": {
+            "type": "boolean"
+          },
+          "avatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MinioUploadCompletedRequest": {
+        "required": [
+          "eventName",
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "eventName": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          }
+        }
+      },
+      "PlaylistScope": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer"
+      },
+      "PlaylistVisibility": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer"
+      },
+      "ReactionType": {
+        "enum": [
+          1,
+          2
+        ],
+        "type": "integer"
+      },
+      "ReactToCommentRequest": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/ReactionType"
+          }
+        }
+      },
+      "ReactToVideoRequest": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/ReactionType"
+          }
+        }
+      },
+      "RenewTokenRequest": {
+        "required": [
+          "refreshToken"
+        ],
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
+      "RenewTokenResponse": {
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "secondsToExpiration"
+        ],
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "secondsToExpiration": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "RenewTokenResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RenewTokenResponse"
+              }
+            ]
+          }
+        }
+      },
+      "SearchVideosResponse": {
+        "required": [
+          "videos",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "videos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchVideosResponseVideoSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SearchVideosResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SearchVideosResponse"
+              }
+            ]
+          }
+        }
+      },
+      "SearchVideosResponseVideoSummary": {
+        "required": [
+          "videoId",
+          "channelId",
+          "channelHandle",
+          "channelName",
+          "channelAvatarUrl",
+          "ownerUsername",
+          "title",
+          "description",
+          "tags",
+          "viewCount",
+          "likeCount",
+          "thumbnailUrls",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "channelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "channelHandle": {
+            "type": "string"
+          },
+          "channelName": {
+            "type": "string"
+          },
+          "channelAvatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ownerUsername": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "viewCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "likeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "thumbnailUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SignInRequest": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "SignInResponse": {
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "secondsToExpiration"
+        ],
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "secondsToExpiration": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SignInResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SignInResponse"
+              }
+            ]
+          }
+        }
+      },
+      "SignOutRequest": {
+        "required": [
+          "refreshToken"
+        ],
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
+      "SignUpRequest": {
+        "required": [
+          "username",
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "SignUpResponse": {
+        "required": [
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "SignUpResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SignUpResponse"
+              }
+            ]
+          }
+        }
+      },
+      "UpdateChannelRequest": {
+        "required": [
+          "name",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "UpdatePlaylistRequest": {
+        "required": [
+          "name",
+          "description",
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/PlaylistVisibility"
+          }
+        }
+      },
+      "UpdateVideoRequest": {
+        "required": [
+          "title",
+          "description",
+          "tags",
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/VideoVisibility"
+          }
+        }
+      },
+      "UpdateVideoResponse": {
+        "required": [
+          "videoId",
+          "title",
+          "description",
+          "tags",
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/EnumValue"
+          }
+        }
+      },
+      "UpdateVideoResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/UpdateVideoResponse"
+              }
+            ]
+          }
+        }
+      },
+      "UploadAvatarResponse": {
+        "required": [
+          "uploadUrl",
+          "uploadExpiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "uploadUrl": {
+            "type": "string"
+          },
+          "uploadExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UploadAvatarResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/UploadAvatarResponse"
+              }
+            ]
+          }
+        }
+      },
+      "UploadChannelAvatarResponse": {
+        "required": [
+          "uploadUrl",
+          "uploadExpiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "uploadUrl": {
+            "type": "string"
+          },
+          "uploadExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UploadChannelAvatarResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/UploadChannelAvatarResponse"
+              }
+            ]
+          }
+        }
+      },
+      "UploadVideoThumbnailResponse": {
+        "required": [
+          "uploadUrl",
+          "uploadExpiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "uploadUrl": {
+            "type": "string"
+          },
+          "uploadExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UploadVideoThumbnailResponseApiResponse": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/UploadVideoThumbnailResponse"
+              }
+            ]
+          }
+        }
+      },
       "VideoVisibility": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
         "type": "integer"
       }
     }

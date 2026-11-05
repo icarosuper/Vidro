@@ -232,8 +232,9 @@ CI workflow triggers on `contracts/**`, so renaming a field turns both builds re
 | `processing-timeout.json` | worker's worst-case duration vs. the API's `Processing` timeout |
 | `enums.json` | API → front: the six enums the front mirrors by hand as integers |
 
-The API's URL surface is also versioned: [`VidroApi/openapi/v1.json`](../VidroApi/openapi/v1.json)
-is generated, and CI fails if it changes without being committed.
+The API's surface is also versioned: [`VidroApi/openapi/v1.json`](../VidroApi/openapi/README.md)
+is generated (routes and success bodies), the front generates its request/response types from it,
+and CI fails if either generated file changes without being committed.
 
 The repo is a monorepo mainly so that a contract change lands on both sides in one commit
 ([`MONOREPO.md`](MONOREPO.md)).

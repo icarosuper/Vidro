@@ -54,7 +54,8 @@ public static class ListPlaylistsByUser
 
             var result = await mediator.Send(query, ct);
             return result.ToApiResult(StatusCodes.Status200OK);
-        });
+        })
+        .ProducesApiSuccess<PagedResult<PlaylistResponse>>();
 
     public class Handler(AppDbContext db)
         : IRequestHandler<Query, Result<PagedResult<PlaylistResponse>, Error>>

@@ -62,7 +62,8 @@ public static class ListTrendingVideos
             var cmd = new Command { Limit = limit };
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult(StatusCodes.Status200OK);
-        });
+        })
+        .ProducesApiSuccess<Response>();
 
     public class Handler(AppDbContext db, IMinioService minio, IDateTimeProvider clock, IOptions<TrendingSettings> trendingOptions, IOptions<MinioSettings> minioOptions)
         : IRequestHandler<Command, Result<Response, Error>>

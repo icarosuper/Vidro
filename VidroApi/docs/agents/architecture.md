@@ -41,7 +41,8 @@ public static class FeatureName
         {
             var result = await mediator.Send(req, ct);
             return result.ToApiResult(StatusCodes.Status201Created);
-        });
+        })
+        .ProducesApiSuccess<Response>(StatusCodes.Status201Created);
 
     public class Handler(AppDbContext db, IDateTimeProvider clock, ...)
         : IRequestHandler<Request, Result<Response, Error>>
@@ -57,6 +58,7 @@ public static class FeatureName
 - **No magic numbers in Validators** — use entity constants (e.g. `User.UsernameMinLength`, `User.PasswordMinLength`). Same constants in entity constructor guards.
 - **Endpoint registration automatic** — `app.MapAllEndpoints()` in `Program.cs` scans assembly by reflection, calls every public static `MapEndpoint`. Never register manually.
 - **`result.ToApiResult(statusCode)`** maps `Result<T, Error>` → correct HTTP response: success wraps in `{ "data": ... }`, failure maps `ErrorType` → status code, returns `{ "code": ..., "message": ... }`.
+- **`.ProducesApiSuccess<Response>(status)` / `.ProducesNoContent()`** on the route declares the success body in `openapi/v1.json`, which the front generates its types from. It must match the `ToApiResult` status — nothing checks it. Why `.Produces` and not `TypedResults`: [design-decisions #15](design-decisions.md#15-success-bodies-are-declared-with-produces-on-the-route-not-typedresults).
 - Handlers return `Result<Response, Error>` (CSharpFunctionalExtensions). Use `Result.Success(response)` or `DomainError.X.Y()`.
 - Validation auto via `ValidationBehavior<,>` (MediatR pipeline). FluentValidation exceptions → middleware → 400.
 - Inject `IDateTimeProvider` into handlers needing current time → pass to entity constructors.

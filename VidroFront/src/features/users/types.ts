@@ -1,6 +1,4 @@
-export type UserProfile = {
-  userId: string
-  username: string
-  email: string
-  avatarUrl: string | null
-}
+export type {
+  UploadAvatarResponse,
+  UserProfile,
+} from '#/shared/api'

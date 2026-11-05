@@ -36,6 +36,7 @@ public static class RemoveVideoFromPlaylist
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult();
         })
+        .ProducesNoContent()
         .RequireAuthorization();
 
     public class Handler(AppDbContext db) : IRequestHandler<Command, UnitResult<Error>>

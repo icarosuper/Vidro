@@ -54,7 +54,9 @@ public static class SignIn
         {
             var result = await mediator.Send(req, ct);
             return result.ToApiResult(StatusCodes.Status200OK);
-        }).RequireRateLimiting(RateLimitSettings.AuthPolicy);
+        })
+        .ProducesApiSuccess<Response>()
+        .RequireRateLimiting(RateLimitSettings.AuthPolicy);
 
     public class Handler(
         AppDbContext db,

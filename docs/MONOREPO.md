@@ -147,12 +147,11 @@ depends on the others with `if: always()`.
 The biggest gain is not build, it is **contract**. Two things that were manual and already cost
 bugs:
 
-- **API ↔ Front — generated types.** ✅ *(2026-09-09, partial)* The front's `types.ts` mirrors the
-  backend shapes **by hand**. The six enums became a golden in
-  [`contracts/enums.json`](../contracts/README.md), tested from both sides, and the 43 routes are
-  locked by the versioned `VidroApi/openapi/v1.json`, which CI regenerates and compares.
-  **Missing:** generating the request/response types: the OpenAPI document does not describe the
-  responses yet (the handlers return `IResult`) — see the item in P2 of `TODO.md`.
+- **API ↔ Front — generated types.** ✅ *(2026-11-05)* The front's request/response types are
+  generated from the versioned `VidroApi/openapi/v1.json` (`VidroFront/src/shared/api/schema.d.ts`),
+  and CI regenerates and compares both files — a renamed C# response property is a red build in
+  the same commit. The six enums' names stay pinned by [`contracts/enums.json`](../contracts/README.md),
+  tested from both sides. **Still open:** the error bodies (4xx) — see the P2 follow-up in `TODO.md`.
 - **API ↔ Processor — contract test.** ✅ *(2026-09-07, partial)* The `video-processed` webhook
   payload became a versioned golden in [`contracts/`](../contracts/README.md), tested from both
   sides: the worker proves it serializes exactly that, the API proves it accepts exactly that. It

@@ -68,7 +68,8 @@ public static class SearchVideos
             var cmd = new Command { Query = q, Cursor = cursor, Limit = limit };
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult(StatusCodes.Status200OK);
-        });
+        })
+        .ProducesApiSuccess<Response>();
 
     public class Handler(AppDbContext db, IMinioService minio, IOptions<MinioSettings> minioOptions)
         : IRequestHandler<Command, Result<Response, Error>>

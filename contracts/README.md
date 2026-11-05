@@ -97,9 +97,11 @@ Who tests it:
 Both tests also fail if the golden describes an enum their side no longer mirrors — a golden entry
 nobody stands behind is a contract nobody checks.
 
-**Why it does not come from OpenAPI:** it would, if the document described the enums. It does
-not — see [`VidroApi/openapi/README.md`](../VidroApi/openapi/README.md). `openapi/v1.json` locks
-the URL surface; this golden locks the enums.
+**Why it does not come from OpenAPI:** the document carries the enums' numeric **values** (requests
+are typed `0 | 1 | 2` in the front), but not their **names**, and responses carry an
+`EnumValue { id, value }`, so OpenAPI never pins `VideoStatus.Ready = 2`. The request/response
+shapes come from [`VidroApi/openapi/v1.json`](../VidroApi/openapi/README.md) and the front's
+generated `src/shared/api/schema.d.ts`; this golden locks the enum names and numbers.
 
 ## `processing-timeout.json` — worker worst case vs. API timeout
 

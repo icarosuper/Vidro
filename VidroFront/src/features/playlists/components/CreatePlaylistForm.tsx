@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '#/components/ui/select'
 import { Textarea } from '#/components/ui/textarea'
+import { toEnumMember } from '#/shared/lib/enum-member'
 import { getApiErrorMessage } from '#/shared/lib/error-messages'
 import { PlaylistScope, PlaylistVisibility } from '#/shared/types'
 import { useCreatePlaylist } from '../hooks'
@@ -67,8 +68,8 @@ export function CreatePlaylistForm({ channelId, onSuccess }: Props) {
       {
         name: values.name,
         description: values.description?.trim() || null,
-        visibility: values.visibility,
-        scope: values.scope,
+        visibility: toEnumMember(PlaylistVisibility, values.visibility),
+        scope: toEnumMember(PlaylistScope, values.scope),
         channelId: values.channelId ?? null,
       },
       { onSuccess: (data) => onSuccess?.(data.playlistId) },

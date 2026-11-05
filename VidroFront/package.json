@@ -12,7 +12,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "biome ci",
-    "check": "biome check"
+    "check": "biome check",
+    "openapi": "openapi-typescript ../VidroApi/openapi/v1.json -o src/shared/api/schema.d.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -51,6 +52,7 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.1.4",
     "jsdom": "^28.1.0",
+    "openapi-typescript": "7.13.0",
     "typescript": "^5.7.2",
     "vite": "^7.3.1",
     "vite-tsconfig-paths": "^5.1.4",

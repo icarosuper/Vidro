@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CreatePlaylistRequest } from '#/features/playlists/types'
 import { tokenStore } from '#/shared/lib/token-store'
 
 const mockFetch = vi.fn()
@@ -81,7 +82,7 @@ describe('playlists api', () => {
       mockResponse({ data: { playlistId: 'pl-1' } }),
     )
     const { createPlaylist } = await import('#/features/playlists/api')
-    const request = {
+    const request: CreatePlaylistRequest = {
       name: 'Favorites',
       description: null,
       visibility: 1,

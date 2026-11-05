@@ -38,6 +38,10 @@
     <Content Include="..\..\..\contracts\minio-paths.json"
              Link="contracts\%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest" />
+    <!-- Versioned OpenAPI document the front generates its types from: see openapi/README.md -->
+    <Content Include="..\..\openapi\v1.json"
+             Link="openapi\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\src\VidroApi.Api\appsettings.json"
              Link="api-appsettings.json"
              CopyToOutputDirectory="PreserveNewest" />

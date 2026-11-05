@@ -53,6 +53,7 @@ public static class EditComment
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult();
         })
+        .ProducesNoContent()
         .RequireAuthorization();
 
     public class Handler(AppDbContext db, IDateTimeProvider clock)

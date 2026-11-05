@@ -36,6 +36,7 @@ public static class GetCurrentUser
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult(StatusCodes.Status200OK);
         })
+        .ProducesApiSuccess<Response>()
         .RequireAuthorization();
 
     public class Handler(

@@ -74,6 +74,7 @@ public static class CreateChannel
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult(StatusCodes.Status201Created);
         })
+        .ProducesApiSuccess<Response>(StatusCodes.Status201Created)
         .RequireAuthorization();
 
     public class Handler(AppDbContext db, IDateTimeProvider clock, IOptions<ChannelSettings> channelOptions)

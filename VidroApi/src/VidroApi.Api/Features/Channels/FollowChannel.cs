@@ -37,6 +37,7 @@ public static class FollowChannel
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult();
         })
+        .ProducesNoContent()
         .RequireAuthorization();
 
     public class Handler(AppDbContext db, IDateTimeProvider clock)

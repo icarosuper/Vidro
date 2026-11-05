@@ -54,7 +54,8 @@ public static class GetPlaylist
             var cmd = new Command { PlaylistId = playlistId, RequestingUserId = requestingUserId };
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult(StatusCodes.Status200OK);
-        });
+        })
+        .ProducesApiSuccess<Response>();
 
     public class Handler(AppDbContext db, IMinioService minio, IOptions<MinioSettings> minioOptions)
         : IRequestHandler<Command, Result<Response, Error>>

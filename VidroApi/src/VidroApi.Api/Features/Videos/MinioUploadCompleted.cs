@@ -57,7 +57,8 @@ public static class MinioUploadCompleted
                 new Command { VideoId = videoId.Value, CorrelationId = correlationId },
                 ct);
             return Results.Ok();
-        });
+        })
+        .Produces(StatusCodes.Status200OK);
 
     public class Handler(AppDbContext db, IJobQueueService jobQueue, IDateTimeProvider clock, IOptions<ApiSettings> apiOptions)
         : IRequestHandler<Command, UnitResult<Error>>

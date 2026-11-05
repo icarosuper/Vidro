@@ -119,6 +119,12 @@ into a named method, names that say *what*, three-line ternaries — live once i
 2. **Do not register the endpoint anywhere.** `app.MapAllEndpoints()` scans the assembly by
    reflection and calls every `public static MapEndpoint`. A wrong signature does not fail the
    build — the route simply never exists, and the symptom is a 404 in a test.
+2.1. **Declare the success body on the route**, matching what `ToApiResult` returns:
+   `ToApiResult(Status200OK)` → `.ProducesApiSuccess<Response>()`, `Status201Created` →
+   `.ProducesApiSuccess<Response>(StatusCodes.Status201Created)`, `ToApiResult()` (204) →
+   `.ProducesNoContent()`. Without it the front has no type for the route, and
+   `OpenApiDocumentTests` fails. See
+   [design-decisions #15](design-decisions.md#15-success-bodies-are-declared-with-produces-on-the-route-not-typedresults).
 3. Route follows the identity rules: `{username}` and `{handle}`, never a `Guid`; channel-scoped
    resources nest under the user.
 4. `Handle` reads as a sequence of named steps. `SaveChangesAsync` stays **in** `Handle`; a read that
@@ -142,7 +148,10 @@ into a named method, names that say *what*, three-line ternaries — live once i
 8. Tests: integration test in `tests/VidroApi.IntegrationTests/<Domain>/<FeatureName>Tests.cs`
    (always), plus a unit test in `tests/VidroApi.UnitTests/Domain/` if a domain entity changed.
    Assert both the status code and the body.
-9. `dotnet test`.
+9. Regenerate the OpenAPI document and the front's types, then `dotnet test` (the contract tests
+   read the regenerated file): `ASPNETCORE_ENVIRONMENT=Development dotnet build src/VidroApi.Api
+   -p:GenerateOpenApiDocument=true`, then `bun run openapi` in `VidroFront/`. Both files go in the
+   same commit as the slice.
 10. Update [`features-index.md`](features-index.md) with the file and the route. Add a numbered entry
     to [`design-decisions.md`](design-decisions.md) if the slice does something non-obvious that a
     future reader would try to "fix".

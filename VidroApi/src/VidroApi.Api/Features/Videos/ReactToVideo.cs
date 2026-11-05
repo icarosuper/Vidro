@@ -47,6 +47,7 @@ public static class ReactToVideo
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult();
         })
+        .ProducesNoContent()
         .RequireAuthorization();
 
     public class Handler(AppDbContext db, IDateTimeProvider clock)

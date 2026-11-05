@@ -1,9 +1,8 @@
 import { Skeleton } from '#/components/ui/skeleton'
-import type { VideoSummary } from '../types'
-import { VideoCard } from './VideoCard'
+import { VideoCard, type VideoCardVideo } from './VideoCard'
 
 type VideoGridProps = {
-  videos: VideoSummary[]
+  videos: VideoCardVideo[]
   isLoading?: boolean
   skeletonCount?: number
 }

@@ -50,7 +50,7 @@ builder.Services.AddAuthorization();
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
     policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
-builder.Services.AddOpenApi();
+builder.Services.AddVidroOpenApi();
 builder.Services.AddHealthChecks();
 
 // Metrics. The runtime already emits what matters — request rate, latency and status per

@@ -10,12 +10,12 @@ import {
   VideoVisibility,
 } from '#/shared/types'
 
-// Os seis enums de `shared/types.ts` são espelhados à mão: a API os serializa como inteiro,
-// e nada no sistema de tipos liga os dois lados. `contracts/enums.json` é o contrato — o
-// mesmo arquivo que `VidroApi/tests/.../Contracts/EnumContractTests.cs` lê. Renomear ou
-// renumerar um membro de um lado só deixa os dois CIs vermelhos, em vez de chegar ao browser
-// como valor silenciosamente errado (`ReactionType` começa em 1, não em 0).
-// Ver contracts/README.md.
+// The six enums in `shared/types.ts` are mirrored by hand: the API serializes them as integers,
+// and the generated OpenAPI types only carry the ids (`0 | 1`), not the names. `contracts/enums.json`
+// is the contract — the same file `VidroApi/tests/.../Contracts/EnumContractTests.cs` reads.
+// Renaming or renumbering a member on one side only turns both CIs red, instead of reaching the
+// browser as a silently wrong value (`ReactionType` starts at 1, not 0).
+// See contracts/README.md.
 
 const goldenPath = join(import.meta.dirname, '../../../contracts/enums.json')
 const golden = JSON.parse(readFileSync(goldenPath, 'utf-8')) as Record<
@@ -32,13 +32,13 @@ const mirrored = {
   CommentSortOrder,
 }
 
-describe('contrato de enums com a API', () => {
-  it.each(Object.keys(mirrored))('%s bate com o golden', (name) => {
+describe('enum contract with the API', () => {
+  it.each(Object.keys(mirrored))('%s matches the golden', (name) => {
     expect(golden).toHaveProperty(name)
     expect(mirrored[name as keyof typeof mirrored]).toEqual(golden[name])
   })
 
-  it('não descreve enum que o front não espelha mais', () => {
+  it('does not describe an enum the front no longer mirrors', () => {
     expect(Object.keys(golden).sort()).toEqual(Object.keys(mirrored).sort())
   })
 })

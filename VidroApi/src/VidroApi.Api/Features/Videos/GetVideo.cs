@@ -58,7 +58,8 @@ public static class GetVideo
             var cmd = new Command { VideoId = videoId, RequestingUserId = requestingUserId };
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult(StatusCodes.Status200OK);
-        });
+        })
+        .ProducesApiSuccess<Response>();
 
     public class Handler(AppDbContext db, IMinioService minio, IOptions<MinioSettings> minioOptions)
         : IRequestHandler<Command, Result<Response, Error>>

@@ -21,6 +21,7 @@ decision by **anchor**, never by line number — `[design-decisions.md #7](desig
 - [**#12** — Metrics are the runtime's own meters, exported as-is](#12-metrics-are-the-runtimes-own-meters-exported-as-is)
 - [**#13** — The correlation ID travels inside the job envelope](#13-the-correlation-id-travels-inside-the-job-envelope)
 - [**#14** — The job is published inside the transaction that marks the video `Processing`](#14-the-job-is-published-inside-the-transaction-that-marks-the-video-processing)
+- [**#15** — Success bodies are declared with `.Produces` on the route, not `TypedResults`](#15-success-bodies-are-declared-with-produces-on-the-route-not-typedresults)
 
 A new entry takes the **next number** (highest today is **#14**) plus one line here in the index.
 Never renumber an existing entry — references elsewhere point at its anchor.
@@ -151,10 +152,10 @@ Multipart upload is planned, not implemented — it is an item in `docs/TODO.md`
 - **The migration opts out**: `Program.cs` skips `MigrateAsync` when the entry assembly is
   `GetDocument.Insider`. Generating the contract cannot require a live Postgres. Any future
   startup side effect has to opt out the same way.
-- **Its limits are real and documented** in [`openapi/README.md`](../../openapi/README.md):
-  the document describes the 43 routes and **no response schema at all**, because the handlers
-  return untyped `IResult`. The six enums the front mirrors are pinned by
-  `contracts/enums.json` instead, not by this file.
+- **It is a type source now**: the front generates `src/shared/api/schema.d.ts` from it. What
+  makes the document describe the success bodies is #15. Its limits are documented in
+  [`openapi/README.md`](../../openapi/README.md): **no 4xx bodies** (a follow-up in `TODO.md`),
+  and enum **names** are pinned by `contracts/enums.json`, not by this file.
 
 ### 12. Metrics are the runtime's own meters, exported as-is
 
@@ -218,3 +219,27 @@ Multipart upload is planned, not implemented — it is an item in `docs/TODO.md`
   video's save cannot persist it as `Processing` anyway. Covered by `VideoReconciliationServiceTests`.
 - **`ReconcileStuckProcessingAsync` is per video too** (2026-10-05): one `SaveChanges` per video, the
   failure logs the video id and detaches the entity, so one bad row no longer fails the sweep.
+
+### 15. Success bodies are declared with `.Produces` on the route, not `TypedResults`
+
+`Extensions/RouteHandlerBuilderExtensions.cs`, `Extensions/OpenApiExtensions.cs`, every
+`MapEndpoint`, `tests/VidroApi.UnitTests/Contracts/OpenApiDocumentTests.cs`. Design:
+[`docs/superpowers/specs/2026-10-19-openapi-generated-types-design.md`](../../../docs/superpowers/specs/2026-10-19-openapi-generated-types-design.md).
+
+- **Why `.Produces`**: `ToApiResult` returns `IResult` for both the success and the error branch
+  of a `Result<T, Error>`. `TypedResults` would mean a `Results<Ok<…>, JsonHttpResult<…>, …>`
+  return type in 43 handlers and a rewrite of `ToApiResult`; a reflection transformer would hide
+  the contract. `.ProducesApiSuccess<Response>()` / `.ProducesNoContent()` sits next to
+  `MapGet`/`MapPost`, one line, and says what the front gets. The cost: nothing checks that the
+  annotation matches what the handler returns — `ToApiResult(Status201Created)` with
+  `.ProducesApiSuccess<Response>()` (200) compiles. Keep the two together when editing a route.
+- **Schema ids from the nested type chain**: every slice names its records `Request`/`Response`,
+  and ASP.NET's default id is the bare type name, so all sixteen requests collapsed into one
+  `Request` schema. `CreateSchemaReferenceId` joins the declaring types (`CreateVideo.Request` →
+  `CreateVideoRequest`) instead of renaming the C# records — the slices keep their names.
+- **Three schema transformers**, each one because the generated TypeScript would otherwise lie:
+  domain enums get their numeric values (they came out as a bare `integer`); numbers drop the
+  `string` alternative that `AllowReadingFromString` adds (every count would be
+  `number | string`); and every property is required (`init` properties are never marked
+  required, so every field would be optional, but System.Text.Json always writes them).
+- **Success only.** Error bodies are not declared; see the OpenAPI follow-up in `TODO.md`.

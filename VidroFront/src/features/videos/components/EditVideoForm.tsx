@@ -12,7 +12,9 @@ import {
   SelectValue,
 } from '#/components/ui/select'
 import { Textarea } from '#/components/ui/textarea'
+import { toEnumMember } from '#/shared/lib/enum-member'
 import { getApiErrorMessage } from '#/shared/lib/error-messages'
+import { VideoVisibility } from '#/shared/types'
 import { useUpdateVideo } from '../hooks'
 import type { ChannelVideoSummary } from '../types'
 
@@ -91,7 +93,7 @@ export function EditVideoForm({ video, onSuccess }: Props) {
         title: values.title,
         description: values.description?.trim() || null,
         tags: parsedTags,
-        visibility: Number(values.visibility),
+        visibility: toEnumMember(VideoVisibility, values.visibility),
       },
       { onSuccess },
     )

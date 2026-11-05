@@ -70,7 +70,8 @@ public static class ListReplies
             var cmd = new Command { CommentId = commentId, RequestingUserId = requestingUserId, Limit = limit, Cursor = cursor };
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult(StatusCodes.Status200OK);
-        });
+        })
+        .ProducesApiSuccess<Response>();
 
     public class Handler(AppDbContext db)
         : IRequestHandler<Command, Result<Response, Error>>

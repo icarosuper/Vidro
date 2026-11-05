@@ -30,6 +30,7 @@ public static class RemoveReaction
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult();
         })
+        .ProducesNoContent()
         .RequireAuthorization();
 
     public class Handler(AppDbContext db)

@@ -49,7 +49,8 @@ public static class ListUserChannels
             var cmd = new Command { Username = username, RequestingUserId = requestingUserId };
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult(StatusCodes.Status200OK);
-        });
+        })
+        .ProducesApiSuccess<Response>();
 
     public class Handler(
         AppDbContext db,

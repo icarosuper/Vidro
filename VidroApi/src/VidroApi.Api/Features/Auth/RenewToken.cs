@@ -46,7 +46,8 @@ public static class RenewToken
         {
             var result = await mediator.Send(req, ct);
             return result.ToApiResult(StatusCodes.Status200OK);
-        });
+        })
+        .ProducesApiSuccess<Response>();
 
     public class Handler(
         AppDbContext db,

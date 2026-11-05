@@ -58,7 +58,9 @@ public static class SignUp
         {
             var result = await mediator.Send(req, ct);
             return result.ToApiResult(StatusCodes.Status201Created);
-        }).RequireRateLimiting(RateLimitSettings.AuthPolicy);
+        })
+        .ProducesApiSuccess<Response>(StatusCodes.Status201Created)
+        .RequireRateLimiting(RateLimitSettings.AuthPolicy);
 
     public class Handler(AppDbContext db, IDateTimeProvider clock)
         : IRequestHandler<Request, Result<Response, Error>>

@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '#/components/ui/select'
 import { Textarea } from '#/components/ui/textarea'
+import { toEnumMember } from '#/shared/lib/enum-member'
 import { getApiErrorMessage } from '#/shared/lib/error-messages'
 import { PlaylistVisibility } from '#/shared/types'
 import { useUpdatePlaylist } from '../hooks'
@@ -64,7 +65,7 @@ export function EditPlaylistForm({ playlist, onSuccess }: Props) {
       {
         name: values.name,
         description: values.description?.trim() || null,
-        visibility: values.visibility,
+        visibility: toEnumMember(PlaylistVisibility, values.visibility),
       },
       { onSuccess },
     )

@@ -56,7 +56,8 @@ public static class VideoProcessed
             // mismatch that a retry cannot fix. The handler logs why it ignored the payload.
             await mediator.Send(cmd, ct);
             return Results.Ok();
-        });
+        })
+        .Produces(StatusCodes.Status200OK);
 
     // A signed but malformed body is permanent: 400 rather than an unhandled JsonException (500).
     private static Command? TryDeserialize(byte[] rawBody)

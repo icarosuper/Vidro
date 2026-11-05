@@ -42,7 +42,8 @@ public static class RegisterVideoView
             };
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult();
-        });
+        })
+        .ProducesNoContent();
 
     public class Handler(AppDbContext db, IConnectionMultiplexer redis, IOptions<VideoSettings> videoOptions)
         : IRequestHandler<Command, UnitResult<Error>>

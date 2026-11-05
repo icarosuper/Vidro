@@ -35,6 +35,7 @@ public static class DeleteChannel
             var result = await mediator.Send(cmd, ct);
             return result.ToApiResult();
         })
+        .ProducesNoContent()
         .RequireAuthorization();
 
     public class Handler(AppDbContext db, IDateTimeProvider clock) : IRequestHandler<Command, UnitResult<Error>>

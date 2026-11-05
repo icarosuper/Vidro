@@ -6,11 +6,13 @@ on:
     paths:
       - "VidroFront/**"
       - "contracts/**"
+      - "VidroApi/openapi/**"
       - ".github/workflows/front.yml"
   pull_request:
     paths:
       - "VidroFront/**"
       - "contracts/**"
+      - "VidroApi/openapi/**"
       - ".github/workflows/front.yml"
 
 defaults:
@@ -31,6 +33,13 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      # The front's types are generated from the API's committed OpenAPI document. A commit that
+      # changes VidroApi/openapi/v1.json without regenerating schema.d.ts fails here.
+      - name: Check generated API types
+        run: |
+          bun run openapi
+          git diff --exit-code src/shared/api/schema.d.ts
 
       - name: Lint
         run: bun run lint

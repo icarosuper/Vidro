@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
-import type { EnumValue } from '#/shared/types'
+import type { EnumValue } from '#/shared/api'
 import { VideoVisibility } from '#/shared/types'
 import { useUploadThumbnail } from '../hooks'
 import { EditVideoForm } from './EditVideoForm'

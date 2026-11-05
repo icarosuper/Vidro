@@ -1,39 +1,18 @@
-// Wrapper de sucesso para todas as respostas da API
-export type ApiSuccess<T> = { data: T }
+// Request/response shapes are generated from the API's OpenAPI document — see `#/shared/api`.
+// What stays here is what OpenAPI does not describe: the error bodies and the enums' names.
 
-// Erro de domínio (400/401/403/404/409)
+// Domain error (400/401/403/404/409)
 export type ApiError = {
   code: string
   message: string
 }
 
-// Erro de validação (400 — FluentValidation)
+// Validation error (400 — FluentValidation)
 export type ValidationError = {
   errors: Array<{ field: string; message: string }>
 }
 
-// Toda enum na resposta da API vem como EnumValue
-// Nos requests, enviar apenas o id (número inteiro)
-export type EnumValue = {
-  id: number
-  value: string
-}
-
-// Página paginada por cursor — estilo usado em vídeos, comentários e replies
-// K é o nome do campo do array (ex: 'videos', 'comments', 'replies')
-export type CursorPage<K extends string, T> = {
-  [key in K]: T[]
-} & {
-  nextCursor: string | null
-}
-
-// Página paginada por cursor — estilo usado em playlists (PagedResult<T>)
-export type PagedResult<T> = {
-  items: T[]
-  nextCursor: string | null
-}
-
-// Códigos de erro conhecidos da API
+// Error codes the API is known to return
 export const API_ERROR_CODES = {
   UNAUTHORIZED: 'request.unauthorized',
   FORBIDDEN: 'request.forbidden',
@@ -61,7 +40,8 @@ export const API_ERROR_CODES = {
 export type ApiErrorCode =
   (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES]
 
-// Enums espelhando os da API
+// Enums mirroring the API's, pinned by contracts/enums.json. Responses carry an `EnumValue`
+// ({ id, value }); requests send the bare id.
 export const VideoStatus = {
   PendingUpload: 0,
   Processing: 1,

@@ -15,8 +15,9 @@ import {
 import { Textarea } from '#/components/ui/textarea'
 import { CreateChannelForm } from '#/features/channels/components/CreateChannelForm'
 import { useUserChannels } from '#/features/channels/hooks'
+import { toEnumMember } from '#/shared/lib/enum-member'
 import { getApiErrorMessage } from '#/shared/lib/error-messages'
-import { VideoStatus } from '#/shared/types'
+import { VideoStatus, VideoVisibility } from '#/shared/types'
 import { uploadVideoFile } from '../api'
 import { useCreateVideo, useUploadThumbnail, useVideoStatus } from '../hooks'
 
@@ -234,7 +235,7 @@ export function UploadVideoForm({ username }: Props) {
         title: values.title,
         description: values.description?.trim() || null,
         tags: parsedTags,
-        visibility: Number(values.visibility),
+        visibility: toEnumMember(VideoVisibility, values.visibility),
       })
     } catch (err) {
       setStage({ kind: 'failed', error: getApiErrorMessage(err) })

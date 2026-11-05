@@ -47,6 +47,9 @@ logs, and the atomic `LREM` of `moveFromProcessing`.
 golden on both sides (API and worker), mutation-verified.
 *(2026-10-19)* **`contracts/minio-paths.json`**: object-key layout inside the bucket locked by
 golden on both sides (API and worker), mutation-verified.
+*(2026-11-05)* **OpenAPI-generated front types**: the API declares its success bodies, `v1.json`
+has one schema per slice and enums with values, and the front's request/response types are
+generated from it (`schema.d.ts`, CI-gated). Error bodies stay a follow-up.
 Items marked `[x]` carry the commit and what was left in place.
 
 **Overall state:** the features are done (every Front phase ✅, API plan 100% checked, Processor
@@ -422,8 +425,9 @@ Both P0s on this list were contract divergences between services. While they wer
 there was nowhere to put the net that would catch them. Now there is. See `docs/MONOREPO.md`,
 section "What the migration unlocks".
 
-- [~] **Generate the front's types from the API's OpenAPI.** *(partial — see the block at the end
-      of the item)*
+- [x] ~~**Generate the front's types from the API's OpenAPI.**~~ **RESOLVED** *(2026-11-05, branch
+      `feature/openapi-generated-types`)* — see the last block of the item. The error bodies are a
+      separate item right below.
       `VidroFront/src/shared/types.ts:64-69` mirrors six backend enums **by hand** (`VideoStatus`,
       `VideoVisibility`, `ReactionType`, `PlaylistVisibility`, `PlaylistScope`,
       `CommentSortOrder`), and each feature's request/response shapes are retyped in
@@ -486,6 +490,40 @@ section "What the migration unlocks".
       > (`TypedResults`/`.Produces<T>()` in the 43 features), a schema ID per feature to resolve the
       > `Request` collision, and a transformer so the enums come out with values. Only then do
       > `openapi-typescript` + the thin `{ data: T }` envelope layer make sense.
+      >
+      > **Spec** *(2026-10-19)*: [`docs/superpowers/specs/2026-10-19-openapi-generated-types-design.md`](superpowers/specs/2026-10-19-openapi-generated-types-design.md).
+      > Closes those gates with `.Produces` (not TypedResults), schema IDs, an enum transformer, then
+      > generated front types. **Success responses only.**
+      >
+      > **Follow-up, not that spec:** domain 4xx `{ code, message }` via a global OpenAPI transformer;
+      > FluentValidation 400 `{ errors: [{ field, message }] }` after deciding what to do with the two
+      > 400 shapes. The front does not consume `ValidationError` today.
+      >
+      > **RESOLVED** *(2026-11-05)*, following the spec. API: `.ProducesApiSuccess<T>()` /
+      > `.ProducesNoContent()` on the 43 routes (webhooks: empty 200), schema ids from the nested
+      > type chain (80 schemas, no bare `Request`/`Response`), and a schema transformer that writes
+      > the enum values. `v1.json` now describes every `/v1` success body. Front:
+      > `openapi-typescript` (pinned) → committed `src/shared/api/schema.d.ts`, aliases with the old
+      > names in `src/shared/api/types.ts`, and every `features/*/types.ts` became a barrel.
+      > `front.yml` regenerates and fails on diff, and also triggers on `VidroApi/openapi/**`.
+      > **Two transformers the spec did not foresee**, both because the generated TypeScript would
+      > lie without them: numbers came out `integer | string` (`AllowReadingFromString`), and no
+      > `init` property was `required` (every field would be optional). Recorded as the API's
+      > **design-decisions #15**.
+      > **Drift it caught on the swap:** request enums were `number` in the front (now `0 | 1 | 2`;
+      > the forms go through `toEnumMember`), and search results have no `dislikeCount` while
+      > trending/feed do — `VideoGrid` now takes the shape `VideoCard` renders.
+      > Tests: `OpenApiDocumentTests` (reads the committed file, no Docker). **Verified by
+      > mutation:** removing `.ProducesApiSuccess` from `CreateVideo`, returning `type.Name` as the
+      > schema id, and skipping `ReactionType` in the transformer each turn one test red.
+
+- [ ] **Describe the error bodies in the OpenAPI document.** Follow-up of the item above, from the
+      spec's "Follow-up" section. (1) Domain 4xx `{ code, message }` (`ApiErrorResponse`) via a
+      global document transformer — one file, not 43 `.Produces`. (2) FluentValidation 400
+      `{ errors: [{ field, message }] }`: same status as a domain `ErrorType.Validation`
+      `{ code, message }`, so OpenAPI cannot describe both without `oneOf`, a lie, or unifying the
+      JSON (an API contract change). Do (2) only when a form needs to paint `errors[].field` on
+      inputs — today `ValidationError` is unused and `apiClient` casts every error as `ApiError`.
 
 - [x] ~~**Shared contract fixture between Processor and API for the webhook.**~~
       **RESOLVED** *(2026-09-07)*. Four goldens in `contracts/` (`video-processed-*.json`), read by
@@ -1062,6 +1100,7 @@ the breaker decision on `AcknowledgeMessage`/`RequeueJob` remains).
    queue name are locked by golden on both sides.
 2. ~~**MinIO path layout**~~ ✅ *(2026-10-19)* — `contracts/minio-paths.json` locks the object keys
    on both sides. The shared contract is now fully golden (webhook, job envelope, paths, timeout).
-3. **OpenAPI-generated types** (P2, partial) — a lot of work for an incremental gain.
-4. Bigger, for later: E2E upload → play (P2), history/notifications/captions (P5), observability
-   rung 4 (trace collector).
+3. ~~**OpenAPI-generated types**~~ ✅ *(2026-11-05)* — success bodies generated into the front's
+   types and CI-gated on both sides.
+4. Bigger, for later: OpenAPI error schemas (domain 4xx, then FluentValidation 400), E2E
+   upload → play (P2), history/notifications/captions (P5), observability rung 4 (trace collector).
