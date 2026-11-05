@@ -68,6 +68,30 @@ public class OpenApiDocumentTests
     }
 
     [Fact]
+    public void EveryV1Operation_ShouldDeclareTheDomainErrorBody()
+    {
+        var v1Operations = Operations().Where(op => op.Path.StartsWith("/v1/")).ToList();
+        v1Operations.Should().NotBeEmpty();
+
+        foreach (var (path, method, responses) in v1Operations)
+        {
+            var errorBody = responses["4XX"]?["content"]?["application/json"]?["schema"]?["$ref"]?.GetValue<string>();
+
+            errorBody.Should().Be("#/components/schemas/ApiErrorResponse",
+                $"{method.ToUpperInvariant()} {path} answers a domain error with {{ code, message }}, which the front types as ApiError");
+        }
+    }
+
+    [Fact]
+    public void DomainErrorBody_ShouldRequireCodeAndMessage()
+    {
+        var requiredFields = Schemas["ApiErrorResponse"]?["required"]?.AsArray().Select(field => field!.GetValue<string>());
+
+        requiredFields.Should().BeEquivalentTo(["code", "message"],
+            "the front reads error.code to react to API_ERROR_CODES and error.message to show the user");
+    }
+
+    [Fact]
     public void SchemaIds_ShouldNeverBeABareRequestOrResponse()
     {
         var bareSlotNames = Schemas.Select(schema => schema.Key)

@@ -48,6 +48,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -100,6 +110,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -123,6 +143,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -148,6 +178,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetVideoResponseApiResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -189,6 +229,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -227,6 +277,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -254,6 +314,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ListTrendingVideosResponseApiResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -312,6 +382,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -333,6 +413,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -356,6 +446,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -402,6 +502,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -429,6 +539,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UploadVideoThumbnailResponseApiResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -463,6 +583,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -479,6 +609,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UploadAvatarResponseApiResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -515,6 +655,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -544,6 +694,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -567,6 +727,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -592,6 +762,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetPlaylistResponseApiResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -626,6 +806,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -679,6 +869,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -724,6 +924,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -756,6 +966,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -793,6 +1013,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AddCommentResponseApiResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -849,6 +1079,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -872,6 +1112,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -903,6 +1153,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -950,6 +1210,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -983,6 +1253,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -1004,6 +1284,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1033,6 +1323,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1055,6 +1355,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -1085,6 +1395,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1115,6 +1435,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -1143,6 +1473,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1180,6 +1520,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1206,6 +1556,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ListUserChannelsResponseApiResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -1238,6 +1598,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1264,6 +1634,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RenewTokenResponseApiResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -1296,6 +1676,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1318,6 +1708,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1344,6 +1744,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SignUpResponseApiResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation 400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from the rate limiter have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -1412,6 +1822,21 @@
           "videoId": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "ApiErrorResponse": {
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
           }
         }
       },

@@ -1,4 +1,4 @@
-import type { ApiError } from '#/shared/types'
+import type { ApiError } from '#/shared/api'
 import { CORRELATION_ID_HEADER, newCorrelationId } from './correlation-id'
 import { tokenStore } from './token-store'
 
@@ -59,7 +59,7 @@ async function request<T>(
     return undefined as T
   }
 
-  // 401 — tentar renovar o token uma vez
+  // 401 — try renewing the token once
   if (response.status === 401 && !isRetry && renewTokenCallback) {
     try {
       const newToken = await renewTokenCallback()
@@ -89,7 +89,7 @@ async function request<T>(
     )
   }
 
-  // Todas as respostas de sucesso têm formato { data: T }
+  // Every success response has the shape { data: T }
   return (data as { data: T }).data
 }
 

@@ -49,7 +49,7 @@ src/
 │   │   ├── error-messages.ts
 │   │   ├── seo.ts          # meta tags (title/OG/Twitter) for each route's `head`
 │   │   └── toast-error.ts
-│   └── types.ts           # ApiError/ValidationError/API_ERROR_CODES + enum consts
+│   └── types.ts           # ValidationError/API_ERROR_CODES + enum consts
 ├── components/            # Header, ThemeToggle, shadcn/ui/*
 ├── integrations/
 │   └── tanstack-query/    # QueryClient + devtools
@@ -132,8 +132,9 @@ The front does not hand-write the API's request/response shapes. They flow from 
 - **The runtime did not change:** `apiClient` still unwraps `{ data: T }`, and call sites pass the
   unwrapped alias as `T` (`apiClient.get<Video>(...)`). The aliases describe the `data`, not the
   envelope.
-- **Success bodies only.** Error bodies (`ApiError`, `ValidationError`) remain hand-written in
-  `shared/types.ts`.
+- **Success bodies and the domain error body.** `ApiError` (`{ code, message }`) is an alias of the
+  generated `ApiErrorResponse`; only `ValidationError` (the FluentValidation 400) stays hand-written
+  in `shared/types.ts`.
 - **Changing an API record** means regenerating `v1.json` and then running `bun run openapi`, in the
   same commit. Otherwise CI is red: `.github/workflows/front.yml` regenerates `schema.d.ts` and fails
   on any diff (and `api.yml` does the same for `v1.json`).
@@ -197,7 +198,8 @@ The UI language is **English** (`<html lang="en">`); dates use `toLocaleDateStri
 ## API response formats
 
 The success shapes come from the generated schema (`src/shared/api/schema.d.ts`, aliased in
-`src/shared/api/types.ts`); the error shapes are hand-written in `src/shared/types.ts`:
+`src/shared/api/types.ts`), and so does `ApiError`; only `ValidationError` is hand-written in
+`src/shared/types.ts`:
 
 ```ts
 // Success: always { data: T } — apiClient unwraps it to T; the aliases describe T

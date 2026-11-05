@@ -52,5 +52,5 @@ Each piece lives in `src/VidroApi.Api/Extensions/` and is locked by
 |---|---|
 | Routes, methods, path and query parameters | **43 of 43** |
 | Success bodies (200/201) and empty 204s | **all `/v1` routes**; the two webhooks declare an empty 200 |
-| Error bodies (4xx) | **not described.** Domain `{ code, message }` and the FluentValidation 400 `{ errors: [...] }` are a follow-up in `docs/TODO.md`. The front keeps `ApiError`/`ValidationError` hand-written. |
+| Error bodies (4xx) | **Domain errors described:** every `/v1` route has a `4XX` range with `ApiErrorResponse` `{ code, message }` (a document transformer in `OpenApiExtensions`), and the front's `ApiError` is its alias. **Not described:** the FluentValidation 400 `{ errors: [...] }` (a follow-up in `docs/TODO.md`; the front keeps `ValidationError` hand-written), and the bodiless 401 (missing or invalid token) and 429 (rate limiter) — the range's description says so. |
 | Enum **names** | Not here: requests carry `0 \| 1 \| 2`, responses an `EnumValue { id, value }`. Names and numbers are pinned by the golden [`contracts/enums.json`](../../contracts/README.md). |

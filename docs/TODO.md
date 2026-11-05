@@ -54,12 +54,13 @@ golden on both sides (API and worker), mutation-verified.
 golden on both sides (API and worker), mutation-verified.
 *(2026-11-05)* **OpenAPI-generated front types**: the API declares its success bodies, `v1.json`
 has one schema per slice and enums with values, and the front's request/response types are
-generated from it (`schema.d.ts`, CI-gated). Error bodies stay a follow-up.
+generated from it (`schema.d.ts`, CI-gated). Then the domain error body: `ApiErrorResponse` on a
+`4XX` range of every `/v1` route, and the front's `ApiError` became its alias.
 
 **Overall state:** the features are done (every Front phase ✅, API plan 100% checked, Processor
 ~95%), and the shared contract between the three services is fully golden. What is missing is not
-features: (a) test gaps (the E2E, front render coverage), (b) the OpenAPI error bodies, (c) worker
-scalability (P6) and (d) product (P5).
+features: (a) test gaps (the E2E, front render coverage), (b) worker
+scalability (P6) and (c) product (P5).
 
 **Maintaining this file:** an item closed → **delete** it from the body, add a line to "Closed so
 far" above and update the "Suggested order" at the end, in the same commit. See the root
@@ -120,13 +121,13 @@ Both P0s of the original survey (closed) were contract divergences between servi
 there was nowhere to put the net that would catch them. Now there is. See `docs/MONOREPO.md`,
 section "What the migration unlocks".
 
-- [ ] **Describe the error bodies in the OpenAPI document.** Follow-up of the OpenAPI-generated types
-      (closed 2026-11-05), from the spec's "Follow-up" section. (1) Domain 4xx `{ code, message }`
-      (`ApiErrorResponse`) via a global document transformer — one file, not 43 `.Produces`. (2) FluentValidation 400
-      `{ errors: [{ field, message }] }`: same status as a domain `ErrorType.Validation`
-      `{ code, message }`, so OpenAPI cannot describe both without `oneOf`, a lie, or unifying the
-      JSON (an API contract change). Do (2) only when a form needs to paint `errors[].field` on
-      inputs — today `ValidationError` is unused and `apiClient` casts every error as `ApiError`.
+- [ ] **Describe the FluentValidation 400 in the OpenAPI document.** The domain error body
+      `{ code, message }` is declared (a `4XX` range on every `/v1` route, closed 2026-11-05). The
+      FluentValidation 400 `{ errors: [{ field, message }] }` is not: it shares the status with a
+      domain `ErrorType.Validation` `{ code, message }`, so OpenAPI cannot describe both without
+      `oneOf`, a lie, or unifying the JSON (an API contract change). Do it only when a form needs to
+      paint `errors[].field` on inputs — today `ValidationError` is unused and `apiClient` casts
+      every error as `ApiError`.
 
 ### Flow reliability
 
@@ -194,11 +195,10 @@ performance work (P-PERF1 to P-PERF6, P-OPT1) is closed: ~26 s per job for 55 s 
 
 ## Suggested order
 
-*(Revised on 2026-11-05, after the OpenAPI-generated types.)* The shared contract is fully golden
-(webhook, job envelope, paths, timeout, enums) and the front's success types are generated.
+*(Revised on 2026-11-05, after the OpenAPI domain error body.)* The shared contract is fully golden
+(webhook, job envelope, paths, timeout, enums) and the front's success and domain error types are
+generated.
 
-1. **OpenAPI error bodies** — domain 4xx first (one global transformer); the FluentValidation 400
-   only when a form needs per-field errors.
-2. **E2E upload → play** (P2) — the biggest test gap left.
-3. Bigger, for later: history/notifications/captions (P5), observability rung 4 (trace collector),
-   worker scaling (P6).
+1. **E2E upload → play** (P2) — the biggest test gap left.
+2. Bigger, for later: history/notifications/captions (P5), observability rung 4 (trace collector),
+   worker scaling (P6). The FluentValidation 400 in OpenAPI only when a form needs per-field errors.

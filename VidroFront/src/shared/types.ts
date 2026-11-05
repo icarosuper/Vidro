@@ -1,11 +1,6 @@
-// Request/response shapes are generated from the API's OpenAPI document — see `#/shared/api`.
-// What stays here is what OpenAPI does not describe: the error bodies and the enums' names.
-
-// Domain error (400/401/403/404/409)
-export type ApiError = {
-  code: string
-  message: string
-}
+// Request/response shapes and the domain error body (`ApiError`) are generated from the API's
+// OpenAPI document — see `#/shared/api`. What stays here is what OpenAPI does not describe: the
+// FluentValidation body and the enums' names.
 
 // Validation error (400 — FluentValidation)
 export type ValidationError = {

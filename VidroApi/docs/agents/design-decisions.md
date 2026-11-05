@@ -154,7 +154,7 @@ Multipart upload is planned, not implemented — it is an item in `docs/TODO.md`
   startup side effect has to opt out the same way.
 - **It is a type source now**: the front generates `src/shared/api/schema.d.ts` from it. What
   makes the document describe the success bodies is #15. Its limits are documented in
-  [`openapi/README.md`](../../openapi/README.md): **no 4xx bodies** (a follow-up in `TODO.md`),
+  [`openapi/README.md`](../../openapi/README.md): **no FluentValidation 400 body** (a follow-up in `TODO.md`),
   and enum **names** are pinned by `contracts/enums.json`, not by this file.
 
 ### 12. Metrics are the runtime's own meters, exported as-is
@@ -242,4 +242,10 @@ Multipart upload is planned, not implemented — it is an item in `docs/TODO.md`
   `string` alternative that `AllowReadingFromString` adds (every count would be
   `number | string`); and every property is required (`init` properties are never marked
   required, so every field would be optional, but System.Text.Json always writes them).
-- **Success only.** Error bodies are not declared; see the OpenAPI follow-up in `TODO.md`.
+- **Errors as one `4XX` range, not per status.** Which 4xx a handler can reach depends on the
+  domain errors it returns, which nothing exposes to the route; guessing per operation would lie.
+  What is true for every `/v1` route is the body: any 4xx with a body is `ApiErrorResponse`
+  `{ code, message }` (`ToApiResult` and `ExceptionMiddleware`). A document transformer declares
+  that once. The exceptions — the FluentValidation 400 `{ errors }`, and the bodiless 401 from the
+  JWT middleware and 429 from the rate limiter — are in the range's description; describing the
+  FluentValidation body is the open follow-up in `TODO.md`.

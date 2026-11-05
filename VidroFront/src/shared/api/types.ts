@@ -7,6 +7,9 @@ type Schemas = components['schemas']
 
 export type EnumValue = Schemas['EnumValue']
 
+// The body of a domain or request error (any 4xx with a body, except the FluentValidation 400).
+export type ApiError = Schemas['ApiErrorResponse']
+
 export type SignUpRequest = Schemas['SignUpRequest']
 export type SignInRequest = Schemas['SignInRequest']
 export type AuthTokens = Schemas['SignInResponse']

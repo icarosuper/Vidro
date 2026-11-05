@@ -151,7 +151,7 @@ bugs:
   generated from the versioned `VidroApi/openapi/v1.json` (`VidroFront/src/shared/api/schema.d.ts`),
   and CI regenerates and compares both files — a renamed C# response property is a red build in
   the same commit. The six enums' names stay pinned by [`contracts/enums.json`](../contracts/README.md),
-  tested from both sides. **Still open:** the error bodies (4xx) — see the P2 follow-up in `TODO.md`.
+  tested from both sides. The domain error body (`{ code, message }`) is generated too; **still open:** the FluentValidation 400 — see P2 in `TODO.md`.
 - **API ↔ Processor — contract test.** ✅ *(2026-09-07, partial)* The `video-processed` webhook
   payload became a versioned golden in [`contracts/`](../contracts/README.md), tested from both
   sides: the worker proves it serializes exactly that, the API proves it accepts exactly that. It

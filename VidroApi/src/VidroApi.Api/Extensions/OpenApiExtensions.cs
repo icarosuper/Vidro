@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
+using VidroApi.Api.Common;
 using VidroApi.Domain.Enums;
 
 namespace VidroApi.Api.Extensions;
@@ -8,7 +9,7 @@ namespace VidroApi.Api.Extensions;
 /// <summary>
 /// Shapes <c>openapi/v1.json</c> so the front can generate its types from it: one schema per CLR
 /// type (the vertical slices all name their records <c>Request</c>/<c>Response</c>) and domain
-/// enums with their numeric values. See design-decisions.md #11.
+/// enums with their numeric values, plus the domain error body. See design-decisions.md #15.
 /// </summary>
 public static class OpenApiExtensions
 {
@@ -30,7 +31,47 @@ public static class OpenApiExtensions
                 RequireEveryProperty(schema);
                 return Task.CompletedTask;
             });
+            options.AddDocumentTransformer(DeclareDomainErrorBodies);
         });
+
+    /// <summary>
+    /// Every <c>/v1</c> 4xx that carries a body is an <see cref="ApiErrorResponse"/> — domain errors
+    /// through <c>ToApiResult</c> and malformed requests through <c>ExceptionMiddleware</c>. One
+    /// <c>4XX</c> range on each operation says that once, instead of 43 <c>.Produces</c> guessing
+    /// which statuses each handler can reach. The exceptions are in the description; the
+    /// FluentValidation body is the open follow-up in docs/TODO.md.
+    /// </summary>
+    private static async Task DeclareDomainErrorBodies(
+        OpenApiDocument document,
+        OpenApiDocumentTransformerContext context,
+        CancellationToken ct)
+    {
+        var errorSchemaId = SchemaIdFor(typeof(ApiErrorResponse));
+        var errorSchema = await context.GetOrCreateSchemaAsync(typeof(ApiErrorResponse), cancellationToken: ct);
+        document.AddComponent(errorSchemaId, errorSchema);
+
+        var v1Operations = document.Paths
+            .Where(path => path.Key.StartsWith("/v1/"))
+            .SelectMany(path => path.Value.Operations?.Values.AsEnumerable() ?? []);
+
+        foreach (var operation in v1Operations)
+        {
+            operation.Responses ??= new OpenApiResponses();
+            operation.Responses["4XX"] = new OpenApiResponse
+            {
+                Description = DomainErrorDescription,
+                Content = new Dictionary<string, OpenApiMediaType>
+                {
+                    ["application/json"] = new() { Schema = new OpenApiSchemaReference(errorSchemaId, document) }
+                }
+            };
+        }
+    }
+
+    private const string DomainErrorDescription =
+        "Domain or request error: { code, message }. Exceptions with another body: a FluentValidation " +
+        "400 is { errors: [{ field, message }] }; a 401 for a missing or invalid token and a 429 from " +
+        "the rate limiter have no body.";
 
     /// <summary>
     /// <c>CreateVideo.Request</c> → <c>CreateVideoRequest</c>,
