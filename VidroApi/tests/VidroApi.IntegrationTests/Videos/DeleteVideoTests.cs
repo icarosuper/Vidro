@@ -56,6 +56,28 @@ public class DeleteVideoTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task DeleteVideo_InPlaylist_RemovesTheItemAndDecrementsVideoCount()
+    {
+        var (accessToken, videoId) = await CreateReadyVideo();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        var playlistId = await CreatePlaylistWith(videoId);
+
+        var response = await _client.DeleteAsync($"/v1/videos/{videoId}");
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var playlistResponse = await _client.GetAsync($"/v1/playlists/{playlistId}");
+        var playlist = (await playlistResponse.Content.ReadFromJsonAsync<JsonElement>(JsonOptions)).GetProperty("data");
+        playlist.GetProperty("videoCount").GetInt32().Should().Be(0,
+            "the count follows the items: a deleted video leaves every playlist it was in");
+        playlist.GetProperty("items").GetArrayLength().Should().Be(0);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var itemRowsLeft = await db.PlaylistItems.CountAsync(item => item.PlaylistId == playlistId);
+        itemRowsLeft.Should().Be(0, "the item row is deleted with the video, not kept as an orphan");
+    }
+
+    [Fact]
     public async Task DeleteVideo_VideoNoLongerAccessibleAfterDeletion()
     {
         var (accessToken, videoId) = await CreateReadyVideo();
@@ -132,6 +154,22 @@ public class DeleteVideoTests(ApiFactory factory) : IClassFixture<ApiFactory>
         await SimulateProcessingCompletedAsync(videoId);
 
         return (accessToken, videoId);
+    }
+
+    private async Task<Guid> CreatePlaylistWith(Guid videoId)
+    {
+        var createResponse = await _client.PostAsJsonAsync("/v1/playlists", new
+        {
+            name = "Playlist with the video",
+            visibility = 0,
+            scope = 0
+        });
+        var createBody = await createResponse.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        var playlistId = Guid.Parse(createBody.GetProperty("data").GetProperty("playlistId").GetString()!);
+
+        var addResponse = await _client.PostAsJsonAsync($"/v1/playlists/{playlistId}/items", new { videoId });
+        addResponse.EnsureSuccessStatusCode();
+        return playlistId;
     }
 
     private async Task SimulateProcessingCompletedAsync(Guid videoId)

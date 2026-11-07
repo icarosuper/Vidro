@@ -19,16 +19,4 @@ public class PlaylistItemTests
         item.VideoId.Should().Be(videoId);
         item.CreatedAt.Should().Be(Now);
     }
-
-    [Fact]
-    public void Constructor_ShouldAllowNullVideoId()
-    {
-        var playlistId = Guid.NewGuid();
-
-        var item = new PlaylistItem(playlistId, null, Now);
-
-        item.PlaylistId.Should().Be(playlistId);
-        item.VideoId.Should().BeNull();
-        item.CreatedAt.Should().Be(Now);
-    }
 }

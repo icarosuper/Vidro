@@ -8,7 +8,7 @@ Entries are **self-contained**: read only the one you were pointed at, never the
 decision by **anchor**, never by line number — `[design-decisions.md #7](design-decisions.md#7-only-processedpath-is-a-required-artifact)`.
 
 - [**#1** — Counters are denormalized and updated atomically](#1-counters-are-denormalized-and-updated-atomically)
-- [**#2** — `VideoCount` on a playlist is a historical counter](#2-videocount-on-a-playlist-is-a-historical-counter)
+- [**#2** — `VideoCount` on a playlist follows its items](#2-videocount-on-a-playlist-follows-its-items)
 - [**#3** — Cursor-based pagination everywhere](#3-cursor-based-pagination-everywhere)
 - [**#4** — Composite indexes are declared for every common query pattern](#4-composite-indexes-are-declared-for-every-common-query-pattern)
 - [**#5** — Videos belong to Channels, not Users](#5-videos-belong-to-channels-not-users)
@@ -40,15 +40,23 @@ the update is a single SQL statement. See the `ExecuteUpdateAsync` rules in
 
 ---
 
-### 2. `VideoCount` on a playlist is a historical counter
+### 2. `VideoCount` on a playlist follows its items
 
-Increment when a video is added, decrement when the **user removes** it, **never** decrement when the
-video is deleted. Intentional — same behaviour as YouTube.
+Incremented when a video is added, decremented when the user removes it **and when the video itself
+is deleted** — the count always equals the playlist's items. `PlaylistItem.VideoId` is required and
+its FK cascades: deleting a video deletes its items, and `DeleteVideo` decrements `VideoCount` on
+every playlist that held it, in the same transaction and **before** the delete (after it, the
+cascade has already removed the items that say which playlists those were).
 
-`DeleteBehavior.SetNull` on `PlaylistItem.VideoId` handles the FK automatically; `GetPlaylist` filters
-null `VideoId` out of the response.
+*(2026-11-07)* It used to be a "historical" counter, YouTube-style: never decremented on a video
+delete, with `DeleteBehavior.SetNull` keeping the orphan item. Only half of that was built — YouTube
+pairs the count with an "N unavailable videos are hidden" notice, and the front had none — so a
+playlist read "3 videos" over two items, which looked like a bug. Performance was never the reason:
+`SetNull` already updated every item row of the deleted video, so the decrement costs the same order.
+`CascadePlaylistItemsOnVideoDeleteMigration` deleted the orphan items and recounted every playlist.
 
-**Don't "fix" by:** wiring a decrement into video deletion, or recomputing the count from the items.
+**Don't "fix" by:** going back to `SetNull` without the hidden-videos notice, or counting with
+`COUNT(*)` on read ([#1](#1-counters-are-denormalized-and-updated-atomically)).
 
 ---
 
@@ -113,8 +121,8 @@ The two deliberate exceptions:
 
 - `DeleteBehavior.Restrict` — to **block** deletion while dependents exist (shared data, peer
   relationships).
-- `DeleteBehavior.SetNull` — when the child survives the parent (e.g. `PlaylistItem.VideoId`, see
-  [#2](#2-videocount-on-a-playlist-is-a-historical-counter)).
+- `DeleteBehavior.SetNull` — when the child survives the parent. No FK uses it today:
+  `PlaylistItem.VideoId` did until 2026-11-07, see [#2](#2-videocount-on-a-playlist-follows-its-items).
 
 ---
 

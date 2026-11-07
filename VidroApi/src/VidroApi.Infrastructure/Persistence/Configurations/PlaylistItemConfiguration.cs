@@ -17,10 +17,12 @@ public class PlaylistItemConfiguration : IEntityTypeConfiguration<PlaylistItem>
         builder.Property(pi => pi.PlaylistId).HasColumnName("playlist_id");
         builder.Property(pi => pi.VideoId).HasColumnName("video_id");
 
+        // A deleted video leaves every playlist it was in; DeleteVideo decrements VideoCount to
+        // match (design-decisions.md #2).
         builder.HasOne(pi => pi.Video)
             .WithMany()
             .HasForeignKey(pi => pi.VideoId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(pi => new { pi.PlaylistId, pi.VideoId }).IsUnique();
         builder.HasIndex(pi => new { pi.PlaylistId, pi.CreatedAt });

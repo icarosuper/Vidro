@@ -107,16 +107,15 @@ public static class GetPlaylist
         private async Task<List<Response.PlaylistItemResponse>> BuildItemResponses(
             Domain.Entities.Playlist playlist)
         {
-            var validItems = playlist.Items
-                .Where(pi => pi.VideoId.HasValue && pi.Video is not null)
+            var orderedItems = playlist.Items
                 .OrderBy(pi => pi.CreatedAt)
                 .ToList();
 
-            var thumbnailUrls = await Task.WhenAll(validItems.Select(GenerateThumbnailUrl));
+            var thumbnailUrls = await Task.WhenAll(orderedItems.Select(GenerateThumbnailUrl));
 
-            return validItems.Select((item, i) => new Response.PlaylistItemResponse
+            return orderedItems.Select((item, i) => new Response.PlaylistItemResponse
             {
-                VideoId = item.Video!.Id,
+                VideoId = item.Video.Id,
                 Title = item.Video.Title,
                 ThumbnailUrl = thumbnailUrls[i],
                 DurationSeconds = item.Video.Metadata?.DurationSeconds
@@ -125,11 +124,7 @@ public static class GetPlaylist
 
         private async Task<string?> GenerateThumbnailUrl(Domain.Entities.PlaylistItem item)
         {
-            var video = item.Video;
-            if (video is null)
-                return null;
-
-            var artifacts = video.Artifacts;
+            var artifacts = item.Video.Artifacts;
             if (artifacts is null)
                 return null;
 

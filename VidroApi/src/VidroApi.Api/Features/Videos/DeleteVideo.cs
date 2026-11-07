@@ -54,6 +54,10 @@ public static class DeleteVideo
 
             StageStorageCleanup(video, clock.UtcNow);
 
+            // Before the delete: the cascade takes the playlist items with it, and they are how
+            // the playlists that held the video are found.
+            await DecrementVideoCountOfPlaylistsContaining(cmd.VideoId, ct);
+
             var deletedVideoRows = await db.Videos.Where(v => v.Id == cmd.VideoId).ExecuteDeleteAsync(ct);
             if (deletedVideoRows == 0)
                 return CommonErrors.NotFound(nameof(Video), cmd.VideoId);
@@ -71,6 +75,13 @@ public static class DeleteVideo
                 .Include(v => v.Channel)
                 .Include(v => v.Artifacts)
                 .FirstOrDefaultAsync(v => v.Id == videoId, ct);
+        }
+
+        private Task<int> DecrementVideoCountOfPlaylistsContaining(Guid videoId, CancellationToken ct)
+        {
+            return db.Playlists
+                .Where(p => db.PlaylistItems.Any(pi => pi.PlaylistId == p.Id && pi.VideoId == videoId))
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.VideoCount, p => p.VideoCount - 1), ct);
         }
 
         private void StageStorageCleanup(Video video, DateTimeOffset now)

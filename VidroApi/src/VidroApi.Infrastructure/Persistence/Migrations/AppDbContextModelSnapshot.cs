@@ -292,7 +292,7 @@ namespace VidroApi.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("playlist_id");
 
-                    b.Property<Guid?>("VideoId")
+                    b.Property<Guid>("VideoId")
                         .HasColumnType("uuid")
                         .HasColumnName("video_id");
 
@@ -697,7 +697,8 @@ namespace VidroApi.Infrastructure.Persistence.Migrations
                     b.HasOne("VidroApi.Domain.Entities.Video", "Video")
                         .WithMany()
                         .HasForeignKey("VideoId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Playlist");
 

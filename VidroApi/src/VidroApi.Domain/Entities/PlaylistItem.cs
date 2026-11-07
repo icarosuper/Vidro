@@ -8,7 +8,7 @@ public class PlaylistItem : BaseEntity
     [ExcludeFromCodeCoverage]
     private PlaylistItem() { }
 
-    public PlaylistItem(Guid playlistId, Guid? videoId, DateTimeOffset now)
+    public PlaylistItem(Guid playlistId, Guid videoId, DateTimeOffset now)
         : base(now)
     {
         PlaylistId = playlistId;
@@ -16,9 +16,9 @@ public class PlaylistItem : BaseEntity
     }
 
     public Guid PlaylistId { get; init; }
-    public Guid? VideoId { get; init; }
+    public Guid VideoId { get; init; }
 
     // Navigation properties
     public Playlist Playlist { get; init; } = null!;
-    public Video? Video { get; init; }
+    public Video Video { get; init; } = null!;
 }
