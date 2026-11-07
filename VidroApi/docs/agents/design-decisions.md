@@ -114,8 +114,15 @@ stuck video: `../../../docs/troubleshooting-stuck-video.md`.
 
 ### 8. `DeleteBehavior.Cascade` is the global default
 
-`OnModelCreating` enforces `Cascade` on every FK. Deleting a parent auto-deletes all dependents at DB
-level (PostgreSQL `ON DELETE CASCADE`), atomically — all or nothing, one transaction.
+`AppDbContext.ApplyCascadeDeleteByDefault` sets `Cascade` on every FK whose configuration does not
+call `OnDelete` itself. Deleting a parent auto-deletes all dependents at DB level (PostgreSQL
+`ON DELETE CASCADE`), atomically — all or nothing, one transaction.
+
+An FK that calls `OnDelete` in its `IEntityTypeConfiguration` keeps what it asked for: only those
+carry an `Explicit` configuration source, the rest is EF's convention, which the default replaces.
+*(2026-11-07)* Until then the method was `ApplyRestrictedDelete` and forced `Cascade` on everything
+but `SetNull` — a configured `Restrict` would have been silently overwritten. Pinned by
+`tests/VidroApi.UnitTests/Persistence/AppDbContextTests.cs`.
 
 The two deliberate exceptions:
 

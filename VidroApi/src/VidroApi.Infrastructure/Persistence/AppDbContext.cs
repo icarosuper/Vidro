@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using VidroApi.Domain.Entities;
 
 namespace VidroApi.Infrastructure.Persistence;
@@ -22,19 +23,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-        ApplyRestrictedDelete(modelBuilder);
+        ApplyCascadeDeleteByDefault(modelBuilder);
         base.OnModelCreating(modelBuilder);
     }
 
-    private static void ApplyRestrictedDelete(ModelBuilder modelBuilder)
+    // Cascade on every FK (design-decisions.md #8), except one whose configuration calls OnDelete
+    // on purpose — Restrict to block a delete, SetNull to let the child survive. Only those carry an
+    // Explicit configuration source; everything else is EF's convention, which this replaces.
+    private static void ApplyCascadeDeleteByDefault(ModelBuilder modelBuilder)
     {
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        var foreignKeys = modelBuilder.Model.GetEntityTypes().SelectMany(entityType => entityType.GetForeignKeys());
+        foreach (var foreignKey in foreignKeys)
         {
-            foreach (var foreignKey in entityType.GetForeignKeys())
-            {
-                if (foreignKey.DeleteBehavior != DeleteBehavior.SetNull)
-                    foreignKey.DeleteBehavior = DeleteBehavior.Cascade;
-            }
+            var deleteBehaviorSource = ((IConventionForeignKey)foreignKey).GetDeleteBehaviorConfigurationSource();
+            var configuredOnPurpose = deleteBehaviorSource == ConfigurationSource.Explicit;
+            if (configuredOnPurpose)
+                continue;
+
+            foreignKey.DeleteBehavior = DeleteBehavior.Cascade;
         }
     }
 }
