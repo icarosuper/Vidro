@@ -1,0 +1,15 @@
+{
+  "name": "vidro-showcase",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clips": "bun clips.ts",
+    "seed": "bun seed.ts",
+    "capture": "bun capture.ts",
+    "all": "bun clips.ts && bun seed.ts && bun capture.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.1",
+    "playwright": "1.65.0"
+  }
+}
