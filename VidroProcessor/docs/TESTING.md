@@ -150,6 +150,9 @@ poll until `:processing` drains (2s ceiling) instead of asserting right after th
   left, dead-lettered once it is spent
 - `TestProcessNextMessage_CompletedJobIsAcked` — the other half of #13: a successful job is acked
   (`done`, with its artifacts) instead of waiting for orphan recovery
+- `TestProcessNextMessage_JobSlowerThanBookkeepingTimeoutIsClosedOut` — #13 again: a job that runs
+  longer than `bookkeepingTimeout` still reaches `done` and is acked; the timeout caps the
+  close-out writes, not the job
 - `TestWorker_CrashMidJobIsRecoveredAndReprocessed` — the queue's failure path end to end: a worker
   dies mid-job (its goroutine never reaches the bookkeeping), the job survives in `:processing`,
   `queue.RecoverStuckJobs` requeues it with `retry_count` 1, and a second worker finishes it

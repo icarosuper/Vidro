@@ -140,23 +140,28 @@ A new entry takes the **next number** (highest today is **#13**) plus one line h
 - **The catch that shapes the design**: closing a job out — `SetJobFailed`, `RequeueJob`,
   `MoveToDLQ`, `AcknowledgeMessage`, `SetJobDone` — is exactly what still has to happen *after* the
   cancellation. Running those on the canceled context would leave the job in the `:processing`
-  queue forever, which is worse than the bug being fixed. So `processNextMessage` builds a second
-  context with `context.WithoutCancel(ctx)` plus a 10s timeout (`bookkeepingTimeout`) and uses it
-  for every state write and the ack. `WithoutCancel` keeps the values — the job logger included —
-  and drops only the cancellation.
+  queue forever, which is worse than the bug being fixed. So each batch of state writes runs on a
+  context from `newBookkeepingContext`: `context.WithoutCancel(ctx)` plus a 10s timeout
+  (`bookkeepingTimeout`). `WithoutCancel` keeps the values — the job logger included — and drops
+  only the cancellation.
 - **The split, as a rule**: heavy I/O (download, transcode, uploads, success publish) rides
-  `processCtx` and *must* be cancellable. Bookkeeping rides `bookkeepingCtx` and *must not*.
-- **Who releases it is part of the rule** *(2026-09-13)*: `cancelBookkeeping` is deferred **inside
-  the job goroutine**, registered first so it runs last — never at the end of `processNextMessage`.
-  The goroutine sends on `done` from its body and only *then* runs the defer that closes the job
-  out, so the parent returns first; a `defer cancelBookkeeping()` in the parent cancelled that
-  context while those writes were still running. It shipped that way and was caught in the stack:
-  a job that failed to download logged three `context canceled` warnings, stayed in
-  `:processing`, never reached the DLQ and kept `retry_count: 0`. A finished job was worse — the
-  ack failed the same way, so a **successful** job sat in `:processing` waiting to be reprocessed
-  by the orphan recovery. Now pinned by `internal/worker/worker_test.go`
-  (`TestProcessNextMessage_FailedJobIsClosedOut`, `TestProcessNextMessage_CompletedJobIsAcked`):
-  moving the `defer` back to the parent turns both red.
+  `processCtx` and *must* be cancellable. Bookkeeping rides a bookkeeping context and *must not*.
+- **When it is created is part of the rule** *(2026-11-07)*: one bookkeeping context per batch,
+  created **right before the writes** — `SetJobProcessing` at the start, `SetJobDone` +
+  `GetJobState` on success, and the deferred close-out (`SetJobFailed`/requeue/DLQ + ack), which
+  creates and releases its own inside the defer. The 10s caps the writes, so the clock must start
+  when they do. It used to be a single context made when the job started: every job longer than
+  10s — every real video; `make demo`'s 10s clip was just under — lost `SetJobDone`, the webhook
+  and the ack, and the video sat in `Processing` while orphan recovery reprocessed it in a loop.
+  Pinned by `TestProcessNextMessage_JobSlowerThanBookkeepingTimeoutIsClosedOut`.
+- **Who releases it** *(2026-09-13, still holds)*: the close-out context lives and dies inside the
+  job goroutine's defer — never released by `processNextMessage`. The goroutine sends on `done`
+  from its body and only *then* runs the defer that closes the job out, so the parent returns
+  first; a `defer cancel()` in the parent cancelled that context while those writes were still
+  running. It shipped that way and was caught in the stack: a failed job stayed in `:processing`
+  with `retry_count: 0`, and a **successful** job's ack failed the same way. Pinned by
+  `internal/worker/worker_test.go` (`TestProcessNextMessage_FailedJobIsClosedOut`,
+  `TestProcessNextMessage_CompletedJobIsAcked`).
 - **Exception**: `notifyWebhook` stays detached (`context.Background()` inside `webhook.send`),
   bounded by the HTTP client's own 10s timeout. It usually runs from a defer with the job context
   already canceled, and inheriting it would drop the notification the API is waiting for. The two

@@ -81,6 +81,8 @@ type Worker struct {
 	processVideo func(ctx context.Context, inputPath, outputPath string, options processor.Options) (*processor.ProcessingResult, error)
 	// pauseAfterConsumeError is consumeBackoff in production; tests shorten it.
 	pauseAfterConsumeError time.Duration
+	// bookkeepingTimeout is the package constant in production; tests shorten it.
+	bookkeepingTimeout time.Duration
 }
 
 // New returns a Worker wired to MinIO and the real pipeline. queue.InitRedisClient and
@@ -93,6 +95,7 @@ func New(cfg *config.Config, videoEncoder string) *Worker {
 		processVideo: processor.ProcessVideo,
 
 		pauseAfterConsumeError: consumeBackoff,
+		bookkeepingTimeout:     bookkeepingTimeout,
 	}
 }
 
@@ -173,23 +176,14 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 	ctx = jobLogger.WithContext(ctx)
 	jobLogger.Info().Msg("Processing video")
 
-	// Bookkeeping (job state, ack, DLQ) must outlive the job budget and SIGTERM: if the
-	// heavy work is canceled, these writes are exactly what has to still happen, or the job
-	// stays in the :processing queue forever. WithoutCancel keeps the values — the job
-	// logger included — and drops only the cancellation.
-	//
-	// The release belongs to the goroutine below, NOT to this function: the goroutine sends on
-	// `done` from its body and only then runs the defer that closes the job out, so a
-	// `defer cancelBookkeeping()` here would cancel that context while those writes are still
-	// running — which is exactly the failure WithoutCancel is here to prevent.
-	bookkeepingCtx, cancelBookkeeping := context.WithTimeout(
-		context.WithoutCancel(ctx), bookkeepingTimeout)
-
-	err = queue.SetJobProcessing(bookkeepingCtx, videoID)
+	setProcessingCtx, cancelSetProcessing := w.newBookkeepingContext(ctx)
+	err = queue.SetJobProcessing(setProcessingCtx, videoID)
+	cancelSetProcessing()
 	jobStateMissing := errors.Is(err, queue.ErrJobStateMissing)
 	if jobStateMissing {
-		defer cancelBookkeeping()
-		return deadLetterJobWithoutState(bookkeepingCtx, jobLogger, videoID)
+		deadLetterCtx, cancelDeadLetter := w.newBookkeepingContext(ctx)
+		defer cancelDeadLetter()
+		return deadLetterJobWithoutState(deadLetterCtx, jobLogger, videoID)
 	}
 	if err != nil {
 		jobLogger.Warn().Err(err).Msg("Failed to update job state to processing")
@@ -210,18 +204,19 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 		// jobErr tracks the final error for the defer below.
 		var jobErr error
 
-		// Registered first, so it runs last: the bookkeeping context dies only after the
-		// writes that close the job out are done with it.
-		defer cancelBookkeeping()
-
 		metrics.ActiveWorkers.Inc()
 		defer metrics.ActiveWorkers.Dec()
 
 		defer func() {
+			// Created here, when the job closes out — not when it started: the timeout caps
+			// these writes, and a job that ran longer than it must still get them.
+			closeOutCtx, cancelCloseOut := w.newBookkeepingContext(ctx)
+			defer cancelCloseOut()
+
 			if jobErr != nil {
 				// state is nil when the state is missing or Redis failed: no retry budget to
 				// consult and no callback_url to notify, so the job goes to the DLQ below.
-				state, err := queue.SetJobFailed(bookkeepingCtx, videoID, jobErr)
+				state, err := queue.SetJobFailed(closeOutCtx, videoID, jobErr)
 				if err != nil {
 					jobLogger.Warn().Err(err).Msg("Failed to update job state to failed")
 				}
@@ -229,7 +224,7 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 				// An unusable file fails the same way every time: retrying only delays the verdict.
 				retryable := !errors.Is(jobErr, processor.ErrInvalidVideo)
 				if retryable && state != nil && state.ShouldRetry() {
-					if err := queue.RequeueJob(bookkeepingCtx, videoID); err != nil {
+					if err := queue.RequeueJob(closeOutCtx, videoID); err != nil {
 						jobLogger.Warn().Err(err).Msg("Failed to requeue job, moving to dead letter queue")
 					} else {
 						requeued = true
@@ -237,7 +232,7 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 					}
 				}
 				if !requeued {
-					if err := queue.MoveToDLQ(bookkeepingCtx, videoID); err != nil {
+					if err := queue.MoveToDLQ(closeOutCtx, videoID); err != nil {
 						jobLogger.Warn().Err(err).Msg("Failed to move job to dead letter queue")
 					} else {
 						jobLogger.Error().Str("error", jobErr.Error()).Msg("Job moved to dead letter queue after exhausting retries")
@@ -249,7 +244,7 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 					}
 				}
 			}
-			if err := queue.AcknowledgeMessage(bookkeepingCtx, videoID); err != nil {
+			if err := queue.AcknowledgeMessage(closeOutCtx, videoID); err != nil {
 				jobLogger.Warn().Err(err).Msg("Failed to acknowledge job")
 			}
 		}()
@@ -344,12 +339,14 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 		// Record final state and success metrics
 		artifacts := BuildJobArtifacts(videoID, result)
 		metadata := toJobMetadata(result)
-		if err := queue.SetJobDone(bookkeepingCtx, videoID, artifacts, metadata); err != nil {
+		jobDoneCtx, cancelJobDone := w.newBookkeepingContext(ctx)
+		if err := queue.SetJobDone(jobDoneCtx, videoID, artifacts, metadata); err != nil {
 			jobLogger.Warn().Err(err).Msg("Failed to update job state to done")
 		}
 
 		// Notify the API about success
-		state, stateErr := queue.GetJobState(bookkeepingCtx, videoID)
+		state, stateErr := queue.GetJobState(jobDoneCtx, videoID)
+		cancelJobDone()
 		if stateErr != nil {
 			jobLogger.Warn().Err(stateErr).Msg("Failed to read job state, webhook not sent")
 		} else if state.CallbackURL != "" {
@@ -372,6 +369,16 @@ func (w *Worker) processNextMessage(ctx context.Context, workerID int) error {
 	case <-processCtx.Done():
 		return fmt.Errorf("operation canceled: %w", processCtx.Err())
 	}
+}
+
+// newBookkeepingContext returns the context for one batch of Redis writes that record a job's
+// outcome (job state, ack, DLQ). It must outlive the job budget and SIGTERM — if the heavy work
+// is canceled, these writes are exactly what has to still happen, or the job stays in the
+// :processing queue forever — so it drops the parent's cancellation (keeping its values, the
+// job logger included) and gets its own bookkeepingTimeout, counted from now. Create it right
+// before the writes: one made when the job starts expires mid-job.
+func (w *Worker) newBookkeepingContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(ctx), w.bookkeepingTimeout)
 }
 
 // deadLetterJobWithoutState handles a job whose job:<videoID> expired or was deleted. The

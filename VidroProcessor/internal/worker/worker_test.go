@@ -73,7 +73,12 @@ func setupQueue(t *testing.T) (*miniredis.Miniredis, *config.Config) {
 }
 
 func newTestWorker(cfg *config.Config, storage storage) *Worker {
-	return &Worker{cfg: cfg, storage: storage, processVideo: succeedingPipeline}
+	return &Worker{
+		cfg:                cfg,
+		storage:            storage,
+		processVideo:       succeedingPipeline,
+		bookkeepingTimeout: bookkeepingTimeout,
+	}
 }
 
 func publishJob(t *testing.T) {
@@ -287,6 +292,31 @@ func TestProcessNextMessage_CompletedJobIsAcked(t *testing.T) {
 	}
 	if got := listOf(t, mr, requestQueue); len(got) != 0 {
 		t.Fatalf("request queue = %v, want empty", got)
+	}
+}
+
+// TestProcessNextMessage_JobSlowerThanBookkeepingTimeoutIsClosedOut: the bookkeeping timeout
+// caps each close-out write, not the job. It used to start ticking when the job began, so any
+// job longer than it (10s in production — every real video) lost SetJobDone, the webhook and
+// the ack, and the video sat in Processing.
+func TestProcessNextMessage_JobSlowerThanBookkeepingTimeoutIsClosedOut(t *testing.T) {
+	mr, cfg := setupQueue(t)
+	publishJob(t)
+	jobWorker := newTestWorker(cfg, fakeStorage{})
+	jobWorker.bookkeepingTimeout = 50 * time.Millisecond
+	jobWorker.processVideo = func(context.Context, string, string, processor.Options) (*processor.ProcessingResult, error) {
+		time.Sleep(4 * jobWorker.bookkeepingTimeout)
+		return &processor.ProcessingResult{}, nil
+	}
+
+	if err := jobWorker.processNextMessage(t.Context(), 1); err != nil {
+		t.Fatalf("processNextMessage: %v", err)
+	}
+
+	waitForProcessingQueueToDrain(t, mr)
+	state := jobState(t)
+	if state.Status != queue.JobStatusDone {
+		t.Fatalf("Status = %q, want %q", state.Status, queue.JobStatusDone)
 	}
 }
 

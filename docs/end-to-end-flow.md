@@ -206,7 +206,7 @@ Inside the same handler (`MinioUploadCompleted.cs`, `Handle`), in a transaction,
 `status: pending`; if the state is gone or cannot be read, it does not enqueue and the worker sends
 the job to the DLQ); otherwise `LPUSH video_queue:dead` and the failure webhook. In every case,
 `LREM` of the lease. These writes use a context that survives the job's cancellation and SIGTERM,
-capped at 10 s (`bookkeepingTimeout`).
+capped at 10 s (`bookkeepingTimeout`) counted from the close-out, not from the job's start.
 
 - **A permanent error goes straight to the DLQ:** if ffprobe rejects the file, validation returns
   `processor.ErrInvalidVideo` and the worker spends no retries (DLQ + failure webhook on the first
