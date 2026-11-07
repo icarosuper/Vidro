@@ -205,7 +205,7 @@
     },
     {
       "id": 9,
-      "title": "Workers Ativos ao Longo do Tempo",
+      "title": "Active Workers Over Time",
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 12, "w": 12, "h": 7 },
       "fieldConfig": {
@@ -218,7 +218,7 @@
       "targets": [
         {
           "expr": "active_workers",
-          "legendFormat": "workers ativos",
+          "legendFormat": "active workers",
           "datasource": { "type": "prometheus" }
         }
       ]

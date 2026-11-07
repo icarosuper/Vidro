@@ -23,8 +23,8 @@ function SearchBox() {
     navigate({ to: '/search', search: { q: typedQuery } })
   }
 
-  // Abaixo de sm a busca ganha a segunda linha inteira: disputando a primeira ela sobrava
-  // com 17px de largura em 320px, o que é o mesmo que não ter busca.
+  // Below sm the search gets the whole second row: competing for the first one it was left
+  // 17px wide at 320px, which is the same as having no search.
   return (
     <search className="order-last mx-0 flex w-full min-w-0 basis-full sm:order-none sm:mx-4 sm:w-auto sm:max-w-md sm:basis-auto sm:flex-1">
       <form onSubmit={handleSubmit} className="flex w-full items-center gap-1">
@@ -61,9 +61,9 @@ export function Header() {
 
         <SearchBox />
 
-        {/* Até lg cada botão fica só com o ícone: o rótulo vira `sr-only`, não `hidden`,
-            para o nome acessível continuar existindo no leitor de tela. Quatro rótulos de
-            texto só cabem junto com a busca a partir de lg. */}
+        {/* Up to lg each button is icon-only: the label becomes `sr-only`, not `hidden`,
+            so the accessible name still exists for screen readers. Four text labels only
+            fit next to the search from lg up. */}
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-1 lg:gap-2">
           <ThemeToggle />
           {isAuthenticated ? (
