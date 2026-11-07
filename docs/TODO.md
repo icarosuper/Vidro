@@ -156,6 +156,18 @@ section "What the migration unlocks".
       **Still open:** nobody has run an audit (axe/Lighthouse) on the app; what was done here came
       from reading code, not from a tool.)
 
+- [~] **Visual identity "Studio"** — the front was the stock shadcn zinc theme with the system font.
+      Direction chosen on 2026-11-07 from a prototype with three switchable variants (parked on the
+      `prototype/visual-identity` branch, not merged; screenshots of desktop and mobile were reviewed
+      there). Work happens on `feature/visual-identity`.
+      *Done:* tokens in `VidroFront/src/styles.css` — violet accent, Manrope for text, JetBrains Mono
+      for compact metadata, both self-hosted (`@fontsource-variable/*`).
+      *Next, in order:* app shell (left rail from `lg`, bottom tab bar below it with Upload in the
+      middle, slim top bar with the search, account menu on the avatar; 24px page gutter on mobile so
+      thumbnails never touch the screen edge) → `VideoCard` (title, channel, mono `views · age`, tags
+      only on hover, a featured first card on the home) → watch, channel and playlist pages →
+      loading and empty states.
+
 
 ---
 
@@ -199,6 +211,7 @@ performance work (P-PERF1 to P-PERF6, P-OPT1) is closed: ~26 s per job for 55 s 
 (webhook, job envelope, paths, timeout, enums) and the front's success and domain error types are
 generated.
 
-1. **E2E upload → play** (P2) — the biggest test gap left.
-2. Bigger, for later: history/notifications/captions (P5), observability rung 4 (trace collector),
+1. **Visual identity "Studio"** (P3) — in progress on `feature/visual-identity`; the shell is next.
+2. **E2E upload → play** (P2) — the biggest test gap left.
+3. Bigger, for later: history/notifications/captions (P5), observability rung 4 (trace collector),
    worker scaling (P6). The FluentValidation 400 in OpenAPI only when a form needs per-field errors.
