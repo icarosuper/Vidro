@@ -8,7 +8,7 @@ import {
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { Toaster } from 'sonner'
-import { Header } from '../components/Header'
+import { AppShell } from '../components/shell/AppShell'
 import { AuthModal } from '../features/auth/components/AuthModal'
 import { AuthModalProvider, AuthProvider } from '../features/auth/hooks'
 import { getInitialToken, renewToken } from '../features/auth/server'
@@ -65,8 +65,9 @@ function RootApp() {
   return (
     <AuthProvider initialIsAuthenticated={initialToken !== null}>
       <AuthModalProvider>
-        <Header />
-        <Outlet />
+        <AppShell>
+          <Outlet />
+        </AppShell>
         <AuthModal />
         <Toaster richColors />
       </AuthModalProvider>

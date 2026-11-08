@@ -18,7 +18,7 @@ Read this doc before creating routes, new features or cross-cutting changes (api
 ```
 src/
 ├── routes/                # File-based routes (TanStack Router)
-│   ├── __root.tsx         # Root layout: Header, providers, auth hydration, devtools
+│   ├── __root.tsx         # Root layout: AppShell, providers, auth hydration, devtools
 │   ├── index.tsx          # Home (trending + feed)
 │   ├── watch.$videoId.tsx # Player + reactions
 │   ├── search.tsx
@@ -50,7 +50,7 @@ src/
 │   │   ├── seo.ts          # meta tags (title/OG/Twitter) for each route's `head`
 │   │   └── toast-error.ts
 │   └── types.ts           # ValidationError/API_ERROR_CODES + enum consts
-├── components/            # Header, ThemeToggle, shadcn/ui/*
+├── components/            # shell/ (AppShell & co.), ThemeToggle, shadcn/ui/*
 ├── integrations/
 │   └── tanstack-query/    # QueryClient + devtools
 ├── lib/utils.ts

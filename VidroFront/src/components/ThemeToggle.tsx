@@ -59,8 +59,9 @@ function applyThemeMode(mode: ThemeMode) {
   document.documentElement.style.colorScheme = resolved
 }
 
-// ponytail: o tema só é aplicado depois da hidratação, então quem escolheu dark vê um
-// flash claro no primeiro paint. Resolver exige um script inline no <head> do shellComponent.
+// ponytail: the theme is only applied after hydration, so whoever picked dark sees a light
+// flash on the first paint. Fixing it takes an inline script in the shellComponent's <head>.
+// Render it once: each instance keeps its own mode, so two copies would drift apart.
 export default function ThemeToggle() {
   const [mode, setMode] = useState<ThemeMode>('auto')
 

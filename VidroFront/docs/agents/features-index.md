@@ -154,7 +154,7 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 |---|---|---|---|---|
 | `/` | `index.tsx` | SSR | public | videos (trending/feed) |
 | `/watch/$videoId` | `watch.$videoId.tsx` | SSR | public | videos, channels, comments |
-| `/search` | `search.tsx` | SSR | public | videos (search; query in `?q=`, field in the `Header`) |
+| `/search` | `search.tsx` | SSR | public | videos (search; query in `?q=`, field in the `TopBar`'s `SearchBox`) |
 | `/$username` | `$username.tsx` + `$username.index.tsx` | SSR | public | users, channels |
 | `/$username/$channel` | `$username.$channel.tsx` | SSR | public | channels, videos, playlists |
 | `/playlists/$playlistId` | `playlists.$playlistId.tsx` | SSR | optional | playlists |
@@ -175,5 +175,5 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 | enum member | `src/shared/lib/enum-member.ts` | `toEnumMember(enumObject, raw)` — turns a `<Select>` string into the typed enum id; throws on an unknown value |
 | errors | `src/shared/lib/error-messages.ts` | Map `code → user-facing message` |
 | toast | `src/shared/lib/toast-error.ts` | `toastApiError(error)` |
-| global components | `src/components/` | `Header` (search + `ThemeToggle`; responsive via CSS — `sr-only` label up to `lg`, search on the second line below `sm`), `ThemeToggle` (light → dark → auto, persisted in `localStorage`), `RouteFallback` (`RouteErrorFallback` + `RouteNotFoundFallback`, registered as the router's defaults), `TimeAgo`, `ui/*` (shadcn) |
+| global components | `src/components/` | `shell/AppShell` — the frame around every route: `AppSidebar` (nav rail from `lg`: Home; Creator: Upload, Dashboard; You: Your channels, Settings; signed out a sign-in prompt), `TopBar` (`BrandLink` below `lg`, `SearchBox` with `/` to focus, `ThemeToggle`, `AccountMenu` below `lg`), `BottomNav` (tab bar below `lg`, signed in only, Upload in the middle), `AccountMenu` (dropdown: Your channels, Dashboard, Settings, Sign out; `layout="avatar"` round trigger in the top bar, `layout="block"` full-width trigger with the name at the bottom of the sidebar; signed out a Sign in button). `ThemeToggle` (light → dark → auto, persisted in `localStorage`; render it **once** — each instance keeps its own mode), `RouteFallback` (`RouteErrorFallback` + `RouteNotFoundFallback`, registered as the router's defaults), `TimeAgo`, `ui/*` (shadcn) |
 | integration | `src/integrations/tanstack-query/` | `QueryClient` + devtools |

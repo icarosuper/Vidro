@@ -92,7 +92,8 @@
   }
 }
 
+/* 24px gutter on each side: on a phone the thumbnails must not touch the screen edge. */
 .page-container {
-  width: min(1280px, calc(100% - 2rem));
+  width: min(1280px, calc(100% - 3rem));
   margin-inline: auto;
 }
