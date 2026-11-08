@@ -11,8 +11,10 @@ import {
 } from '#/components/ui/dialog'
 import { Skeleton } from '#/components/ui/skeleton'
 import { CreatePlaylistForm } from '#/features/playlists/components/CreatePlaylistForm'
+import { DeletePlaylistDialog } from '#/features/playlists/components/DeletePlaylistDialog'
 import { PlaylistCard } from '#/features/playlists/components/PlaylistCard'
 import { useDeletePlaylist, useUserPlaylists } from '#/features/playlists/hooks'
+import type { PlaylistSummary } from '#/features/playlists/types'
 import { useCurrentUser } from '#/features/users/hooks'
 import { seo } from '#/shared/lib/seo'
 import { tokenStore } from '#/shared/lib/token-store'
@@ -53,6 +55,14 @@ function DashboardPage() {
   } = useUserPlaylists(currentUser?.username)
 
   const deletePlaylist = useDeletePlaylist()
+  const [playlistToDelete, setPlaylistToDelete] =
+    useState<PlaylistSummary | null>(null)
+
+  function confirmDelete() {
+    if (!playlistToDelete) return
+    deletePlaylist.mutate(playlistToDelete.id)
+    setPlaylistToDelete(null)
+  }
 
   const playlists = playlistsData?.pages.flatMap((page) => page.items) ?? []
   const hasNoPlaylists =
@@ -128,13 +138,9 @@ function DashboardPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                    className="absolute top-4 right-2 z-10 size-7 bg-background/90 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100"
                     disabled={deletePlaylist.isPending}
-                    onClick={() =>
-                      deletePlaylist.mutate(playlist.id, {
-                        onSuccess: () => refetch(),
-                      })
-                    }
+                    onClick={() => setPlaylistToDelete(playlist)}
                     aria-label="Delete playlist"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -157,6 +163,12 @@ function DashboardPage() {
           </>
         )}
       </section>
+
+      <DeletePlaylistDialog
+        playlistName={playlistToDelete?.name ?? null}
+        onCancel={() => setPlaylistToDelete(null)}
+        onConfirm={confirmDelete}
+      />
 
       <Dialog open={newPlaylistOpen} onOpenChange={setNewPlaylistOpen}>
         <DialogContent>

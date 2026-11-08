@@ -2,16 +2,6 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { ListVideo, Lock, Pencil, Play, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { QueryErrorState } from '#/components/StatePanel'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '#/components/ui/alert-dialog'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -21,6 +11,7 @@ import {
 } from '#/components/ui/dialog'
 import { Skeleton } from '#/components/ui/skeleton'
 import { getPlaylist } from '#/features/playlists/api'
+import { DeletePlaylistDialog } from '#/features/playlists/components/DeletePlaylistDialog'
 import { EditPlaylistForm } from '#/features/playlists/components/EditPlaylistForm'
 import { PlaylistItemList } from '#/features/playlists/components/PlaylistItemList'
 import {
@@ -248,23 +239,11 @@ function PlaylistPage() {
       )}
 
       {isOwner && (
-        <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete this playlist?</AlertDialogTitle>
-              <AlertDialogDescription>
-                “{playlist.name}” will be deleted for good. The videos in it
-                stay where they are.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction variant="destructive" onClick={handleDelete}>
-                Delete playlist
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <DeletePlaylistDialog
+          playlistName={deleteOpen ? playlist.name : null}
+          onCancel={() => setDeleteOpen(false)}
+          onConfirm={handleDelete}
+        />
       )}
     </main>
   )
