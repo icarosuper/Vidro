@@ -53,7 +53,7 @@ src/
 ├── components/            # shell/ (AppShell & co.), ThemeToggle, shadcn/ui/*
 ├── integrations/
 │   └── tanstack-query/    # QueryClient + devtools
-├── lib/utils.ts
+├── lib/utils.ts           # re-exports `cn` from the `cn` package (components added by the shadcn CLI import it straight from "cn" — same function)
 └── tests/
 ```
 

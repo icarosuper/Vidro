@@ -165,6 +165,9 @@ section "What the migration unlocks".
       (`src/components/shell/`) replacing the `Header`: left rail from `lg`, bottom tab bar below it
       with Upload in the middle, slim top bar with the search (`/` focuses it), account menu on the
       avatar, 24px page gutter so thumbnails never touch the screen edge.
+      Class merging moved from `clsx` + `tailwind-merge` to shadcn's `cn` package (the registry
+      switched on 2026-11-02 and `shadcn add` now emits `from "cn"`); `src/tests/cn.test.ts` pins the
+      merges the components rely on, since `cn` is still 0.x.
       *Next, in order:* `VideoCard` (it nests the channel `<a>` inside the card's `<a>` — React
       warns on every render; title, channel, mono `views · age`, tags
       only on hover, a featured first card on the home) → watch, channel and playlist pages →
