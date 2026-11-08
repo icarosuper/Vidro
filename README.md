@@ -6,7 +6,7 @@ Built to show a real pipeline — Redis job lease, a 7-step FFmpeg worker, HMAC 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/media/home-dark.webp">
-  <img alt="Vidro home page: the signed-in feed, a grid of video cards with thumbnails, view and like counts" src="docs/media/home-light.webp">
+  <img alt="Vidro home page: the left sidebar, and the signed-in feed as a grid of video cards — a featured first card, then thumbnails with channel, views and age" src="docs/media/home-light.webp">
 </picture>
 
 The older split repos (`VidroApi`, `VidroFront`, `VidroProcessor`) are archived. This repo is the source of truth.
@@ -34,10 +34,10 @@ Upload to playback through the real pipeline — presigned PUT, worker, webhook 
 
 | | |
 |---|---|
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/watch-dark.webp"><img alt="Watch page: player, title, channel, likes and the comment thread" src="docs/media/watch-light.webp"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/channel-dark.webp"><img alt="Channel page: avatar, description, followers and the channel's videos" src="docs/media/channel-light.webp"></picture> |
-| **Watch** — processed MP4, reactions, threaded comments | **Channel** — avatar, followers, videos, playlists |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/search-dark.webp"><img alt="Search results for 'dream'" src="docs/media/search-light.webp"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/playlist-dark.webp"><img alt="Playlist page with four videos and their durations" src="docs/media/playlist-light.webp"></picture> |
-| **Search** — over titles and tags, public videos only | **Playlists** — per user or per channel, public or private |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/watch-dark.webp"><img alt="Watch page: player, title, channel, reactions, Save, the description box, comments, and the Up next column" src="docs/media/watch-light.webp"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/channel-dark.webp"><img alt="Channel page: cover, avatar, followers, description, and the Videos and Playlists tabs" src="docs/media/channel-light.webp"></picture> |
+| **Watch** — HLS player with a theater mode, reactions, Save to playlists, threaded comments, Up next | **Channel** — cover, avatar, followers, Videos and Playlists tabs |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/search-dark.webp"><img alt="Search results for 'dream'" src="docs/media/search-light.webp"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/playlist-dark.webp"><img alt="Playlist page: a cover panel with Play all beside the four videos in order, with their durations" src="docs/media/playlist-light.webp"></picture> |
+| **Search** — over titles and tags, public videos only | **Playlists** — per user or per channel, public or private; Play all runs them in order |
 
 <p>
   <img alt="Home page on a phone" src="docs/media/mobile-home.webp" width="240">
