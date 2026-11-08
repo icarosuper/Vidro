@@ -113,20 +113,6 @@ export function useDeletePlaylist() {
   })
 }
 
-export function useAddVideoToPlaylist(playlistId: string) {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (videoId: string) => addVideoToPlaylist(playlistId, videoId),
-    onError: toastApiError,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: playlistKeys.detail(playlistId),
-      })
-    },
-  })
-}
-
 export function useRemoveVideoFromPlaylist(playlistId: string) {
   const queryClient = useQueryClient()
 
