@@ -1,4 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { ErrorState } from '#/components/StatePanel'
+import { Skeleton } from '#/components/ui/skeleton'
 import { useCurrentUser } from '#/features/users/hooks'
 import { UploadVideoForm } from '#/features/videos/components/UploadVideoForm'
 import { seo } from '#/shared/lib/seo'
@@ -25,12 +27,19 @@ export const Route = createFileRoute('/upload')({
 })
 
 function UploadPage() {
-  const { data: profile, isPending, isError, error } = useCurrentUser()
+  const {
+    data: profile,
+    isPending,
+    isError,
+    refetch,
+    isRefetching,
+  } = useCurrentUser()
 
   if (isPending) {
     return (
       <main className="page-container py-8">
-        <p>Loading…</p>
+        <Skeleton className="mb-6 h-8 w-48" />
+        <Skeleton className="h-72 w-full max-w-2xl rounded-xl" />
       </main>
     )
   }
@@ -38,7 +47,7 @@ function UploadPage() {
   if (isError) {
     return (
       <main className="page-container py-8">
-        <p className="text-destructive">{error.message}</p>
+        <ErrorState onRetry={() => refetch()} isRetrying={isRefetching} />
       </main>
     )
   }

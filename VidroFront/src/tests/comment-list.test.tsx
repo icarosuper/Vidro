@@ -124,7 +124,7 @@ describe('CommentList', () => {
 
     render(<CommentList videoId="video-1" currentUserId="user-1" />)
 
-    expect(screen.getByText('Failed to load comments.')).toBeDefined()
-    expect(screen.queryByText('No comments yet.')).toBeNull()
+    expect(screen.getByText('Could not load the comments')).toBeDefined()
+    expect(screen.queryByText('No comments yet')).toBeNull()
   })
 })

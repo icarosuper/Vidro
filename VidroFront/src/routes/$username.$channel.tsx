@@ -1,6 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Plus } from 'lucide-react'
+import { Film, ListVideo, Plus, Upload } from 'lucide-react'
 import { useState } from 'react'
+import {
+  EmptyState,
+  ErrorState,
+  QueryErrorState,
+} from '#/components/StatePanel'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -98,6 +103,8 @@ function ChannelPage() {
     isPending: channelPending,
     isError,
     error,
+    refetch,
+    isRefetching,
   } = useChannel(username, handle)
   const { data: currentUser } = useCurrentUser()
   const videosQuery = useChannelVideos(username, handle)
@@ -116,6 +123,7 @@ function ChannelPage() {
   const videoCount = videosQuery.isPending
     ? null
     : formatLoadedCount(videos.length, videosQuery.hasNextPage)
+  const playlistsHaveNone = playlistsQuery.isSuccess && playlists.length === 0
   const playlistCount = playlistsQuery.isPending
     ? null
     : formatLoadedCount(playlists.length, playlistsQuery.hasNextPage)
@@ -123,7 +131,12 @@ function ChannelPage() {
   if (isError) {
     return (
       <main className="page-container py-8">
-        <p className="text-destructive">{error.message}</p>
+        <QueryErrorState
+          error={error}
+          notFoundTitle="Channel not found"
+          onRetry={() => refetch()}
+          isRetrying={isRefetching}
+        />
       </main>
     )
   }
@@ -168,14 +181,41 @@ function ChannelPage() {
       </div>
 
       <section className="mt-6">
-        {activeTab === 'videos' && (
+        {activeTab === 'videos' && videosQuery.isError && (
+          <ErrorState
+            title="Could not load the videos"
+            onRetry={() => videosQuery.refetch()}
+            isRetrying={videosQuery.isRefetching}
+          />
+        )}
+
+        {activeTab === 'videos' && !videosQuery.isError && (
           <>
             <VideoGrid
               videos={videos}
               isLoading={videosQuery.isPending}
               hideChannelInfo
               isOwner={isOwner}
-              emptyMessage="No videos yet."
+              emptyState={
+                <EmptyState
+                  icon={Film}
+                  title="No videos yet"
+                  description={
+                    isOwner
+                      ? 'Your uploads show up here once they finish processing.'
+                      : 'This channel has not uploaded anything.'
+                  }
+                  action={
+                    isOwner && (
+                      <Button asChild>
+                        <Link to="/upload" className="no-underline">
+                          <Upload /> Upload a video
+                        </Link>
+                      </Button>
+                    )
+                  }
+                />
+              }
             />
             {videosQuery.hasNextPage && (
               <div className="mt-8 flex justify-center">
@@ -204,10 +244,30 @@ function ChannelPage() {
                 ))}
               </div>
             )}
-            {!playlistsQuery.isPending && playlists.length === 0 && (
-              <p className="py-8 text-center text-muted-foreground">
-                No playlists yet.
-              </p>
+            {playlistsQuery.isError && (
+              <ErrorState
+                title="Could not load the playlists"
+                onRetry={() => playlistsQuery.refetch()}
+                isRetrying={playlistsQuery.isRefetching}
+              />
+            )}
+            {playlistsHaveNone && (
+              <EmptyState
+                icon={ListVideo}
+                title="No playlists yet"
+                description={
+                  isOwner
+                    ? 'Group videos from this channel into a playlist.'
+                    : 'This channel has not made any playlists.'
+                }
+                action={
+                  isOwner && (
+                    <Button onClick={() => setNewPlaylistOpen(true)}>
+                      <Plus /> New playlist
+                    </Button>
+                  )
+                }
+              />
             )}
             {playlists.length > 0 && (
               <div className={CARD_GRID_CLASS}>

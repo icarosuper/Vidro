@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { Plus, Trash2 } from 'lucide-react'
+import { ListVideo, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { EmptyState, ErrorState } from '#/components/StatePanel'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -48,6 +49,7 @@ function DashboardPage() {
     hasNextPage,
     isFetchingNextPage,
     refetch,
+    isRefetching,
   } = useUserPlaylists(currentUser?.username)
 
   const deletePlaylist = useDeletePlaylist()
@@ -97,15 +99,24 @@ function DashboardPage() {
         )}
 
         {playlistsFailed && (
-          <p className="py-8 text-center text-muted-foreground">
-            Could not load your playlists. Try again.
-          </p>
+          <ErrorState
+            title="Could not load your playlists"
+            onRetry={() => refetch()}
+            isRetrying={isRefetching}
+          />
         )}
 
         {hasNoPlaylists && (
-          <p className="py-8 text-center text-muted-foreground">
-            No personal playlists yet.
-          </p>
+          <EmptyState
+            icon={ListVideo}
+            title="No personal playlists yet"
+            description="Playlists that belong to you, not to one of your channels."
+            action={
+              <Button onClick={() => setNewPlaylistOpen(true)}>
+                <Plus /> New playlist
+              </Button>
+            }
+          />
         )}
 
         {hasPlaylists && (

@@ -6,6 +6,7 @@ import {
   ThumbsUp,
 } from 'lucide-react'
 import { useEffect } from 'react'
+import { QueryErrorState } from '#/components/StatePanel'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
 import { Skeleton } from '#/components/ui/skeleton'
@@ -212,7 +213,14 @@ function TheaterModeButton() {
 
 function WatchPage() {
   const { videoId } = Route.useParams()
-  const { data: video, isPending, isError, error } = useVideo(videoId)
+  const {
+    data: video,
+    isPending,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+  } = useVideo(videoId)
   const isAuthenticated = useIsAuthenticated()
   const { data: currentUser } = useCurrentUser()
   const registerView = useRegisterView(videoId)
@@ -237,7 +245,12 @@ function WatchPage() {
   if (isError) {
     return (
       <main className="page-container py-8">
-        <p className="text-destructive">{error.message}</p>
+        <QueryErrorState
+          error={error}
+          notFoundTitle="Video not found"
+          onRetry={() => refetch()}
+          isRetrying={isRefetching}
+        />
       </main>
     )
   }

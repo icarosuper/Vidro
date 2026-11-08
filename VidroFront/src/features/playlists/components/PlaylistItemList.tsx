@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
-import { Film, Trash2 } from 'lucide-react'
+import { Film, ListVideo, Trash2 } from 'lucide-react'
+import { EmptyState } from '#/components/StatePanel'
 import { Button } from '#/components/ui/button'
 import { useRemoveVideoFromPlaylist } from '../hooks'
 import type { PlaylistItem } from '../types'
@@ -49,11 +50,11 @@ export function PlaylistItemList({ playlistId, items, isOwner }: Props) {
 
   if (items.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center">
-        <p className="text-sm text-muted-foreground">
-          No videos in this playlist yet.
-        </p>
-      </div>
+      <EmptyState
+        icon={ListVideo}
+        title="No videos in this playlist yet"
+        description="Videos added to it show up here, in order."
+      />
     )
   }
 

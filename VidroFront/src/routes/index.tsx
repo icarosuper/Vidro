@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { ErrorState } from '#/components/StatePanel'
 import { Button } from '#/components/ui/button'
 import { useIsAuthenticated } from '#/features/auth/hooks'
 import { getTrending } from '#/features/videos/api'
@@ -27,6 +28,8 @@ function FeedSection() {
     data,
     isPending,
     isError,
+    refetch,
+    isRefetching,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -40,9 +43,11 @@ function FeedSection() {
         <h2 className="mb-5 text-2xl font-extrabold tracking-tight">
           Your Feed
         </h2>
-        <p className="py-8 text-center text-muted-foreground">
-          Could not load your feed. Try again.
-        </p>
+        <ErrorState
+          title="Could not load your feed"
+          onRetry={() => refetch()}
+          isRetrying={isRefetching}
+        />
       </section>
     )
   }
@@ -67,16 +72,18 @@ function FeedSection() {
 }
 
 function TrendingSection({ featureFirst }: { featureFirst: boolean }) {
-  const { data, isPending, isError } = useTrending()
+  const { data, isPending, isError, refetch, isRefetching } = useTrending()
   const videos = data?.videos ?? []
 
   return (
     <section>
       <h2 className="mb-5 text-2xl font-extrabold tracking-tight">Trending</h2>
       {isError ? (
-        <p className="py-8 text-center text-muted-foreground">
-          Could not load trending videos. Try again.
-        </p>
+        <ErrorState
+          title="Could not load trending videos"
+          onRetry={() => refetch()}
+          isRetrying={isRefetching}
+        />
       ) : (
         <VideoGrid
           videos={videos}

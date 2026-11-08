@@ -183,7 +183,19 @@ section "What the migration unlocks".
       Playlist page: a panel with the cover (first video's thumbnail, or the accent gradient),
       mono meta and "Play all", sticky beside the list from `lg`; rows are stretched links with
       a mono index and a hover-only remove button; a skeleton of the same shape.
-      *Next:* loading and empty states.
+      Loading, empty and error states: one frame for all of them (`src/components/StatePanel.tsx`
+      — `EmptyState`, `ErrorState` with "Try again" wired to the query's `refetch`,
+      `NotFoundState`, and `QueryErrorState`, which picks not-found for an API 404). Every page and
+      section uses it, including the router fallbacks; empty states carry the next step when there
+      is one ("Upload a video", "New playlist", "New channel"). The remaining "Loading…" text
+      (settings, upload, comments) became skeletons; "Loading…" stays only on "Load more" buttons.
+      *Next:* merge `feature/visual-identity` into `master`.
+
+- [ ] **No way to add a video to a playlist.** `useAddVideoToPlaylist`
+      (`VidroFront/src/features/playlists/hooks.ts`) and `POST /v1/playlists/{id}/items` exist, but
+      no screen calls them — a playlist can only be created, never filled, from the UI. Found on
+      2026-11-07 while writing the playlist's empty state. Likely home: a "Save" button on the
+      watch page that opens the user's and the channel's playlists.
 
 
 ---
@@ -228,7 +240,8 @@ performance work (P-PERF1 to P-PERF6, P-OPT1) is closed: ~26 s per job for 55 s 
 (webhook, job envelope, paths, timeout, enums) and the front's success and domain error types are
 generated.
 
-1. **Visual identity "Studio"** (P3) — in progress on `feature/visual-identity`; loading and empty states are next.
+1. **Visual identity "Studio"** (P3) — done on `feature/visual-identity`; merging it into `master` is next.
+   Then **add to playlist** (P3), the missing screen that leaves playlists empty.
 2. **E2E upload → play** (P2) — the biggest test gap left.
 3. Bigger, for later: history/notifications/captions (P5), observability rung 4 (trace collector),
    worker scaling (P6). The FluentValidation 400 in OpenAPI only when a form needs per-field errors.

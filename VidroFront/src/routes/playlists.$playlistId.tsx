@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ListVideo, Lock, Pencil, Play, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { QueryErrorState } from '#/components/StatePanel'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -125,16 +126,28 @@ function PlaylistCover({ playlist }: { playlist: Playlist }) {
 function PlaylistPage() {
   const { playlistId } = Route.useParams()
   const navigate = Route.useNavigate()
-  const { data: playlist, isPending, isError } = usePlaylist(playlistId)
+  const {
+    data: playlist,
+    isPending,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+  } = usePlaylist(playlistId)
   const deletePlaylist = useDeletePlaylist()
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   if (isPending) return <PlaylistPageSkeleton />
-  if (isError || !playlist) {
+  if (isError) {
     return (
       <main className="page-container py-8">
-        <p className="text-muted-foreground">Playlist not found.</p>
+        <QueryErrorState
+          error={error}
+          notFoundTitle="Playlist not found"
+          onRetry={() => refetch()}
+          isRetrying={isRefetching}
+        />
       </main>
     )
   }

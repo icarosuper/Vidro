@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Users } from 'lucide-react'
+import { Clapperboard, Users } from 'lucide-react'
+import { EmptyState, QueryErrorState } from '#/components/StatePanel'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Card, CardContent } from '#/components/ui/card'
 import { Skeleton } from '#/components/ui/skeleton'
@@ -88,12 +89,18 @@ function ChannelCard({ channel, username }: ChannelCardProps) {
 
 function UserPage() {
   const { username } = Route.useParams()
-  const { data, isPending, isError, error } = useUserChannels(username)
+  const { data, isPending, isError, error, refetch, isRefetching } =
+    useUserChannels(username)
 
   if (isError) {
     return (
       <main className="page-container py-8">
-        <p className="text-destructive">{error.message}</p>
+        <QueryErrorState
+          error={error}
+          notFoundTitle="User not found"
+          onRetry={() => refetch()}
+          isRetrying={isRefetching}
+        />
       </main>
     )
   }
@@ -115,9 +122,11 @@ function UserPage() {
       )}
 
       {hasNoChannels && (
-        <p className="py-8 text-center text-muted-foreground">
-          This user has no channels yet.
-        </p>
+        <EmptyState
+          icon={Clapperboard}
+          title="No channels yet"
+          description={`@${username} has not created a channel.`}
+        />
       )}
 
       {!isPending && channels.length > 0 && (

@@ -1,4 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { Search, SearchX } from 'lucide-react'
+import { EmptyState, ErrorState } from '#/components/StatePanel'
 import { Button } from '#/components/ui/button'
 import { VideoGrid } from '#/features/videos/components/VideoGrid'
 import { useSearchVideos } from '#/features/videos/hooks'
@@ -26,6 +28,8 @@ function SearchPage() {
     data,
     isPending,
     isError,
+    refetch,
+    isRefetching,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -35,9 +39,11 @@ function SearchPage() {
   if (!hasQuery) {
     return (
       <main className="page-container py-8">
-        <p className="py-8 text-center text-muted-foreground">
-          Type something in the search box to find videos.
-        </p>
+        <EmptyState
+          icon={Search}
+          title="Search Vidro"
+          description="Type something in the search box to find videos. Press / to jump to it."
+        />
       </main>
     )
   }
@@ -45,9 +51,11 @@ function SearchPage() {
   if (isError) {
     return (
       <main className="page-container py-8">
-        <p className="py-8 text-center text-muted-foreground">
-          Could not load the search results. Try again.
-        </p>
+        <ErrorState
+          title="Could not load the results"
+          onRetry={() => refetch()}
+          isRetrying={isRefetching}
+        />
       </main>
     )
   }
@@ -56,8 +64,20 @@ function SearchPage() {
 
   return (
     <main className="page-container py-8">
-      <h1 className="mb-4 text-xl font-semibold">Results for “{q}”</h1>
-      <VideoGrid videos={matchingVideos} isLoading={isPending} />
+      <h1 className="mb-5 text-2xl font-extrabold tracking-tight">
+        Results for “{q}”
+      </h1>
+      <VideoGrid
+        videos={matchingVideos}
+        isLoading={isPending}
+        emptyState={
+          <EmptyState
+            icon={SearchX}
+            title={`No results for “${q}”`}
+            description="Try other words, or fewer of them."
+          />
+        }
+      />
       {hasNextPage && (
         <div className="mt-6 flex justify-center">
           <Button

@@ -1,7 +1,9 @@
-import { ThumbsDown, ThumbsUp } from 'lucide-react'
+import { MessageSquare, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useState } from 'react'
+import { EmptyState, ErrorState } from '#/components/StatePanel'
 import { Avatar, AvatarFallback } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
+import { Skeleton } from '#/components/ui/skeleton'
 import { Textarea } from '#/components/ui/textarea'
 import { useIsAuthenticated } from '#/features/auth/hooks'
 import type { ReactionTypeValue } from '#/shared/types'
@@ -275,6 +277,24 @@ type CommentListProps = {
   currentUserId: string | undefined
 }
 
+function CommentListSkeleton() {
+  return (
+    <div className="space-y-6">
+      {Array.from({ length: 3 }).map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders have no identity
+        <div key={i} className="flex gap-3">
+          <Skeleton className="size-8 shrink-0 rounded-full" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-4 w-11/12" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function CommentList({ videoId, currentUserId }: CommentListProps) {
   const isAuthenticated = useIsAuthenticated()
   const [sort, setSort] = useState<0 | 1>(0)
@@ -282,6 +302,8 @@ export function CommentList({ videoId, currentUserId }: CommentListProps) {
     data,
     isPending,
     isError,
+    refetch,
+    isRefetching,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -316,15 +338,27 @@ export function CommentList({ videoId, currentUserId }: CommentListProps) {
 
       {isAuthenticated && <AddCommentForm videoId={videoId} />}
 
-      {isPending && (
-        <p className="text-sm text-muted-foreground">Loading comments…</p>
-      )}
+      {isPending && <CommentListSkeleton />}
       {isError && (
-        <p className="text-sm text-destructive">Failed to load comments.</p>
+        <ErrorState
+          compact
+          title="Could not load the comments"
+          onRetry={() => refetch()}
+          isRetrying={isRefetching}
+        />
       )}
 
       {hasNoComments && (
-        <p className="text-sm text-muted-foreground">No comments yet.</p>
+        <EmptyState
+          compact
+          icon={MessageSquare}
+          title="No comments yet"
+          description={
+            isAuthenticated
+              ? 'Start the conversation.'
+              : 'Sign in to start the conversation.'
+          }
+        />
       )}
 
       <div className="space-y-6">

@@ -176,7 +176,7 @@ or a throw in a loader/render lands on a screen with a way back instead of a bla
 only declares its own when it can do better.
 
 That covers **route** errors. **Query** errors are still the component's job: handle the `useQuery`
-`isError` in the screen itself (the repo pattern is a centered `text-muted-foreground` paragraph),
+`isError` in the screen itself (with `ErrorState`/`QueryErrorState` from `components/StatePanel.tsx`, `refetch` as the retry),
 because the router fallback does not see a query that failed after the route has already rendered.
 
 ## SEO and per-route `head`

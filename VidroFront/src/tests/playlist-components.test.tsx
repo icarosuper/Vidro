@@ -109,7 +109,7 @@ describe('PlaylistItemList', () => {
   it('says the playlist is empty instead of rendering nothing', () => {
     render(<PlaylistItemList playlistId="pl-1" items={[]} isOwner />)
 
-    expect(screen.getByText('No videos in this playlist yet.')).toBeDefined()
+    expect(screen.getByText('No videos in this playlist yet')).toBeDefined()
   })
 
   it('formats durations as m:ss, h:mm:ss, and skips an unknown one', () => {

@@ -1,3 +1,6 @@
+import { Film } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { EmptyState } from '#/components/StatePanel'
 import { Skeleton } from '#/components/ui/skeleton'
 import { VideoCard, type VideoCardVideo } from './VideoCard'
 
@@ -10,7 +13,8 @@ type VideoGridProps = {
   // Passed to every card — the channel page, where the channel is the page itself.
   hideChannelInfo?: boolean
   isOwner?: boolean
-  emptyMessage?: string
+  // Shown instead of the grid when there are no videos; pages pass their own wording and action.
+  emptyState?: ReactNode
 }
 
 // Shared with the playlist grid, so both card kinds line up the same way on every page.
@@ -38,7 +42,7 @@ export function VideoGrid({
   featureFirst = false,
   hideChannelInfo = false,
   isOwner = false,
-  emptyMessage = 'No videos found.',
+  emptyState = <EmptyState icon={Film} title="No videos yet" />,
 }: VideoGridProps) {
   if (isLoading) {
     return (
@@ -52,9 +56,7 @@ export function VideoGrid({
   }
 
   if (videos.length === 0) {
-    return (
-      <p className="py-8 text-center text-muted-foreground">{emptyMessage}</p>
-    )
+    return emptyState
   }
 
   return (
