@@ -75,6 +75,7 @@ export function PlaylistItemList({ playlistId, items, isOwner }: Props) {
             <Link
               to="/watch/$videoId"
               params={{ videoId: item.videoId }}
+              search={{ list: playlistId }}
               className="text-foreground no-underline outline-none after:absolute after:inset-0 after:rounded-lg after:content-['']"
             >
               {item.title}

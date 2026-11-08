@@ -183,6 +183,7 @@ function PlaylistPage() {
                   <Link
                     to="/watch/$videoId"
                     params={{ videoId: firstVideo.videoId }}
+                    search={{ list: playlist.playlistId }}
                     className="no-underline"
                   >
                     <Play /> Play all

@@ -4,9 +4,19 @@ import { useEffect, useRef } from 'react'
 type VideoPlayerProps = {
   src: string
   poster?: string
+  // Fired when playback reaches the end — a playlist moves on to its next video.
+  onEnded?: () => void
+  // Starts on its own — set while playing a playlist, where the viewer already chose to play.
+  // Browsers allow it after a click in the page, which is how a playlist is always reached.
+  autoPlay?: boolean
 }
 
-export function VideoPlayer({ src, poster }: VideoPlayerProps) {
+export function VideoPlayer({
+  src,
+  poster,
+  onEnded,
+  autoPlay = false,
+}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -41,6 +51,8 @@ export function VideoPlayer({ src, poster }: VideoPlayerProps) {
     <video
       ref={videoRef}
       poster={poster}
+      onEnded={onEnded}
+      autoPlay={autoPlay}
       controls
       className="h-full w-full bg-black"
     />

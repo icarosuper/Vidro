@@ -160,7 +160,7 @@ live only in `shared/types.ts`, pinned by `contracts/enums.json`.
 | Route | Strategy | Notes |
 |---|---|---|
 | `/` | SSR | Loader prefetches trending |
-| `/watch/$videoId` | SSR | Loader uses `fetchVideoSsr` with the `accessToken` from the context |
+| `/watch/$videoId` | SSR | Loader uses `fetchVideoSsr` with the `accessToken` from the context. `?list=<playlistId>` plays a playlist: its queue replaces "Up next" (only when it holds the video) and the next video starts when one ends |
 | `/playlists/$playlistId` | SSR | Loader uses `fetchPlaylistSsr` with the `accessToken` from the context (`isOwner` depends on it) |
 | `/search` | SSR | Query in `?q=` (`validateSearch`); no prefetch in the loader |
 | `/$username`, `/$username/$channel` | SSR | (ISR in the future) |

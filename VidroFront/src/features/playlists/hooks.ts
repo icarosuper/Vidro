@@ -33,10 +33,13 @@ export const playlistKeys = {
 
 const PLAYLISTS_LIMIT = 20
 
-export function usePlaylist(playlistId: string) {
+// Undefined skips the request — the watch page asks only when it is playing a playlist.
+export function usePlaylist(playlistId: string | undefined) {
   return useQuery({
-    queryKey: playlistKeys.detail(playlistId),
-    queryFn: ({ signal }) => getPlaylist(playlistId, signal),
+    queryKey: playlistKeys.detail(playlistId ?? ''),
+    queryFn: playlistId
+      ? ({ signal }) => getPlaylist(playlistId, signal)
+      : skipToken,
   })
 }
 
