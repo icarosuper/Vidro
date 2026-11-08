@@ -104,7 +104,7 @@ function PlaylistCover({ playlist }: { playlist: Playlist }) {
         <img src={coverUrl} alt="" className="h-full w-full object-cover" />
       ) : (
         <div className="flex h-full w-full items-center justify-center">
-          <ListVideo className="size-10 text-primary-foreground/80" />
+          <ListVideo className="size-10 text-white drop-shadow-sm" />
         </div>
       )}
       <span className="absolute right-2 bottom-2 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[11px] text-white">

@@ -53,7 +53,11 @@ export function PlaylistItemList({ playlistId, items, isOwner }: Props) {
       <EmptyState
         icon={ListVideo}
         title="No videos in this playlist yet"
-        description="Videos added to it show up here, in order."
+        description={
+          isOwner
+            ? 'Open a video and use Save to add it here.'
+            : 'Nothing has been added to it yet.'
+        }
       />
     )
   }

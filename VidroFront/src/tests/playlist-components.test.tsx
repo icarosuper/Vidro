@@ -112,6 +112,17 @@ describe('PlaylistItemList', () => {
     render(<PlaylistItemList playlistId="pl-1" items={[]} isOwner />)
 
     expect(screen.getByText('No videos in this playlist yet')).toBeDefined()
+    expect(
+      screen.getByText('Open a video and use Save to add it here.'),
+    ).toBeDefined()
+  })
+
+  it('does not tell a visitor to use Save on a playlist that is not theirs', () => {
+    render(<PlaylistItemList playlistId="pl-1" items={[]} isOwner={false} />)
+
+    expect(
+      screen.queryByText('Open a video and use Save to add it here.'),
+    ).toBeNull()
   })
 
   it('formats durations as m:ss, h:mm:ss, and skips an unknown one', () => {

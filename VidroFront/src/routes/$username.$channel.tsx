@@ -124,6 +124,9 @@ function ChannelPage() {
     ? null
     : formatLoadedCount(videos.length, videosQuery.hasNextPage)
   const playlistsHaveNone = playlistsQuery.isSuccess && playlists.length === 0
+  // With no playlist yet, the empty state below carries the same button — one is enough.
+  const showsNewPlaylistInTabs =
+    activeTab === 'playlists' && isOwner && playlists.length > 0
   const playlistCount = playlistsQuery.isPending
     ? null
     : formatLoadedCount(playlists.length, playlistsQuery.hasNextPage)
@@ -153,7 +156,9 @@ function ChannelPage() {
         />
       )}
 
-      <div className="mt-8 flex items-center justify-between border-b border-border">
+      {/* Fixed height, tabs on the bottom edge: the owner's "New playlist" appears on one tab only,
+          and sizing the row by its content made the tabs jump when switching. */}
+      <div className="mt-8 flex h-12 items-end justify-between border-b border-border">
         <nav aria-label="Channel sections" className="flex gap-6">
           <TabLink
             tab="videos"
@@ -168,7 +173,7 @@ function ChannelPage() {
             count={playlistCount}
           />
         </nav>
-        {activeTab === 'playlists' && isOwner && (
+        {showsNewPlaylistInTabs && (
           <Button
             variant="ghost"
             size="sm"
