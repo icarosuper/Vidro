@@ -79,8 +79,8 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 | `hooks.ts` | `useTrending`, `useFeed`, `useSearchVideos`, `useVideo`, `useRegisterView`, `useReactToVideo`, `useRemoveReaction`, `useVideoStatus`, `useCreateVideo`, `useUpdateVideo`, `useChannelVideos`, `useUploadThumbnail` |
 | `server.ts` | `fetchVideoSsr` — loader for `/watch/$videoId` |
 | `types.ts` | Re-exports from `#/shared/api`: `Video`, `VideoSummary`, `ChannelVideoSummary`, `TrendingResponse`, `FeedPage`, `SearchPage`, `ChannelVideosPage`, `CreateVideoRequest/Response`, `UpdateVideoRequest/Response`, `ThumbnailUploadResponse` |
-| `components/VideoCard.tsx` | Reusable card (home/feed and channel). Props: `hideChannelInfo` hides the channel avatar/name; `isOwner` shows the edit button, status overlay and visibility badge. Exports `VideoCardVideo`, the shape it renders |
-| `components/VideoGrid.tsx` | Takes `VideoCardVideo[]` (the shape `VideoCard` renders), not a generated alias — search results lack `dislikeCount` |
+| `components/VideoCard.tsx` | Reusable card (home/feed, search and channel). The title link stretches over the card (`after:inset-0`) instead of wrapping it in an `<a>`, so the channel link and the owner buttons (`z-10`) are never nested links. Shows title, channel, mono `views · age` (`formatCompactAge`), up to 3 tags on hover; likes/dislikes live on the watch page only. Props: `hideChannelInfo` hides the channel avatar/name; `isOwner` shows the edit/thumbnail buttons, status overlay and visibility badge; `isFeatured` spans 2×2 from `sm`. Exports `VideoCardVideo`, the shape it renders, `formatCount` and `formatCompactAge` |
+| `components/VideoGrid.tsx` | Takes `VideoCardVideo[]` (the shape `VideoCard` renders), not a generated alias — search results lack `dislikeCount`. `featureFirst` makes the first card `isFeatured` — only on the first grid of a page |
 | `components/VideoPlayer.tsx` | HLS player |
 | `components/UploadVideoForm.tsx` | Creates the video + upload + polling |
 | `components/EditVideoForm.tsx` | |
@@ -152,7 +152,7 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 
 | Route | File | Strategy | Auth | Features consumed |
 |---|---|---|---|---|
-| `/` | `index.tsx` | SSR | public | videos (trending/feed) |
+| `/` | `index.tsx` | SSR | public | videos (trending/feed; an empty feed is hidden, and the first section shown features its first card) |
 | `/watch/$videoId` | `watch.$videoId.tsx` | SSR | public | videos, channels, comments |
 | `/search` | `search.tsx` | SSR | public | videos (search; query in `?q=`, field in the `TopBar`'s `SearchBox`) |
 | `/$username` | `$username.tsx` + `$username.index.tsx` | SSR | public | users, channels |

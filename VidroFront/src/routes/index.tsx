@@ -37,7 +37,9 @@ function FeedSection() {
   if (isError) {
     return (
       <section>
-        <h2 className="mb-4 text-xl font-semibold">Your Feed</h2>
+        <h2 className="mb-5 text-2xl font-extrabold tracking-tight">
+          Your Feed
+        </h2>
         <p className="py-8 text-center text-muted-foreground">
           Could not load your feed. Try again.
         </p>
@@ -47,8 +49,8 @@ function FeedSection() {
 
   return (
     <section>
-      <h2 className="mb-4 text-xl font-semibold">Your Feed</h2>
-      <VideoGrid videos={feedVideos} isLoading={isPending} />
+      <h2 className="mb-5 text-2xl font-extrabold tracking-tight">Your Feed</h2>
+      <VideoGrid videos={feedVideos} isLoading={isPending} featureFirst />
       {hasNextPage && (
         <div className="mt-6 flex justify-center">
           <Button
@@ -64,31 +66,45 @@ function FeedSection() {
   )
 }
 
-function TrendingSection() {
+function TrendingSection({ featureFirst }: { featureFirst: boolean }) {
   const { data, isPending, isError } = useTrending()
   const videos = data?.videos ?? []
 
   return (
     <section>
-      <h2 className="mb-4 text-xl font-semibold">Trending</h2>
+      <h2 className="mb-5 text-2xl font-extrabold tracking-tight">Trending</h2>
       {isError ? (
         <p className="py-8 text-center text-muted-foreground">
           Could not load trending videos. Try again.
         </p>
       ) : (
-        <VideoGrid videos={videos} isLoading={isPending} />
+        <VideoGrid
+          videos={videos}
+          isLoading={isPending}
+          featureFirst={featureFirst}
+        />
       )}
     </section>
   )
 }
 
+// Signed in with no follows, the feed is empty — then it does not take the top of the page, and
+// Trending becomes the first section. The first section always features its first card.
+function useShowsFeed(isAuthenticated: boolean): boolean {
+  const feed = useFeed(isAuthenticated)
+  const feedIsEmpty =
+    feed.isSuccess && feed.data.pages.every((page) => page.videos.length === 0)
+  return isAuthenticated && !feedIsEmpty
+}
+
 function HomePage() {
   const isAuthenticated = useIsAuthenticated()
+  const showsFeed = useShowsFeed(isAuthenticated)
 
   return (
     <main className="page-container py-8 space-y-10">
-      {isAuthenticated && <FeedSection />}
-      <TrendingSection />
+      {showsFeed && <FeedSection />}
+      <TrendingSection featureFirst={!showsFeed} />
     </main>
   )
 }
