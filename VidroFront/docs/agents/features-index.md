@@ -34,7 +34,7 @@ Authenticated user's profile + avatar upload.
 | File | Contents |
 |---|---|
 | `api.ts` | `getMe`, `uploadAvatar` |
-| `hooks.ts` | `useCurrentUser`, `useUploadAvatar`, `userKeys.me()` |
+| `hooks.ts` | `useCurrentUser` (only fetches with a session — `skipToken` signed out, starts the moment the token arrives), `useUploadAvatar`, `userKeys.me()` |
 | `types.ts` | Re-exports from `#/shared/api`: `UserProfile`, `UploadAvatarResponse` |
 | `components/ProfileInfo.tsx` | |
 | `components/AvatarUpload.tsx` | Upload via presigned URL |

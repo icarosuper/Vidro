@@ -1,14 +1,24 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
+import { useIsAuthenticated } from '#/features/auth/hooks'
 import { getMe, uploadAvatar } from './api'
 
 export const userKeys = {
   me: () => ['users', 'me'] as const,
 }
 
+// Only asks for /users/me with a session. Signed out it used to fire anyway, cache the 401, and
+// nothing invalidated it on sign in — so the avatar and "Your channels" stayed missing until the
+// next remount. Gating on the session makes the query start the moment the token arrives.
 export function useCurrentUser() {
+  const isAuthenticated = useIsAuthenticated()
   return useQuery({
     queryKey: userKeys.me(),
-    queryFn: ({ signal }) => getMe(signal),
+    queryFn: isAuthenticated ? ({ signal }) => getMe(signal) : skipToken,
   })
 }
 
