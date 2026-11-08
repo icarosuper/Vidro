@@ -56,6 +56,10 @@ golden on both sides (API and worker), mutation-verified.
 has one schema per slice and enums with values, and the front's request/response types are
 generated from it (`schema.d.ts`, CI-gated). Then the domain error body: `ApiErrorResponse` on a
 `4XX` range of every `/v1` route, and the front's `ApiError` became its alias.
+*(2026-11-08)* **Visual identity "Studio"** (merged in #6): violet accent, Manrope + JetBrains
+Mono, a sidebar shell with a phone tab bar, redesigned card, watch (theater mode, Up next, playlist
+playback), channel and playlist pages, one look for empty/loading/error states. What the pre-merge
+check left open is in GitHub issues #1–#5.
 *(2026-11-07)* **Add to playlist**: playlists could be created but never filled from the UI. The
 watch page got a "Save" menu (a checkbox per playlist, "New playlist" at the bottom), fed by an
 optional `?videoId=` on both playlist listings that returns `containsVideo` per item.
@@ -169,47 +173,6 @@ section "What the migration unlocks".
       **Still open:** nobody has run an audit (axe/Lighthouse) on the app; what was done here came
       from reading code, not from a tool.)
 
-- [~] **Visual identity "Studio"** — the front was the stock shadcn zinc theme with the system font.
-      Direction chosen on 2026-11-07 from a prototype with three switchable variants (parked on the
-      `prototype/visual-identity` branch, not merged; screenshots of desktop and mobile were reviewed
-      there). Work happens on `feature/visual-identity`.
-      *Done:* tokens in `VidroFront/src/styles.css` — violet accent, Manrope for text, JetBrains Mono
-      for compact metadata, both self-hosted (`@fontsource-variable/*`). App shell
-      (`src/components/shell/`) replacing the `Header`: left rail from `lg`, bottom tab bar below it
-      with Upload in the middle, slim top bar with the search (`/` focuses it), account menu on the
-      avatar, 24px page gutter so thumbnails never touch the screen edge.
-      Class merging moved from `clsx` + `tailwind-merge` to shadcn's `cn` package (the registry
-      switched on 2026-11-02 and `shadcn add` now emits `from "cn"`); `src/tests/cn.test.ts` pins the
-      merges the components rely on, since `cn` is still 0.x.
-      `VideoCard` rebuilt: the title is a stretched link instead of an `<a>` around the card, which
-      also ended the nested-`<a>` React warning; mono `views · age`, tags on hover, a featured 2×2
-      first card on the home (Trending takes it when the feed is empty — the empty feed is hidden).
-      The sidebar collapses (hamburger) and the watch page has a theater mode (button or `t`);
-      both are remembered in localStorage and applied before the first paint by a head script.
-      The player is capped in height in both modes, like YouTube's.
-      Watch page: two columns from `xl` with an "Up next" list (channel first, then trending),
-      reactions as one segmented pill, description in a box with mono views/date and `#tags`, a
-      skeleton instead of "Loading…".
-      Channel page: gradient cover with the avatar over it, header without the card, Videos |
-      Playlists tabs kept in the URL (`?tab=playlists`), the shared card grid (one column on a
-      phone); `PlaylistCard` in the same frame as `VideoCard`.
-      Playlist page: a panel with the cover (first video's thumbnail, or the accent gradient),
-      mono meta and "Play all", sticky beside the list from `lg`; rows are stretched links with
-      a mono index and a hover-only remove button; a skeleton of the same shape.
-      Loading, empty and error states: one frame for all of them (`src/components/StatePanel.tsx`
-      — `EmptyState`, `ErrorState` with "Try again" wired to the query's `refetch`,
-      `NotFoundState`, and `QueryErrorState`, which picks not-found for an API 404). Every page and
-      section uses it, including the router fallbacks; empty states carry the next step when there
-      is one ("Upload a video", "New playlist", "New channel"). The remaining "Loading…" text
-      (settings, upload, comments) became skeletons; "Loading…" stays only on "Load more" buttons.
-      Checked by hand on 2026-11-07 before the merge (desktop, 390px, dark and light, signed in and
-      out). Fixed from it: "Play all" now plays the playlist (`?list=` on the watch page: queue in
-      the right column, next video on end), the channel tab row no longer jumps, one "New
-      playlist" per screen, the empty playlist says how to fill it, every dialog has a
-      description. Left as GitHub issues #1–#5 (featured card gap, playlist rows without channel,
-      tab title on unknown URLs, dev-server slowness, theme icon before hydration).
-      *Next:* merge `feature/visual-identity` into `master`.
-
 
 
 ---
@@ -254,9 +217,7 @@ performance work (P-PERF1 to P-PERF6, P-OPT1) is closed: ~26 s per job for 55 s 
 (webhook, job envelope, paths, timeout, enums) and the front's success and domain error types are
 generated.
 
-1. **Visual identity "Studio"** (P3) — done on `feature/visual-identity` (add to playlist rode
-   along); merging it into `master` is next.
-2. **E2E upload → play** (P2) — the biggest test gap left.
+1. **E2E upload → play** (P2) — the biggest test gap left.
    The **sandbox skill** (P2) next to it: the same stack, run for an agent instead of a test.
-3. Bigger, for later: history/notifications/captions (P5), observability rung 4 (trace collector),
+2. Bigger, for later: history/notifications/captions (P5), observability rung 4 (trace collector),
    worker scaling (P6). The FluentValidation 400 in OpenAPI only when a form needs per-field errors.
