@@ -56,6 +56,7 @@ Channel CRUD, follow/unfollow, avatar.
 | `types.ts` | Re-exports from `#/shared/api`: `Channel`, `ChannelSummary`, `ChannelsResponse`, `CreateChannelRequest/Response`, `UpdateChannelRequest`, `UploadAvatarResponse` |
 | `components/CreateChannelForm.tsx` | |
 | `components/EditChannelForm.tsx` | |
+| `components/ChannelHeader.tsx` | Channel page header: accent-gradient cover (the API has no banner image), avatar overlapping it (owner: click to change), name, mono `@owner/handle · followers`, description, "by owner". Owner gets "Edit channel" (opens `EditChannelForm`), visitors `SubscribeButton`. Also exports `ChannelHeaderSkeleton` |
 | `components/SubscribeButton.tsx` | Follow/unfollow toggle with an optimistic feel |
 
 **Backend endpoints:**
@@ -132,7 +133,7 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 | `api.ts` | `createPlaylist`, `getPlaylist`, `updatePlaylist`, `deletePlaylist`, `listChannelPlaylists`, `listUserPlaylists`, `addVideoToPlaylist`, `removeVideoFromPlaylist` |
 | `hooks.ts` | `usePlaylist`, `useChannelPlaylists`, `useUserPlaylists`, `useCreatePlaylist`, `useUpdatePlaylist`, `useDeletePlaylist`, `useAddVideoToPlaylist`, `useRemoveVideoFromPlaylist`, `playlistKeys` |
 | `types.ts` | Re-exports from `#/shared/api`: `PlaylistSummary`, `Playlist`, `PlaylistItem`, `PlaylistsPage`, `CreatePlaylistRequest`, `CreatePlaylistResponse`, `UpdatePlaylistRequest` |
-| `components/PlaylistCard.tsx` | Summary card with videoCount and visibility badge |
+| `components/PlaylistCard.tsx` | Same frame as `VideoCard` (stretched title link, hover surface) so both share `CARD_GRID_CLASS`; the tile is a stack of cards with the mono video count and a Private badge |
 | `components/CreatePlaylistForm.tsx` | Create form (name, description, visibility; scope/channelId via props) |
 | `components/EditPlaylistForm.tsx` | Edit form (name, description, visibility) |
 | `components/PlaylistItemList.tsx` | Video list with thumbnail, duration and remove button (owner-only) |
@@ -157,7 +158,7 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 | `/watch/$videoId` | `watch.$videoId.tsx` | SSR | public | videos, channels, comments. From `xl` two columns (player, info, comments \| "Up next"); below it "Up next" sits between the description and the comments. Reactions are one segmented `ReactionPill`. Theater mode (button or `t`, from `xl`): the player spans edge to edge; a layout preference like the sidebar (`data-theater`, `theater:` variant). The areas live in `styles.css` (`.watch-layout`) so switching never remounts the player; it is capped at `100dvh - 9rem` tall in both modes and letterboxes past that |
 | `/search` | `search.tsx` | SSR | public | videos (search; query in `?q=`, field in the `TopBar`'s `SearchBox`) |
 | `/$username` | `$username.tsx` + `$username.index.tsx` | SSR | public | users, channels |
-| `/$username/$channel` | `$username.$channel.tsx` | SSR | public | channels, videos, playlists |
+| `/$username/$channel` | `$username.$channel.tsx` | SSR | public | channels, videos, playlists. `ChannelHeader`, then Videos \| Playlists tabs with mono counts; the tab is `?tab=playlists` (videos is the default and stays out of the URL). Both grids use `CARD_GRID_CLASS` (1 column on a phone) |
 | `/playlists/$playlistId` | `playlists.$playlistId.tsx` | SSR | optional | playlists |
 | `/upload` | `upload.tsx` | client-only | **required** | videos |
 | `/dashboard` | `dashboard.tsx` | client-only | **required** | playlists |

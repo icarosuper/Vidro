@@ -7,9 +7,14 @@ type VideoGridProps = {
   skeletonCount?: number
   // Makes the first card span 2×2 (from sm up). Use it on the first grid of a page only.
   featureFirst?: boolean
+  // Passed to every card — the channel page, where the channel is the page itself.
+  hideChannelInfo?: boolean
+  isOwner?: boolean
+  emptyMessage?: string
 }
 
-const gridClass =
+// Shared with the playlist grid, so both card kinds line up the same way on every page.
+export const CARD_GRID_CLASS =
   'grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
 
 function VideoCardSkeleton() {
@@ -31,10 +36,13 @@ export function VideoGrid({
   isLoading = false,
   skeletonCount = 8,
   featureFirst = false,
+  hideChannelInfo = false,
+  isOwner = false,
+  emptyMessage = 'No videos found.',
 }: VideoGridProps) {
   if (isLoading) {
     return (
-      <div className={gridClass}>
+      <div className={CARD_GRID_CLASS}>
         {Array.from({ length: skeletonCount }).map((_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders have no identity
           <VideoCardSkeleton key={i} />
@@ -45,17 +53,19 @@ export function VideoGrid({
 
   if (videos.length === 0) {
     return (
-      <p className="py-8 text-center text-muted-foreground">No videos found.</p>
+      <p className="py-8 text-center text-muted-foreground">{emptyMessage}</p>
     )
   }
 
   return (
-    <div className={gridClass}>
+    <div className={CARD_GRID_CLASS}>
       {videos.map((video, index) => (
         <VideoCard
           key={video.videoId}
           video={video}
           isFeatured={featureFirst && index === 0}
+          hideChannelInfo={hideChannelInfo}
+          isOwner={isOwner}
         />
       ))}
     </div>

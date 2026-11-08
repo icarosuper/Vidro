@@ -7,7 +7,9 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ChannelHeader } from '#/features/channels/components/ChannelHeader'
 import { CreateChannelForm } from '#/features/channels/components/CreateChannelForm'
 import { EditChannelForm } from '#/features/channels/components/EditChannelForm'
 import { SubscribeButton } from '#/features/channels/components/SubscribeButton'
@@ -33,6 +35,12 @@ vi.mock('#/features/channels/hooks', () => ({
   useUnfollowChannel: () => idleMutation(unfollowMutate),
   useCreateChannel: () => idleMutation(createMutate),
   useUpdateChannel: () => idleMutation(updateMutate),
+  useUploadChannelAvatar: () => idleMutation(vi.fn()),
+}))
+
+// Link needs a router context; a plain anchor keeps the accessible name and the target.
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({ children }: { children: ReactNode }) => <a href="/">{children}</a>,
 }))
 
 /** Makes the mocked mutation settle the way the server would. */
@@ -255,5 +263,45 @@ describe('EditChannelForm', () => {
 
     expect(await screen.findByText('Name is required')).toBeDefined()
     expect(updateMutate).not.toHaveBeenCalled()
+  })
+})
+
+describe('ChannelHeader', () => {
+  const channel: Channel = {
+    channelId: 'chan-1',
+    handle: 'tears-of-steel',
+    name: 'Tears of Steel',
+    description: 'Scenes from the fourth Blender open movie.',
+    followerCount: 1,
+    isFollowing: false,
+    ownerId: 'user-1',
+    ownerUsername: 'mango',
+    avatarUrl: null,
+    ownerAvatarUrl: null,
+  }
+
+  it('shows the handle and a singular follower count', () => {
+    render(<ChannelHeader channel={channel} isOwner={false} canSubscribe />)
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Tears of Steel' }),
+    ).toBeDefined()
+    expect(screen.getByText('@mango/tears-of-steel · 1 follower')).toBeDefined()
+  })
+
+  it('lets a visitor subscribe, and nothing else', () => {
+    render(<ChannelHeader channel={channel} isOwner={false} canSubscribe />)
+
+    expect(screen.getByRole('button', { name: 'Subscribe' })).toBeDefined()
+    expect(screen.queryByRole('button', { name: /Edit channel/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Change avatar' })).toBeNull()
+  })
+
+  it('gives the owner edit and avatar controls instead of subscribe', () => {
+    render(<ChannelHeader channel={channel} isOwner canSubscribe={false} />)
+
+    expect(screen.getByRole('button', { name: /Edit channel/ })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Change avatar' })).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Subscribe' })).toBeNull()
   })
 })
