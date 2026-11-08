@@ -180,7 +180,10 @@ section "What the migration unlocks".
       Channel page: gradient cover with the avatar over it, header without the card, Videos |
       Playlists tabs kept in the URL (`?tab=playlists`), the shared card grid (one column on a
       phone); `PlaylistCard` in the same frame as `VideoCard`.
-      *Next, in order:* playlist page → loading and empty states.
+      Playlist page: a panel with the cover (first video's thumbnail, or the accent gradient),
+      mono meta and "Play all", sticky beside the list from `lg`; rows are stretched links with
+      a mono index and a hover-only remove button; a skeleton of the same shape.
+      *Next:* loading and empty states.
 
 
 ---
@@ -225,7 +228,7 @@ performance work (P-PERF1 to P-PERF6, P-OPT1) is closed: ~26 s per job for 55 s 
 (webhook, job envelope, paths, timeout, enums) and the front's success and domain error types are
 generated.
 
-1. **Visual identity "Studio"** (P3) — in progress on `feature/visual-identity`; the playlist page is next.
+1. **Visual identity "Studio"** (P3) — in progress on `feature/visual-identity`; loading and empty states are next.
 2. **E2E upload → play** (P2) — the biggest test gap left.
 3. Bigger, for later: history/notifications/captions (P5), observability rung 4 (trace collector),
    worker scaling (P6). The FluentValidation 400 in OpenAPI only when a form needs per-field errors.

@@ -136,7 +136,7 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 | `components/PlaylistCard.tsx` | Same frame as `VideoCard` (stretched title link, hover surface) so both share `CARD_GRID_CLASS`; the tile is a stack of cards with the mono video count and a Private badge |
 | `components/CreatePlaylistForm.tsx` | Create form (name, description, visibility; scope/channelId via props) |
 | `components/EditPlaylistForm.tsx` | Edit form (name, description, visibility) |
-| `components/PlaylistItemList.tsx` | Video list with thumbnail, duration and remove button (owner-only) |
+| `components/PlaylistItemList.tsx` | Numbered video rows (stretched title link, thumbnail, mono duration) with a remove button (owner-only, shown on hover from `sm`) |
 
 **Backend endpoints:**
 - `POST /v1/playlists`

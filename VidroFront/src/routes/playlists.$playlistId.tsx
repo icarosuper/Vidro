@@ -1,5 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Pencil, Trash2 } from 'lucide-react'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { ListVideo, Lock, Pencil, Play, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '#/components/ui/button'
 import {
@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
-import { Separator } from '#/components/ui/separator'
 import { Skeleton } from '#/components/ui/skeleton'
 import { getPlaylist } from '#/features/playlists/api'
 import { EditPlaylistForm } from '#/features/playlists/components/EditPlaylistForm'
@@ -20,7 +19,9 @@ import {
 } from '#/features/playlists/hooks'
 import type { Playlist } from '#/features/playlists/types'
 import { useCurrentUser } from '#/features/users/hooks'
+import { formatCompactAge } from '#/features/videos/components/VideoCard'
 import { seo } from '#/shared/lib/seo'
+import { PlaylistVisibility } from '#/shared/types'
 
 export const Route = createFileRoute('/playlists/$playlistId')({
   loader: async ({ params, context: { queryClient } }) => {
@@ -50,19 +51,60 @@ export const Route = createFileRoute('/playlists/$playlistId')({
   component: PlaylistPage,
 })
 
+// The panel sits beside the list from lg up and stays put while the list scrolls; below lg it
+// stacks on top. Top offset = the sticky top bar (h-14) plus the page's own py-6.
+const PANEL_CLASS =
+  'overflow-hidden rounded-xl border border-border bg-card lg:sticky lg:top-20'
+
 function PlaylistPageSkeleton() {
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 space-y-4">
-      <Skeleton className="h-8 w-1/2" />
-      <Skeleton className="h-4 w-2/3" />
-      <Skeleton className="h-4 w-1/4" />
-      <Separator />
-      <div className="space-y-3">
-        {Array.from({ length: 5 }).map((_, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: skeleton list
-          <Skeleton key={i} className="h-16 w-full rounded-lg" />
-        ))}
+    <main className="page-container py-6">
+      <div className="grid gap-8 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
+        <div className={PANEL_CLASS}>
+          <Skeleton className="aspect-video w-full rounded-none" />
+          <div className="space-y-3 p-5">
+            <Skeleton className="h-7 w-2/3" />
+            <Skeleton className="h-3.5 w-1/2" />
+            <Skeleton className="h-9 w-28" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders have no identity
+              key={i}
+              className="flex items-center gap-3 p-2"
+            >
+              <Skeleton className="h-3 w-6" />
+              <Skeleton className="aspect-video w-32 rounded-md sm:w-40" />
+              <Skeleton className="h-4 flex-1" />
+            </div>
+          ))}
+        </div>
       </div>
+    </main>
+  )
+}
+
+// A playlist has no cover of its own: it borrows the first video's thumbnail, or falls back to
+// the same accent gradient as the channel cover.
+function PlaylistCover({ playlist }: { playlist: Playlist }) {
+  const coverUrl = playlist.items[0]?.thumbnailUrl ?? null
+  const videoCountLabel =
+    playlist.videoCount === 1 ? '1 video' : `${playlist.videoCount} videos`
+
+  return (
+    <div className="relative aspect-video w-full overflow-hidden bg-linear-to-br from-primary/60 via-primary/25 to-accent">
+      {coverUrl ? (
+        <img src={coverUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center">
+          <ListVideo className="size-10 text-primary-foreground/80" />
+        </div>
+      )}
+      <span className="absolute right-2 bottom-2 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[11px] text-white">
+        {videoCountLabel}
+      </span>
     </div>
   )
 }
@@ -78,9 +120,9 @@ function PlaylistPage() {
   if (isPending) return <PlaylistPageSkeleton />
   if (isError || !playlist) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-8">
+      <main className="page-container py-8">
         <p className="text-muted-foreground">Playlist not found.</p>
-      </div>
+      </main>
     )
   }
 
@@ -88,6 +130,8 @@ function PlaylistPage() {
     !!currentUser && playlist.channelId
       ? false // channel playlists: ownership checked via channel, not shown here
       : !!currentUser
+  const isPrivate = playlist.visibility.id === PlaylistVisibility.Private
+  const firstVideo = playlist.items[0]
 
   function handleDelete() {
     deletePlaylist.mutate(playlistId, {
@@ -96,53 +140,75 @@ function PlaylistPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
-      <div className="space-y-2">
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="text-2xl font-bold">{playlist.name}</h1>
-          {isOwner && (
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setEditOpen(true)}
-                aria-label="Edit playlist"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-destructive"
-                disabled={deletePlaylist.isPending}
-                onClick={handleDelete}
-                aria-label="Delete playlist"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+    <main className="page-container py-6">
+      <div className="grid gap-8 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
+        <section className={PANEL_CLASS}>
+          <PlaylistCover playlist={playlist} />
+
+          <div className="space-y-4 p-5">
+            <div>
+              <h1 className="text-2xl leading-tight font-extrabold tracking-tight">
+                {playlist.name}
+              </h1>
+              <p className="mt-1.5 flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
+                {isPrivate && <Lock className="size-3" />}
+                {playlist.visibility.value.toLowerCase()} · playlist ·{' '}
+                {formatCompactAge(playlist.createdAt)}
+              </p>
             </div>
-          )}
-        </div>
 
-        {playlist.description && (
-          <p className="text-sm text-muted-foreground">
-            {playlist.description}
-          </p>
-        )}
+            {playlist.description && (
+              <p className="text-sm leading-relaxed text-foreground/90">
+                {playlist.description}
+              </p>
+            )}
 
-        <p className="text-xs text-muted-foreground">
-          {playlist.videoCount} {playlist.videoCount === 1 ? 'video' : 'videos'}{' '}
-          · {playlist.visibility.value}
-        </p>
+            <div className="flex items-center gap-2">
+              {firstVideo && (
+                <Button asChild>
+                  <Link
+                    to="/watch/$videoId"
+                    params={{ videoId: firstVideo.videoId }}
+                    className="no-underline"
+                  >
+                    <Play /> Play all
+                  </Link>
+                </Button>
+              )}
+              {isOwner && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setEditOpen(true)}
+                    aria-label="Edit playlist"
+                  >
+                    <Pencil />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-destructive"
+                    disabled={deletePlaylist.isPending}
+                    onClick={handleDelete}
+                    aria-label="Delete playlist"
+                  >
+                    <Trash2 />
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section aria-label="Videos">
+          <PlaylistItemList
+            playlistId={playlistId}
+            items={playlist.items}
+            isOwner={isOwner}
+          />
+        </section>
       </div>
-
-      <Separator />
-
-      <PlaylistItemList
-        playlistId={playlistId}
-        items={playlist.items}
-        isOwner={isOwner}
-      />
 
       {isOwner && (
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -157,6 +223,6 @@ function PlaylistPage() {
           </DialogContent>
         </Dialog>
       )}
-    </div>
+    </main>
   )
 }

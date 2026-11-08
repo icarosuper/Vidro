@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Trash2 } from 'lucide-react'
+import { Film, Trash2 } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { useRemoveVideoFromPlaylist } from '../hooks'
 import type { PlaylistItem } from '../types'
@@ -19,73 +19,81 @@ function formatDuration(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
+function ItemThumbnail({ item }: { item: PlaylistItem }) {
+  return (
+    <div className="relative aspect-video w-32 shrink-0 overflow-hidden rounded-md bg-muted sm:w-40">
+      {item.thumbnailUrl ? (
+        <img
+          src={item.thumbnailUrl}
+          alt=""
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center">
+          <Film className="size-5 text-muted-foreground" />
+        </div>
+      )}
+      {item.durationSeconds !== null && (
+        <span className="absolute right-1 bottom-1 rounded bg-black/70 px-1 py-0.5 font-mono text-[11px] text-white">
+          {formatDuration(item.durationSeconds)}
+        </span>
+      )}
+    </div>
+  )
+}
+
+// Each row is one stretched link (the title), like VideoCard, so Remove can sit on top of it
+// without nesting a button inside an anchor.
 export function PlaylistItemList({ playlistId, items, isOwner }: Props) {
   const removeVideo = useRemoveVideoFromPlaylist(playlistId)
 
   if (items.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        No videos in this playlist yet.
-      </p>
+      <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center">
+        <p className="text-sm text-muted-foreground">
+          No videos in this playlist yet.
+        </p>
+      </div>
     )
   }
 
   return (
-    <div className="space-y-2">
+    <ol className="space-y-1">
       {items.map((item, index) => (
-        <div
+        <li
           key={item.videoId}
-          className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted/50 transition-colors"
+          className="group relative flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-card hover:shadow-sm hover:ring-1 hover:ring-border has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring"
         >
-          <span className="w-5 text-center text-xs text-muted-foreground shrink-0">
+          <span className="w-6 shrink-0 text-center font-mono text-xs text-muted-foreground group-hover:text-primary">
             {index + 1}
           </span>
 
-          <Link
-            to="/watch/$videoId"
-            params={{ videoId: item.videoId }}
-            className="no-underline flex items-center gap-3 flex-1 min-w-0"
-          >
-            <div className="relative aspect-video w-28 shrink-0 rounded overflow-hidden bg-muted">
-              {item.thumbnailUrl ? (
-                <img
-                  src={item.thumbnailUrl}
-                  alt={item.title}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <span className="text-xs text-muted-foreground">
-                    No thumb
-                  </span>
-                </div>
-              )}
-              {item.durationSeconds !== null && (
-                <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1 py-0.5 text-xs text-white">
-                  {formatDuration(item.durationSeconds)}
-                </span>
-              )}
-            </div>
+          <ItemThumbnail item={item} />
 
-            <span className="line-clamp-2 text-sm font-medium text-foreground">
+          <h3 className="line-clamp-2 min-w-0 flex-1 text-sm leading-snug font-bold">
+            <Link
+              to="/watch/$videoId"
+              params={{ videoId: item.videoId }}
+              className="text-foreground no-underline outline-none after:absolute after:inset-0 after:rounded-lg after:content-['']"
+            >
               {item.title}
-            </span>
-          </Link>
+            </Link>
+          </h3>
 
           {isOwner && (
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+              className="relative z-10 size-8 shrink-0 text-muted-foreground transition-opacity hover:text-destructive focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
               disabled={removeVideo.isPending}
               onClick={() => removeVideo.mutate(item.videoId)}
               aria-label="Remove from playlist"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="size-4" />
             </Button>
           )}
-        </div>
+        </li>
       ))}
-    </div>
+    </ol>
   )
 }
