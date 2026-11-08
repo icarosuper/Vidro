@@ -1,7 +1,13 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ThumbsDown, ThumbsUp } from 'lucide-react'
+import {
+  RectangleHorizontal,
+  RectangleVertical,
+  ThumbsDown,
+  ThumbsUp,
+} from 'lucide-react'
 import { useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
+import { Button } from '#/components/ui/button'
 import { Skeleton } from '#/components/ui/skeleton'
 import { useIsAuthenticated } from '#/features/auth/hooks'
 import { SubscribeButton } from '#/features/channels/components/SubscribeButton'
@@ -27,6 +33,8 @@ import {
 import { fetchVideoSsr } from '#/features/videos/server'
 import type { Video } from '#/features/videos/types'
 import { cn } from '#/lib/utils'
+import { isTypingInField } from '#/shared/lib/keyboard'
+import { useLayoutPreference } from '#/shared/lib/layout-preferences'
 import { seo } from '#/shared/lib/seo'
 import { ReactionType } from '#/shared/types'
 
@@ -169,6 +177,39 @@ function ReactionPill({
   )
 }
 
+// "t" toggles it too, like YouTube. From xl only: below it the page is a single column anyway.
+function TheaterModeButton() {
+  const [isTheater, toggleTheater] = useLayoutPreference('theater')
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const isTheaterShortcut =
+        event.key === 't' && !event.ctrlKey && !event.metaKey && !event.altKey
+      if (!isTheaterShortcut || isTypingInField(event.target)) return
+      toggleTheater()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [toggleTheater])
+
+  const label = isTheater ? 'Default view (t)' : 'Theater mode (t)'
+  const Icon = isTheater ? RectangleVertical : RectangleHorizontal
+
+  return (
+    <Button
+      variant="outline"
+      size="icon"
+      className="hidden rounded-full xl:inline-flex"
+      onClick={toggleTheater}
+      aria-label="Theater mode"
+      aria-pressed={isTheater}
+      title={label}
+    >
+      <Icon className="size-4" />
+    </Button>
+  )
+}
+
 function WatchPage() {
   const { videoId } = Route.useParams()
   const { data: video, isPending, isError, error } = useVideo(videoId)
@@ -239,62 +280,63 @@ function WatchPage() {
   }
 
   return (
-    <main className="page-container py-6">
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:grid-rows-[auto_1fr]">
-        <div className="min-w-0">
-          <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
-            {video.videoUrl ? (
-              <VideoPlayer src={video.videoUrl} poster={thumbnailUrl} />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-muted">
-                <p className="text-muted-foreground">
-                  {video.status.value === 'Processing'
-                    ? 'Video is being processed…'
-                    : 'Video unavailable'}
+    // The areas live in styles.css (`.watch-layout`): theater mode only moves them, by CSS.
+    <main className="watch-layout py-6 xl:theater:pt-0">
+      <div className="watch-player">
+        {video.videoUrl ? (
+          <VideoPlayer src={video.videoUrl} poster={thumbnailUrl} />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-muted">
+            <p className="text-muted-foreground">
+              {video.status.value === 'Processing'
+                ? 'Video is being processed…'
+                : 'Video unavailable'}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="watch-info">
+        <h1 className="text-2xl leading-tight font-extrabold tracking-tight">
+          {video.title}
+        </h1>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              to="/$username/$channel"
+              params={{
+                username: video.ownerUsername,
+                channel: video.channelHandle,
+              }}
+              className="group flex min-w-0 items-center gap-3 no-underline"
+            >
+              <Avatar className="size-10">
+                <AvatarImage
+                  src={video.channelAvatarUrl ?? undefined}
+                  alt={video.channelName}
+                />
+                <AvatarFallback>{channelInitial}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="truncate font-bold text-foreground group-hover:text-primary">
+                  {video.channelName}
+                </p>
+                <p className="truncate font-mono text-xs text-muted-foreground">
+                  @{video.ownerUsername}/{video.channelHandle}
                 </p>
               </div>
+            </Link>
+            {canSubscribe && (
+              <SubscribeButton
+                username={video.ownerUsername}
+                handle={video.channelHandle}
+                initialIsFollowing={video.isFollowingChannel}
+              />
             )}
           </div>
 
-          <h1 className="mt-5 text-2xl leading-tight font-extrabold tracking-tight">
-            {video.title}
-          </h1>
-
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <Link
-                to="/$username/$channel"
-                params={{
-                  username: video.ownerUsername,
-                  channel: video.channelHandle,
-                }}
-                className="group flex min-w-0 items-center gap-3 no-underline"
-              >
-                <Avatar className="size-10">
-                  <AvatarImage
-                    src={video.channelAvatarUrl ?? undefined}
-                    alt={video.channelName}
-                  />
-                  <AvatarFallback>{channelInitial}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <p className="truncate font-bold text-foreground group-hover:text-primary">
-                    {video.channelName}
-                  </p>
-                  <p className="truncate font-mono text-xs text-muted-foreground">
-                    @{video.ownerUsername}/{video.channelHandle}
-                  </p>
-                </div>
-              </Link>
-              {canSubscribe && (
-                <SubscribeButton
-                  username={video.ownerUsername}
-                  handle={video.channelHandle}
-                  initialIsFollowing={video.isFollowingChannel}
-                />
-              )}
-            </div>
-
+          <div className="flex items-center gap-2">
             <ReactionPill
               likeCount={video.likeCount}
               dislikeCount={video.dislikeCount}
@@ -304,61 +346,55 @@ function WatchPage() {
               onLike={handleLike}
               onDislike={handleDislike}
             />
+            <TheaterModeButton />
           </div>
-
-          <section
-            aria-label="Description"
-            className="mt-5 rounded-lg bg-muted p-4"
-          >
-            <p className="font-mono text-xs font-medium text-foreground">
-              {formatCount(video.viewCount)} views ·{' '}
-              {formatDate(video.createdAt)}
-            </p>
-            {video.description && (
-              <ExpandableText
-                text={video.description}
-                className="mt-2 text-sm whitespace-pre-wrap text-foreground/90"
-              />
-            )}
-            {video.tags.length > 0 && (
-              <ul
-                aria-label="Tags"
-                className="mt-3 flex flex-wrap gap-x-3 gap-y-1"
-              >
-                {video.tags.map((tag) => (
-                  <li key={tag} className="font-mono text-xs text-primary">
-                    #{tag}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
         </div>
 
-        {/* After the description in the DOM, so on a phone "Up next" comes before a long comment
-            thread; from xl it moves to the right column, spanning both rows. */}
-        <aside
-          aria-labelledby="up-next-title"
-          className="min-w-0 xl:col-start-2 xl:row-span-2 xl:row-start-1"
+        <section
+          aria-label="Description"
+          className="mt-5 rounded-lg bg-muted p-4"
         >
-          <h2
-            id="up-next-title"
-            className="mb-3 font-mono text-xs tracking-widest text-muted-foreground uppercase"
-          >
-            Up next
-          </h2>
-          <UpNextList
-            videos={upNext.upNextVideos}
-            isLoading={upNext.isLoading}
-          />
-        </aside>
+          <p className="font-mono text-xs font-medium text-foreground">
+            {formatCount(video.viewCount)} views · {formatDate(video.createdAt)}
+          </p>
+          {video.description && (
+            <ExpandableText
+              text={video.description}
+              className="mt-2 text-sm whitespace-pre-wrap text-foreground/90"
+            />
+          )}
+          {video.tags.length > 0 && (
+            <ul
+              aria-label="Tags"
+              className="mt-3 flex flex-wrap gap-x-3 gap-y-1"
+            >
+              {video.tags.map((tag) => (
+                <li key={tag} className="font-mono text-xs text-primary">
+                  #{tag}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
 
-        <div className="min-w-0 max-w-3xl">
-          <CommentList
-            videoId={video.videoId}
-            currentUserId={currentUser?.userId}
-          />
-        </div>
+      {/* After the description in the DOM, so on a phone "Up next" comes before a long comment
+          thread; from xl it moves to the right column. */}
+      <aside aria-labelledby="up-next-title" className="watch-up-next">
+        <h2
+          id="up-next-title"
+          className="mb-3 font-mono text-xs tracking-widest text-muted-foreground uppercase"
+        >
+          Up next
+        </h2>
+        <UpNextList videos={upNext.upNextVideos} isLoading={upNext.isLoading} />
+      </aside>
+
+      <div className="watch-comments max-w-3xl">
+        <CommentList
+          videoId={video.videoId}
+          currentUserId={currentUser?.userId}
+        />
       </div>
     </main>
   )

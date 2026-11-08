@@ -101,3 +101,68 @@
   margin-inline: auto;
 }
 
+/* Watch page. One grid whose areas move between the default and theater layouts, so switching
+   modes is CSS only: the player is never remounted (that would restart the video). The outer `1fr`
+   columns are the page gutter, so in theater the player can span edge to edge.
+   Default (xl):  player | up-next        Theater (xl):  player (full width, black band)
+                  info   | up-next                       info     | up-next
+                  comments | up-next                     comments | up-next          */
+.watch-layout {
+  --watch-content: min(1280px, calc(100% - 3rem));
+  display: grid;
+  grid-template-columns: 1fr var(--watch-content) 1fr;
+  row-gap: 1.5rem;
+}
+
+.watch-layout > * {
+  grid-column: 2;
+  min-width: 0;
+}
+
+/* Capped like YouTube's: past this height the player stops growing and letterboxes instead, so
+   the title still shows below it on a short screen. */
+.watch-player {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  max-height: calc(100dvh - 9rem);
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: black;
+}
+
+@media (width >= 80rem) {
+  .watch-layout {
+    grid-template-columns: 1fr calc(var(--watch-content) - 360px - 2rem) 2rem 360px 1fr;
+    grid-template-rows: auto auto 1fr;
+  }
+
+  .watch-layout > .watch-player {
+    grid-row: 1;
+  }
+
+  .watch-layout > .watch-info {
+    grid-row: 2;
+  }
+
+  .watch-layout > .watch-comments {
+    grid-row: 3;
+  }
+
+  .watch-layout > .watch-up-next {
+    grid-column: 4;
+    grid-row: 1 / span 3;
+  }
+
+  [data-theater] .watch-layout {
+    grid-template-rows: auto auto auto 1fr;
+  }
+
+  [data-theater] .watch-layout > .watch-player {
+    grid-column: 1 / -1;
+    border-radius: 0;
+  }
+
+  [data-theater] .watch-layout > .watch-up-next {
+    grid-row: 2 / span 3;
+  }
+}

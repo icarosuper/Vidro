@@ -1,12 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Search } from 'lucide-react'
 import { useEffect, useRef } from 'react'
-
-function isTypingInField(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  const isFormField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
-  return isFormField || target.isContentEditable
-}
+import { isTypingInField } from '#/shared/lib/keyboard'
 
 // "/" jumps to the search from anywhere on the page, unless the user is already typing.
 function useSlashToFocus(inputRef: React.RefObject<HTMLInputElement | null>) {

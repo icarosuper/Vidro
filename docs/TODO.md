@@ -171,8 +171,9 @@ section "What the migration unlocks".
       `VideoCard` rebuilt: the title is a stretched link instead of an `<a>` around the card, which
       also ended the nested-`<a>` React warning; mono `views · age`, tags on hover, a featured 2×2
       first card on the home (Trending takes it when the feed is empty — the empty feed is hidden).
-      The sidebar collapses (hamburger), remembered in localStorage and applied before the first
-      paint by a head script.
+      The sidebar collapses (hamburger) and the watch page has a theater mode (button or `t`);
+      both are remembered in localStorage and applied before the first paint by a head script.
+      The player is capped in height in both modes, like YouTube's.
       Watch page: two columns from `xl` with an "Up next" list (channel first, then trending),
       reactions as one segmented pill, description in a box with mono views/date and `#tags`, a
       skeleton instead of "Loading…".

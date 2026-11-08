@@ -154,7 +154,7 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 | Route | File | Strategy | Auth | Features consumed |
 |---|---|---|---|---|
 | `/` | `index.tsx` | SSR | public | videos (trending/feed; an empty feed is hidden, and the first section shown features its first card) |
-| `/watch/$videoId` | `watch.$videoId.tsx` | SSR | public | videos, channels, comments. From `xl` two columns (player, info, comments \| "Up next"); below it "Up next" sits between the description and the comments. Reactions are one segmented `ReactionPill`. |
+| `/watch/$videoId` | `watch.$videoId.tsx` | SSR | public | videos, channels, comments. From `xl` two columns (player, info, comments \| "Up next"); below it "Up next" sits between the description and the comments. Reactions are one segmented `ReactionPill`. Theater mode (button or `t`, from `xl`): the player spans edge to edge; a layout preference like the sidebar (`data-theater`, `theater:` variant). The areas live in `styles.css` (`.watch-layout`) so switching never remounts the player; it is capped at `100dvh - 9rem` tall in both modes and letterboxes past that |
 | `/search` | `search.tsx` | SSR | public | videos (search; query in `?q=`, field in the `TopBar`'s `SearchBox`) |
 | `/$username` | `$username.tsx` + `$username.index.tsx` | SSR | public | users, channels |
 | `/$username/$channel` | `$username.$channel.tsx` | SSR | public | channels, videos, playlists |
