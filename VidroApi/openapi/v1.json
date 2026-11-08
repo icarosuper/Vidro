@@ -857,6 +857,14 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          {
+            "name": "videoId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -911,6 +919,14 @@
             "schema": {
               "type": "integer",
               "format": "int32"
+            }
+          },
+          {
+            "name": "videoId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2194,6 +2210,7 @@
           "videoCount",
           "channelId",
           "createdAt",
+          "isOwner",
           "items"
         ],
         "type": "object",
@@ -2231,6 +2248,9 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "isOwner": {
+            "type": "boolean"
           },
           "items": {
             "type": "array",
@@ -2777,7 +2797,8 @@
           "description",
           "visibility",
           "videoCount",
-          "createdAt"
+          "createdAt",
+          "containsVideo"
         ],
         "type": "object",
         "properties": {
@@ -2804,6 +2825,12 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "containsVideo": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -2853,7 +2880,8 @@
           "description",
           "visibility",
           "videoCount",
-          "createdAt"
+          "createdAt",
+          "containsVideo"
         ],
         "type": "object",
         "properties": {
@@ -2880,6 +2908,12 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "containsVideo": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },

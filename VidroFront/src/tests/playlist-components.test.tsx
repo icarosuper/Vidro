@@ -10,6 +10,7 @@ import {
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CreatePlaylistForm } from '#/features/playlists/components/CreatePlaylistForm'
+import { DeletePlaylistDialog } from '#/features/playlists/components/DeletePlaylistDialog'
 import { EditPlaylistForm } from '#/features/playlists/components/EditPlaylistForm'
 import { PlaylistCard } from '#/features/playlists/components/PlaylistCard'
 import { PlaylistItemList } from '#/features/playlists/components/PlaylistItemList'
@@ -70,6 +71,7 @@ function buildSummary(
     visibility: { id: PlaylistVisibility.Public, value: 'Public' },
     videoCount: 2,
     createdAt: '2024-01-01T00:00:00Z',
+    containsVideo: null,
     ...overrides,
   }
 }
@@ -109,7 +111,18 @@ describe('PlaylistItemList', () => {
   it('says the playlist is empty instead of rendering nothing', () => {
     render(<PlaylistItemList playlistId="pl-1" items={[]} isOwner />)
 
-    expect(screen.getByText('No videos in this playlist yet.')).toBeDefined()
+    expect(screen.getByText('No videos in this playlist yet')).toBeDefined()
+    expect(
+      screen.getByText('Open a video and use Save to add it here.'),
+    ).toBeDefined()
+  })
+
+  it('does not tell a visitor to use Save on a playlist that is not theirs', () => {
+    render(<PlaylistItemList playlistId="pl-1" items={[]} isOwner={false} />)
+
+    expect(
+      screen.queryByText('Open a video and use Save to add it here.'),
+    ).toBeNull()
   })
 
   it('formats durations as m:ss, h:mm:ss, and skips an unknown one', () => {
@@ -215,11 +228,58 @@ describe('EditPlaylistForm', () => {
       scope: { id: PlaylistScope.User, value: 'User' },
       videoCount: 0,
       channelId: null,
+      isOwner: true,
       createdAt: '2024-01-01T00:00:00Z',
       items: [],
     }
     render(<EditPlaylistForm playlist={playlist} />)
 
     expect(screen.getByRole('combobox', { name: 'Visibility' })).toBeDefined()
+  })
+})
+
+describe('DeletePlaylistDialog', () => {
+  it('stays closed until there is a playlist to confirm', () => {
+    render(
+      <DeletePlaylistDialog
+        playlistName={null}
+        onCancel={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+  })
+
+  it('names the playlist and deletes only on confirm', () => {
+    const onConfirm = vi.fn()
+    render(
+      <DeletePlaylistDialog
+        playlistName="Favorites"
+        onCancel={vi.fn()}
+        onConfirm={onConfirm}
+      />,
+    )
+
+    expect(screen.getByRole('alertdialog')).toBeDefined()
+    expect(screen.getByText(/“Favorites” will be deleted/)).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete playlist' }))
+    expect(onConfirm).toHaveBeenCalledOnce()
+  })
+
+  it('cancels without deleting', () => {
+    const onCancel = vi.fn()
+    const onConfirm = vi.fn()
+    render(
+      <DeletePlaylistDialog
+        playlistName="Favorites"
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onCancel).toHaveBeenCalledOnce()
+    expect(onConfirm).not.toHaveBeenCalled()
   })
 })

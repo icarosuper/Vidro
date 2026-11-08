@@ -1,17 +1,21 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { Plus, Trash2 } from 'lucide-react'
+import { ListVideo, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { EmptyState, ErrorState } from '#/components/StatePanel'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
 import { Skeleton } from '#/components/ui/skeleton'
 import { CreatePlaylistForm } from '#/features/playlists/components/CreatePlaylistForm'
+import { DeletePlaylistDialog } from '#/features/playlists/components/DeletePlaylistDialog'
 import { PlaylistCard } from '#/features/playlists/components/PlaylistCard'
 import { useDeletePlaylist, useUserPlaylists } from '#/features/playlists/hooks'
+import type { PlaylistSummary } from '#/features/playlists/types'
 import { useCurrentUser } from '#/features/users/hooks'
 import { seo } from '#/shared/lib/seo'
 import { tokenStore } from '#/shared/lib/token-store'
@@ -48,9 +52,18 @@ function DashboardPage() {
     hasNextPage,
     isFetchingNextPage,
     refetch,
+    isRefetching,
   } = useUserPlaylists(currentUser?.username)
 
   const deletePlaylist = useDeletePlaylist()
+  const [playlistToDelete, setPlaylistToDelete] =
+    useState<PlaylistSummary | null>(null)
+
+  function confirmDelete() {
+    if (!playlistToDelete) return
+    deletePlaylist.mutate(playlistToDelete.id)
+    setPlaylistToDelete(null)
+  }
 
   const playlists = playlistsData?.pages.flatMap((page) => page.items) ?? []
   const hasNoPlaylists =
@@ -97,15 +110,24 @@ function DashboardPage() {
         )}
 
         {playlistsFailed && (
-          <p className="py-8 text-center text-muted-foreground">
-            Could not load your playlists. Try again.
-          </p>
+          <ErrorState
+            title="Could not load your playlists"
+            onRetry={() => refetch()}
+            isRetrying={isRefetching}
+          />
         )}
 
         {hasNoPlaylists && (
-          <p className="py-8 text-center text-muted-foreground">
-            No personal playlists yet.
-          </p>
+          <EmptyState
+            icon={ListVideo}
+            title="No personal playlists yet"
+            description="Playlists that belong to you, not to one of your channels."
+            action={
+              <Button onClick={() => setNewPlaylistOpen(true)}>
+                <Plus /> New playlist
+              </Button>
+            }
+          />
         )}
 
         {hasPlaylists && (
@@ -117,13 +139,9 @@ function DashboardPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                    className="absolute top-4 right-2 z-10 size-7 bg-background/90 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100"
                     disabled={deletePlaylist.isPending}
-                    onClick={() =>
-                      deletePlaylist.mutate(playlist.id, {
-                        onSuccess: () => refetch(),
-                      })
-                    }
+                    onClick={() => setPlaylistToDelete(playlist)}
                     aria-label="Delete playlist"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -147,10 +165,19 @@ function DashboardPage() {
         )}
       </section>
 
+      <DeletePlaylistDialog
+        playlistName={playlistToDelete?.name ?? null}
+        onCancel={() => setPlaylistToDelete(null)}
+        onConfirm={confirmDelete}
+      />
+
       <Dialog open={newPlaylistOpen} onOpenChange={setNewPlaylistOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New playlist</DialogTitle>
+            <DialogDescription>
+              A personal playlist: yours, not tied to one of your channels.
+            </DialogDescription>
           </DialogHeader>
           <CreatePlaylistForm onSuccess={() => setNewPlaylistOpen(false)} />
         </DialogContent>

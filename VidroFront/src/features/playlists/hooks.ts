@@ -16,21 +16,30 @@ import {
   removeVideoFromPlaylist,
   updatePlaylist,
 } from './api'
-import type { CreatePlaylistRequest, UpdatePlaylistRequest } from './types'
+import type {
+  CreatePlaylistRequest,
+  PlaylistSummary,
+  UpdatePlaylistRequest,
+} from './types'
 
 export const playlistKeys = {
   detail: (playlistId: string) => ['playlists', playlistId] as const,
   channelPlaylists: (username: string, handle: string) =>
     ['playlists', 'channel', username, handle] as const,
   userPlaylists: (username: string) => ['playlists', 'user', username] as const,
+  // Under 'playlists', so creating or deleting a playlist refreshes the Save picker too.
+  saveTargets: (videoId: string) => ['playlists', 'save', videoId] as const,
 }
 
 const PLAYLISTS_LIMIT = 20
 
-export function usePlaylist(playlistId: string) {
+// Undefined skips the request — the watch page asks only when it is playing a playlist.
+export function usePlaylist(playlistId: string | undefined) {
   return useQuery({
-    queryKey: playlistKeys.detail(playlistId),
-    queryFn: ({ signal }) => getPlaylist(playlistId, signal),
+    queryKey: playlistKeys.detail(playlistId ?? ''),
+    queryFn: playlistId
+      ? ({ signal }) => getPlaylist(playlistId, signal)
+      : skipToken,
   })
 }
 
@@ -107,20 +116,6 @@ export function useDeletePlaylist() {
   })
 }
 
-export function useAddVideoToPlaylist(playlistId: string) {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (videoId: string) => addVideoToPlaylist(playlistId, videoId),
-    onError: toastApiError,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: playlistKeys.detail(playlistId),
-      })
-    },
-  })
-}
-
 export function useRemoveVideoFromPlaylist(playlistId: string) {
   const queryClient = useQueryClient()
 
@@ -132,6 +127,97 @@ export function useRemoveVideoFromPlaylist(playlistId: string) {
       queryClient.invalidateQueries({
         queryKey: playlistKeys.detail(playlistId),
       })
+    },
+  })
+}
+
+// The picker shows one page at the API's maximum and no "load more": a hundred playlists is
+// already more than a menu can hold.
+const SAVE_TARGETS_LIMIT = 100
+
+export type SaveTarget = PlaylistSummary & { group: 'personal' | 'channel' }
+
+type SaveTargetsInput = {
+  videoId: string
+  // The signed-in user; undefined while it loads or when signed out (no request then).
+  username: string | undefined
+  // The video's channel, only when it is the user's own: a channel playlist takes only that
+  // channel's videos, so another channel's playlists would always refuse.
+  ownChannelHandle: string | undefined
+}
+
+async function fetchSaveTargets(
+  {
+    videoId,
+    username,
+    ownChannelHandle,
+  }: SaveTargetsInput & { username: string },
+  signal: AbortSignal,
+): Promise<SaveTarget[]> {
+  const [personal, channel] = await Promise.all([
+    listUserPlaylists(username, SAVE_TARGETS_LIMIT, undefined, signal, videoId),
+    ownChannelHandle
+      ? listChannelPlaylists(
+          username,
+          ownChannelHandle,
+          SAVE_TARGETS_LIMIT,
+          undefined,
+          signal,
+          videoId,
+        )
+      : null,
+  ])
+  const personalTargets = personal.items.map(
+    (playlist): SaveTarget => ({ ...playlist, group: 'personal' }),
+  )
+  const channelTargets = (channel?.items ?? []).map(
+    (playlist): SaveTarget => ({ ...playlist, group: 'channel' }),
+  )
+  return [...personalTargets, ...channelTargets]
+}
+
+// The playlists a video can be saved to, each with `containsVideo`.
+export function useSaveTargets(input: SaveTargetsInput) {
+  const { videoId, username } = input
+  return useQuery({
+    queryKey: [
+      ...playlistKeys.saveTargets(videoId),
+      input.ownChannelHandle ?? null,
+    ],
+    queryFn: username
+      ? ({ signal }) => fetchSaveTargets({ ...input, username }, signal)
+      : skipToken,
+  })
+}
+
+type ToggleInput = { playlistId: string; save: boolean }
+
+// Checks or unchecks a playlist in the picker. The box flips at once (optimistic) and flips back
+// if the API refuses; afterwards every playlist query refetches, so counts and pages follow.
+export function useToggleVideoInPlaylist(videoId: string) {
+  const queryClient = useQueryClient()
+  const targetsKey = playlistKeys.saveTargets(videoId)
+
+  return useMutation({
+    mutationFn: ({ playlistId, save }: ToggleInput) =>
+      save
+        ? addVideoToPlaylist(playlistId, videoId)
+        : removeVideoFromPlaylist(playlistId, videoId),
+    onMutate: async ({ playlistId, save }) => {
+      await queryClient.cancelQueries({ queryKey: targetsKey })
+      queryClient.setQueriesData<SaveTarget[]>(
+        { queryKey: targetsKey },
+        (targets) =>
+          targets?.map((target) =>
+            target.id === playlistId
+              ? { ...target, containsVideo: save }
+              : target,
+          ),
+      )
+    },
+    onError: toastApiError,
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['playlists'] })
     },
   })
 }

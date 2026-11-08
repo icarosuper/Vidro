@@ -34,7 +34,7 @@ Authenticated user's profile + avatar upload.
 | File | Contents |
 |---|---|
 | `api.ts` | `getMe`, `uploadAvatar` |
-| `hooks.ts` | `useCurrentUser`, `useUploadAvatar`, `userKeys.me()` |
+| `hooks.ts` | `useCurrentUser` (only fetches with a session — `skipToken` signed out, starts the moment the token arrives), `useUploadAvatar`, `userKeys.me()` |
 | `types.ts` | Re-exports from `#/shared/api`: `UserProfile`, `UploadAvatarResponse` |
 | `components/ProfileInfo.tsx` | |
 | `components/AvatarUpload.tsx` | Upload via presigned URL |
@@ -56,6 +56,7 @@ Channel CRUD, follow/unfollow, avatar.
 | `types.ts` | Re-exports from `#/shared/api`: `Channel`, `ChannelSummary`, `ChannelsResponse`, `CreateChannelRequest/Response`, `UpdateChannelRequest`, `UploadAvatarResponse` |
 | `components/CreateChannelForm.tsx` | |
 | `components/EditChannelForm.tsx` | |
+| `components/ChannelHeader.tsx` | Channel page header: accent-gradient cover (the API has no banner image), avatar overlapping it (owner: click to change), name, mono `@owner/handle · followers`, description, "by owner". Owner gets "Edit channel" (opens `EditChannelForm`), visitors `SubscribeButton`. Also exports `ChannelHeaderSkeleton` |
 | `components/SubscribeButton.tsx` | Follow/unfollow toggle with an optimistic feel |
 
 **Backend endpoints:**
@@ -79,9 +80,10 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 | `hooks.ts` | `useTrending`, `useFeed`, `useSearchVideos`, `useVideo`, `useRegisterView`, `useReactToVideo`, `useRemoveReaction`, `useVideoStatus`, `useCreateVideo`, `useUpdateVideo`, `useChannelVideos`, `useUploadThumbnail` |
 | `server.ts` | `fetchVideoSsr` — loader for `/watch/$videoId` |
 | `types.ts` | Re-exports from `#/shared/api`: `Video`, `VideoSummary`, `ChannelVideoSummary`, `TrendingResponse`, `FeedPage`, `SearchPage`, `ChannelVideosPage`, `CreateVideoRequest/Response`, `UpdateVideoRequest/Response`, `ThumbnailUploadResponse` |
-| `components/VideoCard.tsx` | Reusable card (home/feed and channel). Props: `hideChannelInfo` hides the channel avatar/name; `isOwner` shows the edit button, status overlay and visibility badge. Exports `VideoCardVideo`, the shape it renders |
-| `components/VideoGrid.tsx` | Takes `VideoCardVideo[]` (the shape `VideoCard` renders), not a generated alias — search results lack `dislikeCount` |
-| `components/VideoPlayer.tsx` | HLS player |
+| `components/VideoCard.tsx` | Reusable card (home/feed, search and channel). The title link stretches over the card (`after:inset-0`) instead of wrapping it in an `<a>`, so the channel link and the owner buttons (`z-10`) are never nested links. Shows title, channel, mono `views · age` (`formatCompactAge`), up to 3 tags on hover; on hover the extra preview frames cross-fade (`ThumbnailStack`: main frame always underneath, extras mounted on the first hover only, `motion-reduce` skips the fade); likes/dislikes live on the watch page only. Props: `hideChannelInfo` hides the channel avatar/name; `isOwner` shows the edit/thumbnail buttons, status overlay and visibility badge; `isFeatured` spans 2×2 from `sm`. Exports `VideoCardVideo`, the shape it renders, `formatCount` and `formatCompactAge` |
+| `components/VideoGrid.tsx` | Takes `VideoCardVideo[]` (the shape `VideoCard` renders), not a generated alias — search results lack `dislikeCount`. `featureFirst` makes the first card `isFeatured` — only on the first grid of a page. `emptyState` replaces the default `EmptyState` ("No videos yet") with the page's own wording and action |
+| `components/VideoPlayer.tsx` | HLS player. `onEnded` and `autoPlay` — both used while playing a playlist |
+| `components/UpNextList.tsx` | The watch page's "Up next" column: compact rows with a stretched title link. `pickUpNextVideos` — the channel's other videos first, then trending; never the current video, no duplicates, only `Ready` + `Public` (the owner's channel listing carries private and processing ones) |
 | `components/UploadVideoForm.tsx` | Creates the video + upload + polling |
 | `components/EditVideoForm.tsx` | |
 | `components/visibility-options.ts` | `VIDEO_VISIBILITY_OPTIONS` — the visibility `<Select>` options shared by the upload and edit forms, built from `VideoVisibility` |
@@ -129,20 +131,24 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 | File | Contents |
 |---|---|
 | `api.ts` | `createPlaylist`, `getPlaylist`, `updatePlaylist`, `deletePlaylist`, `listChannelPlaylists`, `listUserPlaylists`, `addVideoToPlaylist`, `removeVideoFromPlaylist` |
-| `hooks.ts` | `usePlaylist`, `useChannelPlaylists`, `useUserPlaylists`, `useCreatePlaylist`, `useUpdatePlaylist`, `useDeletePlaylist`, `useAddVideoToPlaylist`, `useRemoveVideoFromPlaylist`, `playlistKeys` |
-| `types.ts` | Re-exports from `#/shared/api`: `PlaylistSummary`, `Playlist`, `PlaylistItem`, `PlaylistsPage`, `CreatePlaylistRequest`, `CreatePlaylistResponse`, `UpdatePlaylistRequest` |
-| `components/PlaylistCard.tsx` | Summary card with videoCount and visibility badge |
+| `hooks.ts` | `usePlaylist` (undefined id → no request), `useChannelPlaylists`, `useUserPlaylists`, `useCreatePlaylist`, `useUpdatePlaylist`, `useDeletePlaylist`, `useRemoveVideoFromPlaylist`, `useSaveTargets` (the Save picker's playlists — personal, plus the channel's when the video is the viewer's own — each with `containsVideo`), `useToggleVideoInPlaylist` (adds/removes with an optimistic checkbox, then refetches every playlist query), `playlistKeys` |
+| `server.ts` | `fetchPlaylistSsr` — the `/playlists/$playlistId` loader's fetch on the server, with the context's `accessToken` so `isOwner` and private playlists come right on the first render |
+| `types.ts` | Re-exports from `#/shared/api`: `PlaylistSummary`, `Playlist` (carries `isOwner` for the requester), `PlaylistItem`, `PlaylistsPage`, `CreatePlaylistRequest`, `CreatePlaylistResponse`, `UpdatePlaylistRequest` |
+| `components/PlaylistCard.tsx` | Same frame as `VideoCard` (stretched title link, hover surface) so both share `CARD_GRID_CLASS`; the tile is a stack of cards with the mono video count and a Private badge |
 | `components/CreatePlaylistForm.tsx` | Create form (name, description, visibility; scope/channelId via props) |
 | `components/EditPlaylistForm.tsx` | Edit form (name, description, visibility) |
-| `components/PlaylistItemList.tsx` | Video list with thumbnail, duration and remove button (owner-only) |
+| `components/PlaylistQueue.tsx` | The watch page's right column while playing a playlist (`/watch/$videoId?list=<playlistId>`): the playlist in order, `N / total`, the current video marked (`aria-current`), every link keeping `?list=`. `findNextInPlaylist` — the video the page plays when the current one ends (null on the last one, or when the video is not in the playlist) |
+| `components/SaveToPlaylistButton.tsx` | The watch page's "Save" ("Saved" once the video is in any playlist): a menu with a checkbox per playlist that stays open between clicks, grouped only when channel playlists appear, and "New playlist", which creates one and puts the video in it. Signed out it opens the sign-in modal |
+| `components/DeletePlaylistDialog.tsx` | The confirmation asked before deleting a playlist — from the playlist page and from the dashboard. Closed while `playlistName` is null |
+| `components/PlaylistItemList.tsx` | Numbered video rows (stretched title link, thumbnail, mono duration) with a remove button (owner-only, shown on hover from `sm`) |
 
 **Backend endpoints:**
 - `POST /v1/playlists`
 - `GET /v1/playlists/{playlistId}`
 - `PUT /v1/playlists/{playlistId}`
 - `DELETE /v1/playlists/{playlistId}`
-- `GET /v1/users/{username}/channels/{handle}/playlists?limit&cursor`
-- `GET /v1/users/{username}/playlists?limit&cursor`
+- `GET /v1/users/{username}/channels/{handle}/playlists?limit&cursor&videoId`
+- `GET /v1/users/{username}/playlists?limit&cursor&videoId`
 - `POST /v1/playlists/{playlistId}/items`
 - `DELETE /v1/playlists/{playlistId}/items/{videoId}`
 
@@ -152,11 +158,11 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 
 | Route | File | Strategy | Auth | Features consumed |
 |---|---|---|---|---|
-| `/` | `index.tsx` | SSR | public | videos (trending/feed) |
-| `/watch/$videoId` | `watch.$videoId.tsx` | SSR | public | videos, channels, comments |
-| `/search` | `search.tsx` | SSR | public | videos (search; query in `?q=`, field in the `Header`) |
+| `/` | `index.tsx` | SSR | public | videos (trending/feed; an empty feed is hidden, and the first section shown features its first card) |
+| `/watch/$videoId` | `watch.$videoId.tsx` | SSR | public | videos, channels, comments. From `xl` two columns (player, info, comments \| "Up next"); below it "Up next" sits between the description and the comments. Reactions are one segmented `ReactionPill`. Theater mode (button or `t`, from `xl`): the player spans edge to edge; a layout preference like the sidebar (`data-theater`, `theater:` variant). The areas live in `styles.css` (`.watch-layout`) so switching never remounts the player; it is capped at `100dvh - 9rem` tall in both modes and letterboxes past that |
+| `/search` | `search.tsx` | SSR | public | videos (search; query in `?q=`, field in the `TopBar`'s `SearchBox`) |
 | `/$username` | `$username.tsx` + `$username.index.tsx` | SSR | public | users, channels |
-| `/$username/$channel` | `$username.$channel.tsx` | SSR | public | channels, videos, playlists |
+| `/$username/$channel` | `$username.$channel.tsx` | SSR | public | channels, videos, playlists. `ChannelHeader`, then Videos \| Playlists tabs with mono counts; the tab is `?tab=playlists` (videos is the default and stays out of the URL). Both grids use `CARD_GRID_CLASS` (1 column on a phone) |
 | `/playlists/$playlistId` | `playlists.$playlistId.tsx` | SSR | optional | playlists |
 | `/upload` | `upload.tsx` | client-only | **required** | videos |
 | `/dashboard` | `dashboard.tsx` | client-only | **required** | playlists |
@@ -175,5 +181,5 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 | enum member | `src/shared/lib/enum-member.ts` | `toEnumMember(enumObject, raw)` — turns a `<Select>` string into the typed enum id; throws on an unknown value |
 | errors | `src/shared/lib/error-messages.ts` | Map `code → user-facing message` |
 | toast | `src/shared/lib/toast-error.ts` | `toastApiError(error)` |
-| global components | `src/components/` | `Header` (search + `ThemeToggle`; responsive via CSS — `sr-only` label up to `lg`, search on the second line below `sm`), `ThemeToggle` (light → dark → auto, persisted in `localStorage`), `RouteFallback` (`RouteErrorFallback` + `RouteNotFoundFallback`, registered as the router's defaults), `TimeAgo`, `ui/*` (shadcn) |
+| global components | `src/components/` | `shell/AppShell` — the frame around every route: `AppSidebar` (nav rail from `lg`: Home; Creator: Upload, Dashboard; You: Your channels, Settings; signed out a sign-in prompt), `TopBar` (`SidebarToggle` hamburger from `lg` — it sits inside the sidebar while open and in the top bar while collapsed, at the same spot: both rows are `h-14` with a `px-4` inset; the two instances share state through `useLayoutPreference`; `BrandLink` and `AccountMenu` below `lg` or with the sidebar collapsed; `SearchBox` with `/` to focus; `ThemeToggle`). The collapsed state is a layout preference (`src/shared/lib/layout-preferences.ts`): kept in localStorage, applied to `<html>` as `data-sidebar-collapsed` by a head script before the first paint, read in CSS through the `sidebar-collapsed:` variant, `BottomNav` (tab bar below `lg`, signed in only, Upload in the middle), `AccountMenu` (dropdown: Your channels, Dashboard, Settings, Sign out; `layout="avatar"` round trigger in the top bar, `layout="block"` full-width trigger with the name at the bottom of the sidebar; signed out a Sign in button). `ThemeToggle` (light → dark → auto, persisted in `localStorage`; `THEME_SCRIPT` applies the saved theme in `<head>` before the first paint — no light flash for dark users; render it **once** — each instance keeps its own mode), `StatePanel` (the one frame for "nothing to show": `EmptyState` with an optional next-step action, `ErrorState` with "Try again" → the query's `refetch`, `NotFoundState` with "Back to home", `QueryErrorState` picking not-found on an API 404 via `isNotFoundError`; `compact` inside a section), `RouteFallback` (`RouteErrorFallback` + `RouteNotFoundFallback`, registered as the router's defaults, both drawn with `StatePanel`), `TimeAgo`, `ui/*` (shadcn) |
 | integration | `src/integrations/tanstack-query/` | `QueryClient` + devtools |

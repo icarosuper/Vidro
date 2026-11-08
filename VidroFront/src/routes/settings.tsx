@@ -1,12 +1,14 @@
 import { createFileRoute, Link, redirect } from '@tanstack/react-router'
-import { Plus } from 'lucide-react'
+import { Clapperboard, Plus } from 'lucide-react'
 import { useState } from 'react'
+import { EmptyState, ErrorState } from '#/components/StatePanel'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -104,9 +106,11 @@ type ChannelsSectionProps = {
 
 function ChannelsSection({ username }: ChannelsSectionProps) {
   const [createOpen, setCreateOpen] = useState(false)
-  const { data, isPending } = useUserChannels(username)
+  const { data, isPending, isError, refetch, isRefetching } =
+    useUserChannels(username)
 
   const channels = data?.channels ?? []
+  const hasNoChannels = !isPending && !isError && channels.length === 0
 
   return (
     <Card>
@@ -122,6 +126,9 @@ function ChannelsSection({ username }: ChannelsSectionProps) {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create channel</DialogTitle>
+              <DialogDescription>
+                A channel is where your videos and playlists live.
+              </DialogDescription>
             </DialogHeader>
             <CreateChannelForm
               username={username}
@@ -133,10 +140,27 @@ function ChannelsSection({ username }: ChannelsSectionProps) {
       <CardContent>
         {isPending && <ChannelsSkeleton />}
 
-        {!isPending && channels.length === 0 && (
-          <p className="py-2 text-sm text-muted-foreground">
-            You have no channels yet.
-          </p>
+        {isError && (
+          <ErrorState
+            compact
+            title="Could not load your channels"
+            onRetry={() => refetch()}
+            isRetrying={isRefetching}
+          />
+        )}
+
+        {hasNoChannels && (
+          <EmptyState
+            compact
+            icon={Clapperboard}
+            title="No channels yet"
+            description="A channel is where your videos and playlists live."
+            action={
+              <Button size="sm" onClick={() => setCreateOpen(true)}>
+                <Plus /> New channel
+              </Button>
+            }
+          />
         )}
 
         {!isPending && channels.length > 0 && (
@@ -156,12 +180,22 @@ function ChannelsSection({ username }: ChannelsSectionProps) {
 }
 
 function SettingsPage() {
-  const { data: profile, isPending, isError, error } = useCurrentUser()
+  const {
+    data: profile,
+    isPending,
+    isError,
+    refetch,
+    isRefetching,
+  } = useCurrentUser()
 
   if (isPending) {
     return (
       <main className="page-container py-8">
-        <p>Loading…</p>
+        <Skeleton className="mb-6 h-8 w-32" />
+        <div className="max-w-lg space-y-6">
+          <Skeleton className="h-40 w-full rounded-xl" />
+          <Skeleton className="h-56 w-full rounded-xl" />
+        </div>
       </main>
     )
   }
@@ -169,7 +203,7 @@ function SettingsPage() {
   if (isError) {
     return (
       <main className="page-container py-8">
-        <p className="text-destructive">{error.message}</p>
+        <ErrorState onRetry={() => refetch()} isRetrying={isRefetching} />
       </main>
     )
   }

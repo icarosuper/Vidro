@@ -29,7 +29,8 @@ at the top of `capture.ts`. Headless Chromium records no mouse pointer, so the p
 
 The seed is safe to rerun: accounts, channels and videos (matched by title) are only created when
 they are missing. The recording uploads a new video on every run and deletes the copy the previous
-run left.
+run left, along with the "Demo video"s `make demo` uploads to the same channel (they would fill the
+recording's "Up next"). Each screenshot is taken with the pointer moved off the page's cards.
 
 ## Gotchas
 

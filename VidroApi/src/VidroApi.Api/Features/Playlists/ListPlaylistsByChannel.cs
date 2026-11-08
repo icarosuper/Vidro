@@ -19,6 +19,8 @@ public static class ListPlaylistsByChannel
         public Guid? RequestingUserId { get; init; }
         public string? Cursor { get; init; }
         public int Limit { get; init; } = 20;
+        // Optional: asks whether each playlist already holds this video (the "Save" picker).
+        public Guid? VideoId { get; init; }
     }
 
     public record PlaylistResponse
@@ -29,6 +31,8 @@ public static class ListPlaylistsByChannel
         public EnumValue Visibility { get; init; } = null!;
         public int VideoCount { get; init; }
         public DateTimeOffset CreatedAt { get; init; }
+        // Null unless the request passed `videoId`.
+        public bool? ContainsVideo { get; init; }
     }
 
     public static void MapEndpoint(IEndpointRouteBuilder app) =>
@@ -37,6 +41,7 @@ public static class ListPlaylistsByChannel
             string handle,
             string? cursor,
             int limit,
+            Guid? videoId,
             ClaimsPrincipal user,
             IMediator mediator,
             CancellationToken ct) =>
@@ -51,7 +56,8 @@ public static class ListPlaylistsByChannel
                 Handle = handle,
                 RequestingUserId = requestingUserId,
                 Cursor = cursor,
-                Limit = Math.Max(1, Math.Min(limit, 100))
+                Limit = Math.Max(1, Math.Min(limit, 100)),
+                VideoId = videoId
             };
 
             var result = await mediator.Send(query, ct);
@@ -66,6 +72,7 @@ public static class ListPlaylistsByChannel
             Query query, CancellationToken ct)
         {
             var playlists = await FetchPlaylists(query, ct);
+            var playlistsWithVideo = await FetchPlaylistsContainingVideo(playlists, query.VideoId, ct);
 
             var responses = playlists
                 .Select(p => new PlaylistResponse
@@ -75,7 +82,8 @@ public static class ListPlaylistsByChannel
                     Description = p.Description,
                     Visibility = EnumValue.From(p.Visibility),
                     VideoCount = p.VideoCount,
-                    CreatedAt = p.CreatedAt
+                    CreatedAt = p.CreatedAt,
+                    ContainsVideo = playlistsWithVideo?.Contains(p.Id)
                 })
                 .ToList();
 
@@ -87,6 +95,21 @@ public static class ListPlaylistsByChannel
             }
 
             return new PagedResult<PlaylistResponse>(responses, nextCursor);
+        }
+
+        // One query for the whole page instead of one per playlist; null when nobody asked.
+        private async Task<HashSet<Guid>?> FetchPlaylistsContainingVideo(
+            List<Domain.Entities.Playlist> playlists, Guid? videoId, CancellationToken ct)
+        {
+            if (videoId is null)
+                return null;
+
+            var playlistIds = playlists.Select(p => p.Id).ToList();
+            var containing = await db.PlaylistItems
+                .Where(pi => pi.VideoId == videoId && playlistIds.Contains(pi.PlaylistId))
+                .Select(pi => pi.PlaylistId)
+                .ToListAsync(ct);
+            return containing.ToHashSet();
         }
 
         private async Task<List<Domain.Entities.Playlist>> FetchPlaylists(Query query, CancellationToken ct)

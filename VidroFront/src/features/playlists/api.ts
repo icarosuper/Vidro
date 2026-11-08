@@ -36,9 +36,12 @@ export function listChannelPlaylists(
   limit: number,
   cursor: string | undefined,
   signal?: AbortSignal,
+  // Each item then says whether it holds this video (`containsVideo`).
+  videoId?: string,
 ) {
   const params = new URLSearchParams({ limit: String(limit) })
   if (cursor) params.set('cursor', cursor)
+  if (videoId) params.set('videoId', videoId)
   return apiClient.get<PlaylistsPage>(
     `/v1/users/${username}/channels/${handle}/playlists?${params.toString()}`,
     signal,
@@ -50,9 +53,11 @@ export function listUserPlaylists(
   limit: number,
   cursor: string | undefined,
   signal?: AbortSignal,
+  videoId?: string,
 ) {
   const params = new URLSearchParams({ limit: String(limit) })
   if (cursor) params.set('cursor', cursor)
+  if (videoId) params.set('videoId', videoId)
   return apiClient.get<PlaylistsPage>(
     `/v1/users/${username}/playlists?${params.toString()}`,
     signal,

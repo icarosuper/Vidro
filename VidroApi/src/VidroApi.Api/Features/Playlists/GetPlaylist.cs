@@ -30,6 +30,9 @@ public static class GetPlaylist
         public int VideoCount { get; init; }
         public Guid? ChannelId { get; init; }
         public DateTimeOffset CreatedAt { get; init; }
+        // Whether the requester may edit, delete and remove items — the owner id itself stays
+        // out of the response. False for an anonymous request.
+        public bool IsOwner { get; init; }
         public List<PlaylistItemResponse> Items { get; init; } = [];
 
         public record PlaylistItemResponse
@@ -86,6 +89,7 @@ public static class GetPlaylist
                 VideoCount = playlist.VideoCount,
                 ChannelId = playlist.ChannelId,
                 CreatedAt = playlist.CreatedAt,
+                IsOwner = isOwner,
                 Items = items
             };
         }
