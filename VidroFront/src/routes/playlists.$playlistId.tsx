@@ -1,6 +1,16 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ListVideo, Lock, Pencil, Play, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '#/components/ui/alert-dialog'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -118,6 +128,7 @@ function PlaylistPage() {
   const { data: playlist, isPending, isError } = usePlaylist(playlistId)
   const deletePlaylist = useDeletePlaylist()
   const [editOpen, setEditOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   if (isPending) return <PlaylistPageSkeleton />
   if (isError || !playlist) {
@@ -189,7 +200,7 @@ function PlaylistPage() {
                     size="icon"
                     className="text-muted-foreground hover:text-destructive"
                     disabled={deletePlaylist.isPending}
-                    onClick={handleDelete}
+                    onClick={() => setDeleteOpen(true)}
                     aria-label="Delete playlist"
                   >
                     <Trash2 />
@@ -223,6 +234,25 @@ function PlaylistPage() {
         </Dialog>
       )}
 
+      {isOwner && (
+        <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this playlist?</AlertDialogTitle>
+              <AlertDialogDescription>
+                “{playlist.name}” will be deleted for good. The videos in it
+                stay where they are.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction variant="destructive" onClick={handleDelete}>
+                Delete playlist
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </main>
   )
 }
