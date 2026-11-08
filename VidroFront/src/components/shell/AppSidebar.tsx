@@ -5,6 +5,7 @@ import { useAuthModal, useIsAuthenticated } from '#/features/auth/hooks'
 import { useCurrentUser } from '#/features/users/hooks'
 import { AccountMenu } from './AccountMenu'
 import { BrandLink } from './BrandLink'
+import { SIDEBAR_ID, SidebarToggle } from './SidebarToggle'
 
 const railLinkClass =
   'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold text-muted-foreground no-underline transition-colors hover:bg-accent hover:text-accent-foreground [&_svg]:size-4'
@@ -81,8 +82,17 @@ function SignedInSections() {
 export function AppSidebar() {
   const isAuthenticated = useIsAuthenticated()
   return (
-    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto border-r border-border bg-secondary/60 p-4 lg:flex">
-      <BrandLink className="mb-8 px-3" />
+    <aside
+      id={SIDEBAR_ID}
+      aria-label="Sidebar"
+      className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto border-r border-border bg-secondary/60 px-4 pb-4 lg:flex lg:sidebar-collapsed:hidden"
+    >
+      {/* Same height and left inset as the top bar (h-14, px-4), so the hamburger stays put when
+          the sidebar collapses and the top bar's one takes over. */}
+      <div className="mb-4 flex h-14 shrink-0 items-center gap-1">
+        <SidebarToggle />
+        <BrandLink />
+      </div>
       <nav aria-label="Main" className="flex flex-col gap-1">
         <Link
           to="/"

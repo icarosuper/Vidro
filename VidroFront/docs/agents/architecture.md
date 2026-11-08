@@ -47,6 +47,7 @@ src/
 │   │   ├── enum-member.ts # toEnumMember: <Select> string → typed enum id
 │   │   ├── token-store.ts # in-memory access token (client-only)
 │   │   ├── error-messages.ts
+│   │   ├── layout-preferences.ts # sidebar collapsed / theater: localStorage + <html> attribute, applied pre-paint by a head script
 │   │   ├── seo.ts          # meta tags (title/OG/Twitter) for each route's `head`
 │   │   └── toast-error.ts
 │   └── types.ts           # ValidationError/API_ERROR_CODES + enum consts

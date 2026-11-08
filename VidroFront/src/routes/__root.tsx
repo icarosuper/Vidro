@@ -14,6 +14,7 @@ import { AuthModalProvider, AuthProvider } from '../features/auth/hooks'
 import { getInitialToken, renewToken } from '../features/auth/server'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 import { apiClient } from '../shared/lib/api-client'
+import { LAYOUT_PREFERENCES_SCRIPT } from '../shared/lib/layout-preferences'
 import { seo } from '../shared/lib/seo'
 import { tokenStore } from '../shared/lib/token-store'
 import appCss from '../styles.css?url'
@@ -77,8 +78,14 @@ function RootApp() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: the head script below adds the layout attributes to <html> before
+    // React hydrates, so the client <html> has attributes the server one did not.
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: a constant written in this repo, no user input — it has to run before the first paint
+          dangerouslySetInnerHTML={{ __html: LAYOUT_PREFERENCES_SCRIPT }}
+        />
         <HeadContent />
       </head>
       <body>

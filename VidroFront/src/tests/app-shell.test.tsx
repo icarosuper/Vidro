@@ -90,6 +90,38 @@ describe('AppShell signed in', () => {
   })
 })
 
+describe('SidebarToggle', () => {
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-sidebar-collapsed')
+  })
+
+  it('collapses the sidebar from inside it and keeps both toggles in step', () => {
+    render(<AppShell>page</AppShell>)
+
+    // One inside the sidebar, one in the top bar (CSS shows only one of them at a time).
+    const toggles = screen.getAllByRole('button', { name: 'Collapse sidebar' })
+    expect(toggles).toHaveLength(2)
+    const sidebar = document.getElementById('app-sidebar')
+    const sidebarToggle = toggles.find((toggle) => sidebar?.contains(toggle))
+    if (!sidebarToggle) throw new Error('no toggle inside the sidebar')
+    expect(sidebarToggle.getAttribute('aria-controls')).toBe('app-sidebar')
+    expect(sidebarToggle.getAttribute('aria-expanded')).toBe('true')
+
+    fireEvent.click(sidebarToggle)
+
+    expect(
+      document.documentElement.hasAttribute('data-sidebar-collapsed'),
+    ).toBe(true)
+    const expandToggles = screen.getAllByRole('button', {
+      name: 'Expand sidebar',
+    })
+    expect(expandToggles).toHaveLength(2)
+    for (const toggle of expandToggles) {
+      expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    }
+  })
+})
+
 describe('SearchBox', () => {
   it('navigates to the search page with the trimmed query', () => {
     render(<AppShell>page</AppShell>)

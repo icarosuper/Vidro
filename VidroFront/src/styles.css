@@ -4,6 +4,9 @@
 @import '@fontsource-variable/jetbrains-mono';
 
 @custom-variant dark (&:is(.dark *));
+/* Layout preferences set on <html> before the first paint (src/shared/lib/layout-preferences.ts). */
+@custom-variant sidebar-collapsed (&:where([data-sidebar-collapsed] *));
+@custom-variant theater (&:where([data-theater] *));
 
 /* Visual identity "Studio" (chosen 2026-11-07 from the prototype parked on the
    `prototype/visual-identity` branch): violet accent, Manrope for text, JetBrains Mono for
@@ -97,3 +100,4 @@
   width: min(1280px, calc(100% - 3rem));
   margin-inline: auto;
 }
+
