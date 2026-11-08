@@ -117,6 +117,16 @@ the image is the whole deploy.
 
 - [ ] No E2E test of the flow that defines the product: upload → processing → play.
       Each repo tests its own edge; the integration between them is not tested.
+- [ ] **A sandbox skill for checking the running app** (like AutoAnimeDownloader's
+      `.claude/skills/sandbox/` + `scripts/sandbox.sh`). Today an agent that wants to click through
+      the UI uses the developer's own stack and data: on 2026-11-07 the pre-merge check of
+      `feature/visual-identity` ran on it, and rebuilding the API without the port override took
+      Postgres down (5432 was held by another project). Wanted: a separate compose project
+      (`-p vidro-sandbox`) on its own ports, throwaway volumes wiped on every start, seeded by
+      `scripts/showcase/seed.ts` (real processed videos, the demo user, a channel and a playlist),
+      a front dev server pointed at the sandbox API (and the API's CORS allowing that origin),
+      agent-browser on a named session, before/after screenshots in a gitignored
+      `.sandbox/reports/`, and a stop step that checks no port is left open.
 
 ### Contract between services — unlocked by the monorepo (2026-08-30)
 
@@ -241,5 +251,6 @@ generated.
 1. **Visual identity "Studio"** (P3) — done on `feature/visual-identity` (add to playlist rode
    along); merging it into `master` is next.
 2. **E2E upload → play** (P2) — the biggest test gap left.
+   The **sandbox skill** (P2) next to it: the same stack, run for an agent instead of a test.
 3. Bigger, for later: history/notifications/captions (P5), observability rung 4 (trace collector),
    worker scaling (P6). The FluentValidation 400 in OpenAPI only when a form needs per-field errors.
