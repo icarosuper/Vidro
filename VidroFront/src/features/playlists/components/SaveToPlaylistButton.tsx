@@ -4,6 +4,7 @@ import { Button } from '#/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
@@ -95,6 +96,9 @@ export function SaveToPlaylistButton({ videoId, ownChannelHandle }: Props) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New playlist</DialogTitle>
+            <DialogDescription>
+              It is created with this video already in it.
+            </DialogDescription>
           </DialogHeader>
           <CreatePlaylistForm onSuccess={handleCreated} />
         </DialogContent>

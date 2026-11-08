@@ -6,6 +6,7 @@ import { Button } from '#/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
@@ -174,6 +175,9 @@ function DashboardPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New playlist</DialogTitle>
+            <DialogDescription>
+              A personal playlist: yours, not tied to one of your channels.
+            </DialogDescription>
           </DialogHeader>
           <CreatePlaylistForm onSuccess={() => setNewPlaylistOpen(false)} />
         </DialogContent>

@@ -6,6 +6,7 @@ import { Button } from '#/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
@@ -163,6 +164,9 @@ export function ChannelHeader({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit channel</DialogTitle>
+            <DialogDescription>
+              Change how the channel is named and described.
+            </DialogDescription>
           </DialogHeader>
           <EditChannelForm
             channel={channel}

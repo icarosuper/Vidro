@@ -7,6 +7,7 @@ import { Button } from '#/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
@@ -340,6 +341,9 @@ export function VideoCard({
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit video</DialogTitle>
+              <DialogDescription>
+                Change the title, description, tags and who can see it.
+              </DialogDescription>
             </DialogHeader>
             <EditVideoForm
               video={video as Parameters<typeof EditVideoForm>[0]['video']}

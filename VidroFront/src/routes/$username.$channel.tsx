@@ -10,6 +10,7 @@ import { Button } from '#/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
@@ -301,6 +302,9 @@ function ChannelPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>New playlist</DialogTitle>
+              <DialogDescription>
+                A playlist of this channel’s videos, shown on its Playlists tab.
+              </DialogDescription>
             </DialogHeader>
             <CreatePlaylistForm
               channelId={channel.channelId}

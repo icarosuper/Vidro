@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -125,6 +126,9 @@ function ChannelsSection({ username }: ChannelsSectionProps) {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create channel</DialogTitle>
+              <DialogDescription>
+                A channel is where your videos and playlists live.
+              </DialogDescription>
             </DialogHeader>
             <CreateChannelForm
               username={username}

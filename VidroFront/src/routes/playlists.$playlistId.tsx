@@ -6,6 +6,7 @@ import { Button } from '#/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
@@ -230,6 +231,9 @@ function PlaylistPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit playlist</DialogTitle>
+              <DialogDescription>
+                Change the name, the description and who can see it.
+              </DialogDescription>
             </DialogHeader>
             <EditPlaylistForm
               playlist={playlist}

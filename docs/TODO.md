@@ -202,6 +202,12 @@ section "What the migration unlocks".
       section uses it, including the router fallbacks; empty states carry the next step when there
       is one ("Upload a video", "New playlist", "New channel"). The remaining "Loading…" text
       (settings, upload, comments) became skeletons; "Loading…" stays only on "Load more" buttons.
+      Checked by hand on 2026-11-07 before the merge (desktop, 390px, dark and light, signed in and
+      out). Fixed from it: "Play all" now plays the playlist (`?list=` on the watch page: queue in
+      the right column, next video on end), the channel tab row no longer jumps, one "New
+      playlist" per screen, the empty playlist says how to fill it, every dialog has a
+      description. Left as GitHub issues #1–#5 (featured card gap, playlist rows without channel,
+      tab title on unknown URLs, dev-server slowness, theme icon before hydration).
       *Next:* merge `feature/visual-identity` into `master`.
 
 
