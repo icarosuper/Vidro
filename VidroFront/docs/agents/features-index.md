@@ -82,6 +82,7 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 | `components/VideoCard.tsx` | Reusable card (home/feed, search and channel). The title link stretches over the card (`after:inset-0`) instead of wrapping it in an `<a>`, so the channel link and the owner buttons (`z-10`) are never nested links. Shows title, channel, mono `views · age` (`formatCompactAge`), up to 3 tags on hover; on hover the extra preview frames cross-fade (`ThumbnailStack`: main frame always underneath, extras mounted on the first hover only, `motion-reduce` skips the fade); likes/dislikes live on the watch page only. Props: `hideChannelInfo` hides the channel avatar/name; `isOwner` shows the edit/thumbnail buttons, status overlay and visibility badge; `isFeatured` spans 2×2 from `sm`. Exports `VideoCardVideo`, the shape it renders, `formatCount` and `formatCompactAge` |
 | `components/VideoGrid.tsx` | Takes `VideoCardVideo[]` (the shape `VideoCard` renders), not a generated alias — search results lack `dislikeCount`. `featureFirst` makes the first card `isFeatured` — only on the first grid of a page |
 | `components/VideoPlayer.tsx` | HLS player |
+| `components/UpNextList.tsx` | The watch page's "Up next" column: compact rows with a stretched title link. `pickUpNextVideos` — the channel's other videos first, then trending; never the current video, no duplicates, only `Ready` + `Public` (the owner's channel listing carries private and processing ones) |
 | `components/UploadVideoForm.tsx` | Creates the video + upload + polling |
 | `components/EditVideoForm.tsx` | |
 | `components/visibility-options.ts` | `VIDEO_VISIBILITY_OPTIONS` — the visibility `<Select>` options shared by the upload and edit forms, built from `VideoVisibility` |
@@ -153,7 +154,7 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 | Route | File | Strategy | Auth | Features consumed |
 |---|---|---|---|---|
 | `/` | `index.tsx` | SSR | public | videos (trending/feed; an empty feed is hidden, and the first section shown features its first card) |
-| `/watch/$videoId` | `watch.$videoId.tsx` | SSR | public | videos, channels, comments |
+| `/watch/$videoId` | `watch.$videoId.tsx` | SSR | public | videos, channels, comments. From `xl` two columns (player, info, comments \| "Up next"); below it "Up next" sits between the description and the comments. Reactions are one segmented `ReactionPill` |
 | `/search` | `search.tsx` | SSR | public | videos (search; query in `?q=`, field in the `TopBar`'s `SearchBox`) |
 | `/$username` | `$username.tsx` + `$username.index.tsx` | SSR | public | users, channels |
 | `/$username/$channel` | `$username.$channel.tsx` | SSR | public | channels, videos, playlists |

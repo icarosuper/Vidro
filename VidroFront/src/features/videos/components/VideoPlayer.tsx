@@ -42,7 +42,7 @@ export function VideoPlayer({ src, poster }: VideoPlayerProps) {
       ref={videoRef}
       poster={poster}
       controls
-      className="h-full w-full rounded-lg bg-black"
+      className="h-full w-full bg-black"
     />
   )
 }

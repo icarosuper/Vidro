@@ -171,7 +171,10 @@ section "What the migration unlocks".
       `VideoCard` rebuilt: the title is a stretched link instead of an `<a>` around the card, which
       also ended the nested-`<a>` React warning; mono `views · age`, tags on hover, a featured 2×2
       first card on the home (Trending takes it when the feed is empty — the empty feed is hidden).
-      *Next, in order:* watch, channel and playlist pages (the channel page keeps its own
+      Watch page: two columns from `xl` with an "Up next" list (channel first, then trending),
+      reactions as one segmented pill, description in a box with mono views/date and `#tags`, a
+      skeleton instead of "Loading…".
+      *Next, in order:* channel and playlist pages (the channel page keeps its own
       `grid-cols-2` grid, so on a phone its cards are tiny, and its header squeezes the description
       into a narrow column) → loading and empty states.
 
@@ -218,7 +221,7 @@ performance work (P-PERF1 to P-PERF6, P-OPT1) is closed: ~26 s per job for 55 s 
 (webhook, job envelope, paths, timeout, enums) and the front's success and domain error types are
 generated.
 
-1. **Visual identity "Studio"** (P3) — in progress on `feature/visual-identity`; the watch, channel and playlist pages are next.
+1. **Visual identity "Studio"** (P3) — in progress on `feature/visual-identity`; the channel and playlist pages are next.
 2. **E2E upload → play** (P2) — the biggest test gap left.
 3. Bigger, for later: history/notifications/captions (P5), observability rung 4 (trace collector),
    worker scaling (P6). The FluentValidation 400 in OpenAPI only when a form needs per-field errors.
