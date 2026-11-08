@@ -43,7 +43,11 @@ type VideoCardProps = {
 }
 
 const VISIBLE_TAG_LIMIT = 3
-const THUMBNAIL_CYCLE_MS = 800
+// Each extra frame stays up for the cycle and cross-fades in over the fade; the fade has to be
+// shorter than the cycle, or a frame never settles before the next one starts.
+const THUMBNAIL_CYCLE_MS = 1000
+const THUMBNAIL_FADE_CLASS = 'duration-500'
+const FIRST_FRAME_DELAY_MS = 150
 
 export function formatCount(count: number): string {
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`
@@ -75,38 +79,95 @@ function visibilityBadgeVariant(
 
 // On hover the thumbnail cycles through the extra frames the worker generated.
 function useThumbnailCycling(thumbnailUrls: string[]) {
+  // The frame on show while hovered (0 is the main one); null when not hovered.
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const firstFrameTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  )
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const hasExtraThumbnails = thumbnailUrls.length > 1
 
+  function clearTimers() {
+    if (firstFrameTimeoutRef.current) clearTimeout(firstFrameTimeoutRef.current)
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    firstFrameTimeoutRef.current = null
+    intervalRef.current = null
+  }
+
+  // Index 0 first mounts the extra frames invisible; only then does frame 1 get to fade in. Going
+  // straight to 1 would mount it already visible, and the first switch would be a hard cut.
   function startCycling() {
     if (!hasExtraThumbnails) return
-    let index = 1
-    setHoveredIndex(index)
-    intervalRef.current = setInterval(() => {
-      index = (index % (thumbnailUrls.length - 1)) + 1
+    setHoveredIndex(0)
+    firstFrameTimeoutRef.current = setTimeout(() => {
+      let index = 1
       setHoveredIndex(index)
-    }, THUMBNAIL_CYCLE_MS)
+      intervalRef.current = setInterval(() => {
+        index = (index % (thumbnailUrls.length - 1)) + 1
+        setHoveredIndex(index)
+      }, THUMBNAIL_CYCLE_MS)
+    }, FIRST_FRAME_DELAY_MS)
   }
 
   function stopCycling() {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-    }
+    clearTimers()
     setHoveredIndex(null)
   }
 
-  useEffect(
-    () => () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    },
-    [],
-  )
+  // biome-ignore lint/correctness/useExhaustiveDependencies: unmount-only cleanup; clearTimers only touches refs
+  useEffect(() => clearTimers, [])
 
-  const shownIndex = hoveredIndex ?? 0
-  const thumbnailUrl = thumbnailUrls[shownIndex] ?? null
-  return { thumbnailUrl, startCycling, stopCycling }
+  return { hoveredIndex, startCycling, stopCycling }
+}
+
+type ThumbnailStackProps = {
+  thumbnailUrls: string[]
+  hoveredIndex: number | null
+}
+
+// The main frame always sits at the bottom; the extra frames are stacked on top and cross-fade by
+// opacity. A frame still loading is transparent, so the main one shows through instead of a blank
+// flash. The extra frames only mount on the first hover — a page of cards does not download every
+// preview frame up front.
+function ThumbnailStack({ thumbnailUrls, hoveredIndex }: ThumbnailStackProps) {
+  const [mainThumbnailUrl, ...extraThumbnailUrls] = thumbnailUrls
+  const [hasBeenHovered, setHasBeenHovered] = useState(false)
+  const isHovered = hoveredIndex !== null
+  if (isHovered && !hasBeenHovered) setHasBeenHovered(true)
+
+  if (!mainThumbnailUrl) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <span className="text-sm text-muted-foreground">No thumbnail</span>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <img
+        src={mainThumbnailUrl}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {hasBeenHovered &&
+        extraThumbnailUrls.map((url, extraIndex) => {
+          const isShown = hoveredIndex === extraIndex + 1
+          return (
+            <img
+              key={url}
+              src={url}
+              alt=""
+              className={cn(
+                'absolute inset-0 h-full w-full object-cover transition-opacity ease-in-out motion-reduce:transition-none',
+                THUMBNAIL_FADE_CLASS,
+                isShown ? 'opacity-100' : 'opacity-0',
+              )}
+            />
+          )
+        })}
+    </>
+  )
 }
 
 // The title link stretches over the whole card (`after:inset-0`), so the card is one click target
@@ -121,7 +182,7 @@ export function VideoCard({
   const [editOpen, setEditOpen] = useState(false)
   const thumbnailInputRef = useRef<HTMLInputElement>(null)
   const uploadThumbnail = useUploadThumbnail(video.videoId)
-  const { thumbnailUrl, startCycling, stopCycling } = useThumbnailCycling(
+  const { hoveredIndex, startCycling, stopCycling } = useThumbnailCycling(
     video.thumbnailUrls,
   )
 
@@ -153,19 +214,10 @@ export function VideoCard({
         onMouseLeave={stopCycling}
       >
         <div className="relative aspect-video w-full overflow-hidden rounded-md bg-muted">
-          {thumbnailUrl ? (
-            <img
-              src={thumbnailUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <span className="text-sm text-muted-foreground">
-                No thumbnail
-              </span>
-            </div>
-          )}
+          <ThumbnailStack
+            thumbnailUrls={video.thumbnailUrls}
+            hoveredIndex={hoveredIndex}
+          />
 
           {isOwner && isNotReady && video.status && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50">

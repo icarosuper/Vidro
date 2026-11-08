@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -98,6 +98,58 @@ describe('VideoCard', () => {
       screen.getByRole('button', { name: 'Upload thumbnail' }),
     ).toBeTruthy()
     expect(screen.getByText('Unlisted')).toBeTruthy()
+  })
+})
+
+describe('VideoCard thumbnail preview', () => {
+  const framedVideo: VideoCardVideo = {
+    ...video,
+    thumbnailUrls: [
+      'https://cdn/0.jpg',
+      'https://cdn/1.jpg',
+      'https://cdn/2.jpg',
+    ],
+  }
+  const frameSources = (container: HTMLElement) =>
+    [...container.querySelectorAll('img')].map((image) =>
+      image.getAttribute('src'),
+    )
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('does not download the extra frames before the first hover', () => {
+    const { container } = render(<VideoCard video={framedVideo} />)
+
+    expect(frameSources(container)).toEqual(['https://cdn/0.jpg'])
+  })
+
+  it('cross-fades through the extra frames while hovered and back on leave', () => {
+    vi.useFakeTimers()
+    const { container } = render(<VideoCard video={framedVideo} />)
+    const card = container.querySelector('article') as HTMLElement
+    const frame = (source: string) =>
+      container.querySelector(`img[src="${source}"]`) as HTMLElement
+
+    fireEvent.mouseEnter(card)
+    expect(frame('https://cdn/1.jpg').className).toContain('opacity-0')
+
+    act(() => {
+      vi.advanceTimersByTime(150)
+    })
+    expect(frame('https://cdn/1.jpg').className).toContain('opacity-100')
+    expect(frame('https://cdn/2.jpg').className).toContain('opacity-0')
+
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
+    expect(frame('https://cdn/1.jpg').className).toContain('opacity-0')
+    expect(frame('https://cdn/2.jpg').className).toContain('opacity-100')
+
+    fireEvent.mouseLeave(card)
+    expect(frame('https://cdn/2.jpg').className).toContain('opacity-0')
+    expect(frame('https://cdn/0.jpg').className).not.toContain('opacity-0')
   })
 })
 
