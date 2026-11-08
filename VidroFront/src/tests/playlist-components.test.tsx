@@ -71,6 +71,7 @@ function buildSummary(
     visibility: { id: PlaylistVisibility.Public, value: 'Public' },
     videoCount: 2,
     createdAt: '2024-01-01T00:00:00Z',
+    containsVideo: null,
     ...overrides,
   }
 }

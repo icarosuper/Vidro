@@ -876,6 +876,7 @@ export interface paths {
                 query: {
                     cursor?: string;
                     limit: number;
+                    videoId?: string;
                 };
                 header?: never;
                 path: {
@@ -926,6 +927,7 @@ export interface paths {
                 query: {
                     cursor?: string;
                     limit: number;
+                    videoId?: string;
                 };
                 header?: never;
                 path: {
@@ -2080,6 +2082,7 @@ export interface components {
             videoCount: number;
             /** Format: date-time */
             createdAt: string;
+            containsVideo: null | boolean;
         };
         ListPlaylistsByChannelPlaylistResponsePagedResult: {
             items: components["schemas"]["ListPlaylistsByChannelPlaylistResponse"][];
@@ -2098,6 +2101,7 @@ export interface components {
             videoCount: number;
             /** Format: date-time */
             createdAt: string;
+            containsVideo: null | boolean;
         };
         ListPlaylistsByUserPlaylistResponsePagedResult: {
             items: components["schemas"]["ListPlaylistsByUserPlaylistResponse"][];

@@ -56,6 +56,9 @@ golden on both sides (API and worker), mutation-verified.
 has one schema per slice and enums with values, and the front's request/response types are
 generated from it (`schema.d.ts`, CI-gated). Then the domain error body: `ApiErrorResponse` on a
 `4XX` range of every `/v1` route, and the front's `ApiError` became its alias.
+*(2026-11-07)* **Add to playlist**: playlists could be created but never filled from the UI. The
+watch page got a "Save" menu (a checkbox per playlist, "New playlist" at the bottom), fed by an
+optional `?videoId=` on both playlist listings that returns `containsVideo` per item.
 
 **Overall state:** the features are done (every Front phase ✅, API plan 100% checked, Processor
 ~95%), and the shared contract between the three services is fully golden. What is missing is not
@@ -191,11 +194,6 @@ section "What the migration unlocks".
       (settings, upload, comments) became skeletons; "Loading…" stays only on "Load more" buttons.
       *Next:* merge `feature/visual-identity` into `master`.
 
-- [ ] **No way to add a video to a playlist.** `useAddVideoToPlaylist`
-      (`VidroFront/src/features/playlists/hooks.ts`) and `POST /v1/playlists/{id}/items` exist, but
-      no screen calls them — a playlist can only be created, never filled, from the UI. Found on
-      2026-11-07 while writing the playlist's empty state. Likely home: a "Save" button on the
-      watch page that opens the user's and the channel's playlists.
 
 
 ---
@@ -240,8 +238,8 @@ performance work (P-PERF1 to P-PERF6, P-OPT1) is closed: ~26 s per job for 55 s 
 (webhook, job envelope, paths, timeout, enums) and the front's success and domain error types are
 generated.
 
-1. **Visual identity "Studio"** (P3) — done on `feature/visual-identity`; merging it into `master` is next.
-   Then **add to playlist** (P3), the missing screen that leaves playlists empty.
+1. **Visual identity "Studio"** (P3) — done on `feature/visual-identity` (add to playlist rode
+   along); merging it into `master` is next.
 2. **E2E upload → play** (P2) — the biggest test gap left.
 3. Bigger, for later: history/notifications/captions (P5), observability rung 4 (trace collector),
    worker scaling (P6). The FluentValidation 400 in OpenAPI only when a form needs per-field errors.

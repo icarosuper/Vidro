@@ -14,6 +14,7 @@ import { useIsAuthenticated } from '#/features/auth/hooks'
 import { SubscribeButton } from '#/features/channels/components/SubscribeButton'
 import { CommentList } from '#/features/comments/components/CommentList'
 import { ExpandableText } from '#/features/comments/components/ExpandableText'
+import { SaveToPlaylistButton } from '#/features/playlists/components/SaveToPlaylistButton'
 import { useCurrentUser } from '#/features/users/hooks'
 import { getVideo } from '#/features/videos/api'
 import {
@@ -358,6 +359,10 @@ function WatchPage() {
               disabledReason={reactionDisabledReason}
               onLike={handleLike}
               onDislike={handleDislike}
+            />
+            <SaveToPlaylistButton
+              videoId={video.videoId}
+              ownChannelHandle={isOwnChannel ? video.channelHandle : undefined}
             />
             <TheaterModeButton />
           </div>

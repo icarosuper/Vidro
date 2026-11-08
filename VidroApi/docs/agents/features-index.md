@@ -80,7 +80,7 @@ Not features — mapped directly in `Program.cs`.
 | GetPlaylist | `Playlists/GetPlaylist.cs` | `GET /v1/playlists/{playlistId}` |
 | UpdatePlaylist | `Playlists/UpdatePlaylist.cs` | `PUT /v1/playlists/{playlistId}` |
 | DeletePlaylist | `Playlists/DeletePlaylist.cs` | `DELETE /v1/playlists/{playlistId}` |
-| ListPlaylistsByChannel | `Playlists/ListPlaylistsByChannel.cs` | `GET /v1/users/{username}/channels/{handle}/playlists` |
-| ListPlaylistsByUser | `Playlists/ListPlaylistsByUser.cs` | `GET /v1/users/{username}/playlists` |
+| ListPlaylistsByChannel | `Playlists/ListPlaylistsByChannel.cs` | `GET /v1/users/{username}/channels/{handle}/playlists` — optional `?videoId=` fills `containsVideo` per item |
+| ListPlaylistsByUser | `Playlists/ListPlaylistsByUser.cs` | `GET /v1/users/{username}/playlists` — optional `?videoId=` fills `containsVideo` per item |
 | AddVideoToPlaylist | `Playlists/AddVideoToPlaylist.cs` | `POST /v1/playlists/{playlistId}/items` |
 | RemoveVideoFromPlaylist | `Playlists/RemoveVideoFromPlaylist.cs` | `DELETE /v1/playlists/{playlistId}/items/{videoId}` |

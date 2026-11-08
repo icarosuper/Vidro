@@ -131,12 +131,13 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 | File | Contents |
 |---|---|
 | `api.ts` | `createPlaylist`, `getPlaylist`, `updatePlaylist`, `deletePlaylist`, `listChannelPlaylists`, `listUserPlaylists`, `addVideoToPlaylist`, `removeVideoFromPlaylist` |
-| `hooks.ts` | `usePlaylist`, `useChannelPlaylists`, `useUserPlaylists`, `useCreatePlaylist`, `useUpdatePlaylist`, `useDeletePlaylist`, `useAddVideoToPlaylist`, `useRemoveVideoFromPlaylist`, `playlistKeys` |
+| `hooks.ts` | `usePlaylist`, `useChannelPlaylists`, `useUserPlaylists`, `useCreatePlaylist`, `useUpdatePlaylist`, `useDeletePlaylist`, `useAddVideoToPlaylist`, `useRemoveVideoFromPlaylist`, `useSaveTargets` (the Save picker's playlists — personal, plus the channel's when the video is the viewer's own — each with `containsVideo`), `useToggleVideoInPlaylist` (adds/removes with an optimistic checkbox, then refetches every playlist query), `playlistKeys` |
 | `server.ts` | `fetchPlaylistSsr` — the `/playlists/$playlistId` loader's fetch on the server, with the context's `accessToken` so `isOwner` and private playlists come right on the first render |
 | `types.ts` | Re-exports from `#/shared/api`: `PlaylistSummary`, `Playlist` (carries `isOwner` for the requester), `PlaylistItem`, `PlaylistsPage`, `CreatePlaylistRequest`, `CreatePlaylistResponse`, `UpdatePlaylistRequest` |
 | `components/PlaylistCard.tsx` | Same frame as `VideoCard` (stretched title link, hover surface) so both share `CARD_GRID_CLASS`; the tile is a stack of cards with the mono video count and a Private badge |
 | `components/CreatePlaylistForm.tsx` | Create form (name, description, visibility; scope/channelId via props) |
 | `components/EditPlaylistForm.tsx` | Edit form (name, description, visibility) |
+| `components/SaveToPlaylistButton.tsx` | The watch page's "Save" ("Saved" once the video is in any playlist): a menu with a checkbox per playlist that stays open between clicks, grouped only when channel playlists appear, and "New playlist", which creates one and puts the video in it. Signed out it opens the sign-in modal |
 | `components/DeletePlaylistDialog.tsx` | The confirmation asked before deleting a playlist — from the playlist page and from the dashboard. Closed while `playlistName` is null |
 | `components/PlaylistItemList.tsx` | Numbered video rows (stretched title link, thumbnail, mono duration) with a remove button (owner-only, shown on hover from `sm`) |
 
@@ -145,8 +146,8 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 - `GET /v1/playlists/{playlistId}`
 - `PUT /v1/playlists/{playlistId}`
 - `DELETE /v1/playlists/{playlistId}`
-- `GET /v1/users/{username}/channels/{handle}/playlists?limit&cursor`
-- `GET /v1/users/{username}/playlists?limit&cursor`
+- `GET /v1/users/{username}/channels/{handle}/playlists?limit&cursor&videoId`
+- `GET /v1/users/{username}/playlists?limit&cursor&videoId`
 - `POST /v1/playlists/{playlistId}/items`
 - `DELETE /v1/playlists/{playlistId}/items/{videoId}`
 

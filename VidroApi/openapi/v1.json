@@ -857,6 +857,14 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          {
+            "name": "videoId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -911,6 +919,14 @@
             "schema": {
               "type": "integer",
               "format": "int32"
+            }
+          },
+          {
+            "name": "videoId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2781,7 +2797,8 @@
           "description",
           "visibility",
           "videoCount",
-          "createdAt"
+          "createdAt",
+          "containsVideo"
         ],
         "type": "object",
         "properties": {
@@ -2808,6 +2825,12 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "containsVideo": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -2857,7 +2880,8 @@
           "description",
           "visibility",
           "videoCount",
-          "createdAt"
+          "createdAt",
+          "containsVideo"
         ],
         "type": "object",
         "properties": {
@@ -2884,6 +2908,12 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "containsVideo": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
