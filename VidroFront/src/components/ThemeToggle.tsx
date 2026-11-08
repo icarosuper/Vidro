@@ -59,8 +59,24 @@ function applyThemeMode(mode: ThemeMode) {
   document.documentElement.style.colorScheme = resolved
 }
 
-// ponytail: the theme is only applied after hydration, so whoever picked dark sees a light
-// flash on the first paint. Fixing it takes an inline script in the shellComponent's <head>.
+// Inlined in <head> by the root route, so the saved theme is on <html> before the first paint —
+// applied only after hydration, whoever picked dark saw a light flash on every load. The same
+// steps as applyThemeMode, in plain ES5: it runs before any bundle loads. ThemeToggle re-applies
+// on mount, which is a no-op by then.
+export const THEME_SCRIPT = `(function () {
+  try {
+    var stored = localStorage.getItem('theme');
+    var mode = stored === 'light' || stored === 'dark' ? stored : 'auto';
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var resolved = mode === 'auto' ? (prefersDark ? 'dark' : 'light') : mode;
+    var root = document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(resolved);
+    if (mode !== 'auto') root.setAttribute('data-theme', mode);
+    root.style.colorScheme = resolved;
+  } catch (error) {}
+})();`
+
 // Render it once: each instance keeps its own mode, so two copies would drift apart.
 export default function ThemeToggle() {
   const [mode, setMode] = useState<ThemeMode>('auto')

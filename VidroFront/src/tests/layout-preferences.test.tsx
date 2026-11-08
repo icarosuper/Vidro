@@ -2,6 +2,7 @@
 
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { THEME_SCRIPT } from '#/components/ThemeToggle'
 import {
   LAYOUT_PREFERENCES_SCRIPT,
   useLayoutPreference,
@@ -80,5 +81,44 @@ describe('LAYOUT_PREFERENCES_SCRIPT', () => {
     vi.stubGlobal('localStorage', undefined)
 
     expect(() => new Function(LAYOUT_PREFERENCES_SCRIPT)()).not.toThrow()
+  })
+})
+
+describe('THEME_SCRIPT', () => {
+  function stubSystemPrefersDark(prefersDark: boolean) {
+    vi.stubGlobal('matchMedia', () => ({ matches: prefersDark }))
+  }
+
+  afterEach(() => {
+    html.classList.remove('light', 'dark')
+    html.removeAttribute('data-theme')
+    html.style.colorScheme = ''
+  })
+
+  it('puts a saved dark theme on <html> before the app loads', () => {
+    stubLocalStorage().set('theme', 'dark')
+    stubSystemPrefersDark(false)
+
+    new Function(THEME_SCRIPT)()
+
+    expect(html.classList.contains('dark')).toBe(true)
+    expect(html.getAttribute('data-theme')).toBe('dark')
+    expect(html.style.colorScheme).toBe('dark')
+  })
+
+  it('follows the system when nothing is saved', () => {
+    stubLocalStorage()
+    stubSystemPrefersDark(true)
+
+    new Function(THEME_SCRIPT)()
+
+    expect(html.classList.contains('dark')).toBe(true)
+    expect(html.hasAttribute('data-theme')).toBe(false)
+  })
+
+  it('does not throw when storage is unavailable', () => {
+    vi.stubGlobal('localStorage', undefined)
+
+    expect(() => new Function(THEME_SCRIPT)()).not.toThrow()
   })
 })

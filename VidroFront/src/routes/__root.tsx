@@ -9,6 +9,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { Toaster } from 'sonner'
 import { AppShell } from '../components/shell/AppShell'
+import { THEME_SCRIPT } from '../components/ThemeToggle'
 import { AuthModal } from '../features/auth/components/AuthModal'
 import { AuthModalProvider, AuthProvider } from '../features/auth/hooks'
 import { getInitialToken, renewToken } from '../features/auth/server'
@@ -78,13 +79,15 @@ function RootApp() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    // suppressHydrationWarning: the head script below adds the layout attributes to <html> before
-    // React hydrates, so the client <html> has attributes the server one did not.
+    // suppressHydrationWarning: the head script below sets the theme class and the layout attributes
+    // on <html> before React hydrates, so the client <html> differs from the server one.
     <html lang="en" suppressHydrationWarning>
       <head>
         <script
           // biome-ignore lint/security/noDangerouslySetInnerHtml: a constant written in this repo, no user input — it has to run before the first paint
-          dangerouslySetInnerHTML={{ __html: LAYOUT_PREFERENCES_SCRIPT }}
+          dangerouslySetInnerHTML={{
+            __html: THEME_SCRIPT + LAYOUT_PREFERENCES_SCRIPT,
+          }}
         />
         <HeadContent />
       </head>
