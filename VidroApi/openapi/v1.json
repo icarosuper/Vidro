@@ -2194,6 +2194,7 @@
           "videoCount",
           "channelId",
           "createdAt",
+          "isOwner",
           "items"
         ],
         "type": "object",
@@ -2231,6 +2232,9 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "isOwner": {
+            "type": "boolean"
           },
           "items": {
             "type": "array",

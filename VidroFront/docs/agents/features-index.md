@@ -132,7 +132,8 @@ Trending, feed, search, detail, reactions, upload (create + presigned + status p
 |---|---|
 | `api.ts` | `createPlaylist`, `getPlaylist`, `updatePlaylist`, `deletePlaylist`, `listChannelPlaylists`, `listUserPlaylists`, `addVideoToPlaylist`, `removeVideoFromPlaylist` |
 | `hooks.ts` | `usePlaylist`, `useChannelPlaylists`, `useUserPlaylists`, `useCreatePlaylist`, `useUpdatePlaylist`, `useDeletePlaylist`, `useAddVideoToPlaylist`, `useRemoveVideoFromPlaylist`, `playlistKeys` |
-| `types.ts` | Re-exports from `#/shared/api`: `PlaylistSummary`, `Playlist`, `PlaylistItem`, `PlaylistsPage`, `CreatePlaylistRequest`, `CreatePlaylistResponse`, `UpdatePlaylistRequest` |
+| `server.ts` | `fetchPlaylistSsr` — the `/playlists/$playlistId` loader's fetch on the server, with the context's `accessToken` so `isOwner` and private playlists come right on the first render |
+| `types.ts` | Re-exports from `#/shared/api`: `PlaylistSummary`, `Playlist` (carries `isOwner` for the requester), `PlaylistItem`, `PlaylistsPage`, `CreatePlaylistRequest`, `CreatePlaylistResponse`, `UpdatePlaylistRequest` |
 | `components/PlaylistCard.tsx` | Same frame as `VideoCard` (stretched title link, hover surface) so both share `CARD_GRID_CLASS`; the tile is a stack of cards with the mono video count and a Private badge |
 | `components/CreatePlaylistForm.tsx` | Create form (name, description, visibility; scope/channelId via props) |
 | `components/EditPlaylistForm.tsx` | Edit form (name, description, visibility) |

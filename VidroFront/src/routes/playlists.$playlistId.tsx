@@ -17,17 +17,20 @@ import {
   useDeletePlaylist,
   usePlaylist,
 } from '#/features/playlists/hooks'
+import { fetchPlaylistSsr } from '#/features/playlists/server'
 import type { Playlist } from '#/features/playlists/types'
-import { useCurrentUser } from '#/features/users/hooks'
 import { formatCompactAge } from '#/features/videos/components/VideoCard'
 import { seo } from '#/shared/lib/seo'
 import { PlaylistVisibility } from '#/shared/types'
 
 export const Route = createFileRoute('/playlists/$playlistId')({
-  loader: async ({ params, context: { queryClient } }) => {
+  loader: async ({ params, context: { queryClient, accessToken } }) => {
     await queryClient.prefetchQuery({
       queryKey: playlistKeys.detail(params.playlistId),
-      queryFn: () => getPlaylist(params.playlistId),
+      queryFn: () =>
+        typeof window === 'undefined'
+          ? fetchPlaylistSsr(params.playlistId, accessToken)
+          : getPlaylist(params.playlistId),
     })
 
     const playlist = queryClient.getQueryData<Playlist>(
@@ -113,7 +116,6 @@ function PlaylistPage() {
   const { playlistId } = Route.useParams()
   const navigate = Route.useNavigate()
   const { data: playlist, isPending, isError } = usePlaylist(playlistId)
-  const { data: currentUser } = useCurrentUser()
   const deletePlaylist = useDeletePlaylist()
   const [editOpen, setEditOpen] = useState(false)
 
@@ -126,10 +128,7 @@ function PlaylistPage() {
     )
   }
 
-  const isOwner =
-    !!currentUser && playlist.channelId
-      ? false // channel playlists: ownership checked via channel, not shown here
-      : !!currentUser
+  const { isOwner } = playlist
   const isPrivate = playlist.visibility.id === PlaylistVisibility.Private
   const firstVideo = playlist.items[0]
 
@@ -223,6 +222,7 @@ function PlaylistPage() {
           </DialogContent>
         </Dialog>
       )}
+
     </main>
   )
 }

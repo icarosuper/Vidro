@@ -215,6 +215,7 @@ describe('EditPlaylistForm', () => {
       scope: { id: PlaylistScope.User, value: 'User' },
       videoCount: 0,
       channelId: null,
+      isOwner: true,
       createdAt: '2024-01-01T00:00:00Z',
       items: [],
     }

@@ -34,6 +34,35 @@ public class GetPlaylistTests(ApiFactory factory) : IClassFixture<ApiFactory>
         data.GetProperty("name").GetString().Should().Be("My Playlist");
         data.GetProperty("videoCount").GetInt32().Should().Be(0);
         data.GetProperty("items").GetArrayLength().Should().Be(0);
+        data.GetProperty("isOwner").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetPlaylist_AsOwner_ReturnsIsOwnerTrue()
+    {
+        var token = await SignUpAndGetAccessToken();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var playlistId = await CreatePlaylist("My Playlist", 0);
+
+        var response = await _client.GetAsync($"/v1/playlists/{playlistId}");
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        body.GetProperty("data").GetProperty("isOwner").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetPlaylist_AsAnotherUser_ReturnsIsOwnerFalse()
+    {
+        var ownerToken = await SignUpAndGetAccessToken();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerToken);
+        var playlistId = await CreatePlaylist("My Playlist", 0);
+
+        var otherToken = await SignUpAndGetAccessToken();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", otherToken);
+        var response = await _client.GetAsync($"/v1/playlists/{playlistId}");
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        body.GetProperty("data").GetProperty("isOwner").GetBoolean().Should().BeFalse();
     }
 
     [Fact]

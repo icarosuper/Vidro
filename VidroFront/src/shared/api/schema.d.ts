@@ -1939,6 +1939,7 @@ export interface components {
             channelId: null | string;
             /** Format: date-time */
             createdAt: string;
+            isOwner: boolean;
             items: components["schemas"]["GetPlaylistResponsePlaylistItemResponse"][];
         };
         GetPlaylistResponseApiResponse: {
