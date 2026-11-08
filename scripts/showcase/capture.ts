@@ -167,11 +167,18 @@ async function toWebp(rawPng: string, name: string) {
   ])
 }
 
+const HOVER_FADE_MS = 600
+
 // `height` grows the shot past the viewport, for pages whose point is below the fold.
 async function screenshot(page: Page, name: string, height?: number) {
   const rawPng = `${RAW_DIR}${name}.png`
   const viewport = page.viewportSize()!
   const clip = height ? { x: 0, y: 0, width: viewport.width, height } : undefined
+  // Off every card: the pointer is left where the last click was (often the sign-in dialog, over
+  // the home's featured card), and a hovered card shows its tags and lifted surface.
+  await page.mouse.move(viewport.width / 2, 1)
+  // The hover styles fade out (CSS transitions); shooting right after the move catches them.
+  await page.waitForTimeout(HOVER_FADE_MS)
   await page.screenshot({ path: rawPng, fullPage: Boolean(height), clip })
   await toWebp(rawPng, name)
   console.log(`  ${name}.webp`)
@@ -289,7 +296,10 @@ async function recordUploadFlow(browser: Browser) {
 }
 
 // The recording uploads the same clip every run; drop the previous copies so the catalog does
-// not fill up with them.
+// not fill up with them. `make demo` uploads its test card to the same channel too, and those
+// fill the recording's "Up next" (the channel's own videos come first) — they go as well.
+const DEMO_SCRIPT_VIDEO_TITLE = 'Demo video'
+
 async function deletePreviousUploads() {
   const signInResponse = await fetch(`${API_URL}/v1/auth/signin`, {
     method: 'POST',
@@ -301,7 +311,9 @@ async function deletePreviousUploads() {
     `/v1/users/${VIEWER.username}/channels/${VIEWER.channel.handle}/videos?limit=50`,
     data.accessToken,
   )
-  const previousUploads = channelVideos.videos.filter((video) => video.title === UPLOAD_CLIP.title)
+  const previousUploads = channelVideos.videos.filter(
+    (video) => video.title === UPLOAD_CLIP.title || video.title === DEMO_SCRIPT_VIDEO_TITLE,
+  )
   for (const video of previousUploads) {
     await fetch(`${API_URL}/v1/videos/${video.videoId}`, {
       method: 'DELETE',
